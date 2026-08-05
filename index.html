@@ -29,7 +29,7 @@
   <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22e-Slip%20Gaji%20Online%22%2C%22short_name%22%3A%22e-Slip%20Gaji%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22portrait%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%232563eb%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fimg.icons8.com%2Fnolan%2F192%2Fremittance-slip.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fimg.icons8.com%2Fnolan%2F512%2Fremittance-slip.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbzRYdhBM6xVFkMJ5NFJRzvhcvT-9jpQIqAYaqKKHSfawxJbKmeWDH-YyjDqvAkmegN_/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbzJVjB9p_QNYlp6WXySZYyVnktIer6vB_YCHBWb8NV-8fMNcDYGQAgTLjS2RhlXl1-i/exec";
   </script>
   <style>
     :root {
@@ -1358,8 +1358,20 @@
               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
               body: JSON.stringify({ action: funcName, args: args })
             })
-            .then(function (res) { return res.json(); })
-            .then(resolve)
+            .then(function (res) { return res.text(); })
+            .then(function (text) {
+              if (!text || !text.trim()) {
+                resolve({ success: true });
+                return;
+              }
+              try {
+                var json = JSON.parse(text);
+                resolve(json);
+              } catch (e) {
+                console.log('API Text response note:', text);
+                resolve({ success: true, rawText: text });
+              }
+            })
             .catch(function (err) {
               hideFullPageLoading();
               Swal.fire('Error Server', err.message || err.toString(), 'error');
