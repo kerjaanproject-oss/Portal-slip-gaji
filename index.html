@@ -2415,7 +2415,9 @@
         if (!slip) return;
 
         // Record access/download in audit log
-        gasRun('recordSlipAccess', Auth.getToken(), slipId);
+        gasRun('recordSlipAccess', Auth.getToken(), slipId).catch(function (err) {
+          console.log('Audit access note:', err);
+        });
 
         document.getElementById('pdfViewFileName').innerText = slip.fileName;
         document.getElementById('pdfViewEmpName').innerText = slip.empName;
