@@ -94,7 +94,9 @@
       color: var(--sidebar-color);
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
       transition: width 0.3s ease, flex-basis 0.3s ease, transform 0.3s ease;
       z-index: 100;
       box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08), 12px 0 35px rgba(0, 0, 0, 0.35);
@@ -833,6 +835,9 @@
                 </select>
                 <input type="text" id="searchKaryawan" class="form-control form-control-sm"
                   placeholder="Cari ID / Nama..." onkeyup="currentPageKaryawan=1; renderKaryawanTable()" style="width: 180px;">
+                <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="resetKaryawanFilters()" title="Reset Filter">
+                  <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                </button>
                 <button class="btn btn-outline-success btn-sm fw-semibold" onclick="openModalImportKaryawan()">
                   <i class="bi bi-file-earmark-excel me-1"></i>Import Excel
                 </button>
@@ -875,6 +880,9 @@
               <div class="d-flex align-items-center gap-2">
                 <input type="text" id="searchDepartemen" class="form-control form-control-sm"
                   placeholder="Cari departemen..." onkeyup="currentPageDepartemen=1; renderDepartemenTable()" style="width: 200px;">
+                <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="resetDepartemenFilters()" title="Reset Filter">
+                  <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                </button>
                 <button class="btn btn-primary btn-sm fw-semibold" onclick="openModalDepartemen()">
                   <i class="bi bi-plus-circle me-1"></i>Tambah Departemen
                 </button>
@@ -1685,6 +1693,13 @@
         sel.value = getDeptNames().includes(currentVal) ? currentVal : '';
       }
 
+      window.resetDepartemenFilters = function () {
+        var search = document.getElementById('searchDepartemen');
+        if (search) search.value = '';
+        currentPageDepartemen = 1;
+        renderDepartemenTable();
+      };
+
       window.renderDepartemenTable = function () {
         var searchEl = document.getElementById('searchDepartemen');
         var search = searchEl ? (searchEl.value || '').trim().toLowerCase() : '';
@@ -1893,6 +1908,15 @@
           });
         });
       }
+
+      window.resetKaryawanFilters = function () {
+        var search = document.getElementById('searchKaryawan');
+        if (search) search.value = '';
+        var filterDept = document.getElementById('filterKaryawanDept');
+        if (filterDept) filterDept.value = 'SEMUA';
+        currentPageKaryawan = 1;
+        renderKaryawanTable();
+      };
 
       window.renderKaryawanTable = function () {
         var search = (document.getElementById('searchKaryawan').value || '').toLowerCase();
@@ -2331,7 +2355,7 @@
         if (!id) return;
         Swal.fire({
           title: 'Hapus Slip Gaji?',
-          text: 'File PDF di Google Drive juga akan dihapus.',
+          text: 'File PDF di database juga akan dihapus.',
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#dc2626',
