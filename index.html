@@ -710,6 +710,24 @@
         <p class="text-muted small">Masukan ID Karyawan & Password Anda</p>
       </div>
 
+      <!-- PWA Install Banner inside Auth Card -->
+      <div id="loginPwaCard" class="p-3 mb-4 rounded-3 text-start border shadow-sm" style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border-color: #bfdbfe !important;">
+        <div class="d-flex align-items-center justify-content-between gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <div class="pwa-icon-box bg-primary text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
+              <i class="bi bi-phone-vibrate fs-5"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Install Aplikasi di HP</h6>
+              <span class="text-muted" style="font-size: 0.75rem;">Akses cepat dari Layar Utama HP</span>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary px-3 py-1 text-nowrap shadow-sm" onclick="promptPwaInstall()">
+            <i class="bi bi-download me-1"></i> Install
+          </button>
+        </div>
+      </div>
+
       <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
         <div class="mb-3">
           <label class="form-label small fw-semibold">ID Karyawan / Username</label>
