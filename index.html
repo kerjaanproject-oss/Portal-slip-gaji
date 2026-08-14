@@ -30,7 +30,7 @@
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbw1tAaRW5jdbTxuxFwgpz3zGSmqaIv0VIAs2H_Z3-oX-t5xXrieR-yaCrjLDVfjViei/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbzpm7JVfNUTqHGEKI-ELvaPLI6LYPJY1Io7a8NA2DVQVw9aZMIFxhTFzKsw6eHllER3/exec";
   </script>
   <style>
     :root {
@@ -974,6 +974,11 @@
               </h6>
 
               <div class="d-flex align-items-center flex-wrap gap-2 ms-auto">
+                <button class="btn btn-success btn-sm fw-semibold me-1" onclick="sendSlipEmailBatchProcess()"
+                  title="Kirim Email Notifikasi Massal Sesuai Filter">
+                  <i class="bi bi-envelope-check me-1"></i>Kirim Email Notifikasi Massal
+                </button>
+
                 <button class="btn btn-primary btn-sm fw-semibold me-1" onclick="openModalUploadPdf()">
                   <i class="bi bi-cloud-arrow-up me-1"></i>+ Tambah Slip
                 </button>
@@ -1031,16 +1036,18 @@
                       <th>Jabatan</th>
                       <th class="text-center">Periode Gaji</th>
                       <th>Nama File PDF</th>
+                      <th class="text-center">Status Email</th>
                       <th>Keterangan</th>
                       <th class="text-center text-nowrap" style="width: 1%;">Aksi</th>
                     </tr>
                   </thead>
                   <tbody id="tableSlipHrd">
                     <tr>
-                      <td colspan="9" class="text-center text-muted py-4">Memuat data slip...</td>
+                      <td colspan="10" class="text-center text-muted py-4">Memuat data slip...</td>
                     </tr>
                   </tbody>
                 </table>
+
               </div>
               <div id="paginationUploadSlip"></div>
             </div>
@@ -2716,7 +2723,7 @@
         });
 
         if (filtered.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Belum ada slip terbit sesuai filter.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Belum ada slip terbit sesuai filter.</td></tr>';
           renderPaginationControls('paginationUploadSlip', 0, 1, function () { });
           return;
         }
@@ -2729,6 +2736,11 @@
           var dept = k.dept || '-';
           var jabatan = k.jabatan || '-';
 
+          var isSent = (s.emailStatus && s.emailStatus.startsWith('Terkirim'));
+          var statusBadge = isSent
+            ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small" title="' + escapeHTML(s.emailStatus) + '"><i class="bi bi-check-circle-fill me-1"></i>' + escapeHTML(s.emailStatus) + '</span>'
+            : '<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1 small"><i class="bi bi-clock me-1"></i>Belum</span>';
+
           var tr = document.createElement('tr');
           tr.innerHTML = '<td class="text-center fw-semibold text-muted">' + globalIndex + '</td>' +
             '<td><code class="fw-bold text-primary">' + escapeHTML(s.empId) + '</code></td>' +
@@ -2736,10 +2748,12 @@
             '<td><div class="fw-bold text-dark">' + escapeHTML(dept) + '</div></td>' +
             '<td><div class="fw-bold text-dark">' + escapeHTML(jabatan) + '</div></td>' +
             '<td class="text-center"><span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold px-2 py-1">' + escapeHTML(s.bulan + ' ' + s.tahun) + '</span></td>' +
-            '<td><div class="small text-danger fw-semibold text-truncate" style="max-width: 180px;" title="' + escapeHTML(s.fileName) + '"><i class="bi bi-file-earmark-pdf me-1"></i>' + escapeHTML(s.fileName) + '</div></td>' +
-            '<td><div class="small text-muted" style="max-width: 170px; max-height: 52px; overflow-y: auto; overflow-x: hidden; word-break: break-word; padding-right: 4px;">' + escapeHTML(s.catatan || '-') + '</div></td>' +
+            '<td><div class="small text-danger fw-semibold text-truncate" style="max-width: 170px;" title="' + escapeHTML(s.fileName) + '"><i class="bi bi-file-earmark-pdf me-1"></i>' + escapeHTML(s.fileName) + '</div></td>' +
+            '<td class="text-center text-nowrap">' + statusBadge + '</td>' +
+            '<td><div class="small text-muted" style="max-width: 150px; max-height: 52px; overflow-y: auto; overflow-x: hidden; word-break: break-word; padding-right: 4px;">' + escapeHTML(s.catatan || '-') + '</div></td>' +
             '<td class="text-center text-nowrap"><div class="action-group">' +
             '<button class="btn btn-sm btn-action btn-action-view btn-view-pdf" title="Lihat PDF"><i class="bi bi-eye"></i>Lihat</button>' +
+            '<button class="btn btn-sm btn-action btn-outline-success btn-send-email" title="Kirim Email Notifikasi"><i class="bi bi-envelope-at me-1"></i>Email</button>' +
             '<button class="btn btn-sm btn-action btn-action-edit btn-edit-slip" title="Edit Data"><i class="bi bi-pencil-square"></i>Edit</button>' +
             '<button class="btn btn-sm btn-action btn-action-delete btn-delete-slip" title="Hapus Data"><i class="bi bi-trash"></i>Hapus</button>' +
             '</div></td>';
@@ -2748,6 +2762,13 @@
           if (btnView) {
             btnView.addEventListener('click', function () {
               openPdfModal(s.id);
+            });
+          }
+
+          var btnEmail = tr.querySelector('.btn-send-email');
+          if (btnEmail) {
+            btnEmail.addEventListener('click', function () {
+              sendSlipEmailSingle(s.id);
             });
           }
 
@@ -2773,6 +2794,115 @@
           renderSlipHrdTable();
         });
       };
+
+      window.sendSlipEmailSingle = function (slipId) {
+        var slip = dbSlips.find(function (s) { return s.id === slipId; });
+        if (!slip) return;
+
+        var k = dbKaryawan.find(function (item) { return item.id === slip.empId; }) || {};
+        var email = k.email || '';
+
+        if (!email || !email.includes('@')) {
+          Swal.fire('Email Tidak Tersedia', 'Karyawan <b>' + escapeHTML(slip.empName) + '</b> (' + escapeHTML(slip.empId) + ') belum memiliki alamat email yang terdaftar.<br><small class="text-muted">Silakan tambahkan email karyawan pada menu Data Karyawan terlebih dahulu.</small>', 'warning');
+          return;
+        }
+
+        Swal.fire({
+          title: 'Kirim Email Notifikasi?',
+          html: 'Email notifikasi beserta lampiran PDF akan dikirimkan ke:<br><strong class="text-primary">' + escapeHTML(email) + '</strong> (' + escapeHTML(slip.empName) + ') untuk periode <strong>' + escapeHTML(slip.bulan + ' ' + slip.tahun) + '</strong>.',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#16a34a',
+          confirmButtonText: 'Kirim Email Sekarang',
+          cancelButtonText: 'Batal'
+        }).then(function (res) {
+          if (res.isConfirmed) {
+            showFullPageLoading('Mengirim Email Notifikasi...');
+            gasRun('sendSlipEmailNotification', Auth.getToken(), slipId).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp && resp.success) {
+                Swal.fire('Berhasil Terkirim!', resp.message || 'Email notifikasi telah terkirim ke inbox karyawan.', 'success');
+                loadPageData('upload-slip');
+              } else {
+                Swal.fire('Gagal Mengirim', (resp && resp.message) || 'Gagal mengirim email.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error', err.message || err.toString(), 'error');
+            });
+          }
+        });
+      };
+
+      window.sendSlipEmailBatchProcess = function () {
+        var filterDept = document.getElementById('filterSlipDept') ? document.getElementById('filterSlipDept').value : 'SEMUA';
+        var filterBulan = document.getElementById('filterSlipBulan') ? document.getElementById('filterSlipBulan').value : 'SEMUA';
+        var filterTahun = document.getElementById('filterSlipTahun') ? document.getElementById('filterSlipTahun').value : 'SEMUA';
+        var search = (document.getElementById('searchSlipHrd') ? document.getElementById('searchSlipHrd').value : '').toLowerCase();
+
+        var filtered = dbSlips.filter(function (s) {
+          var k = dbKaryawan.find(function (item) { return item.id === s.empId; }) || {};
+          var dept = k.dept || '';
+          var jabatan = k.jabatan || '';
+          var catatan = s.catatan || '';
+
+          var matchSearch = !search ||
+            s.empName.toLowerCase().includes(search) ||
+            s.empId.toLowerCase().includes(search) ||
+            s.bulan.toLowerCase().includes(search) ||
+            s.tahun.toLowerCase().includes(search) ||
+            s.fileName.toLowerCase().includes(search) ||
+            dept.toLowerCase().includes(search) ||
+            jabatan.toLowerCase().includes(search) ||
+            catatan.toLowerCase().includes(search);
+
+          var matchDept = (filterDept === 'SEMUA') || (dept === filterDept);
+          var matchBulan = (filterBulan === 'SEMUA') || (s.bulan === filterBulan);
+          var matchTahun = (filterTahun === 'SEMUA') || (s.tahun === filterTahun);
+
+          return matchSearch && matchDept && matchBulan && matchTahun;
+        });
+
+        if (filtered.length === 0) {
+          Swal.fire('Peringatan', 'Tidak ada slip gaji terbit yang sesuai dengan filter saat ini.', 'warning');
+          return;
+        }
+
+        var slipIds = filtered.map(function (s) { return s.id; });
+
+        Swal.fire({
+          title: 'Kirim Email Massal?',
+          html: 'Akan mengirimkan email notifikasi ke <strong>' + filtered.length + ' slip gaji</strong> yang sesuai dengan filter halaman saat ini.<br><br><small class="text-muted">Proses pengiriman berlangsung beberapa detik tergantung jumlah penerima.</small>',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#16a34a',
+          confirmButtonText: 'Kirim ' + filtered.length + ' Email',
+          cancelButtonText: 'Batal'
+        }).then(function (res) {
+          if (res.isConfirmed) {
+            showFullPageLoading('Mengirim ' + filtered.length + ' Email Notifikasi...');
+            gasRun('sendSlipEmailNotificationBatch', Auth.getToken(), slipIds).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp && resp.success) {
+                var msg = '<strong>' + resp.successCount + ' dari ' + resp.total + ' email berhasil terkirim.</strong>';
+                if (resp.failedCount > 0) {
+                  msg += '<br><span class="text-danger">' + resp.failedCount + ' gagal (email tidak terdaftar/tidak valid).</span>';
+                }
+                Swal.fire('Proses Pengiriman Selesai', msg, (resp.failedCount > 0 ? 'info' : 'success'));
+                loadPageData('upload-slip');
+              } else {
+                Swal.fire('Gagal Batch Email', (resp && resp.message) || 'Gagal memproses batch email.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error Server', err.message || err.toString(), 'error');
+            });
+          }
+        });
+      };
+
 
       window.deletePdfSlip = function (id) {
         if (!id) return;
