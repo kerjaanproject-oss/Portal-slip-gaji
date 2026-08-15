@@ -681,82 +681,7 @@
       }
     }
   
-    /* Mobile Bottom Navigation Bar (PWA Mobile Mode) */
-    .mobile-bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 64px;
-      background: #ffffff;
-      border-top: 1px solid #e2e8f0;
-      box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.08);
-      z-index: 1040;
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      padding: 0 0.25rem;
-    }
-
-    .mobile-bottom-nav-container {
-      display: flex;
-      width: 100%;
-      justify-content: space-around;
-      align-items: center;
-    }
-
-    .mobile-nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #64748b;
-      text-decoration: none !important;
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 0.35rem 0.25rem;
-      border-radius: 0.6rem;
-      transition: all 0.2s ease;
-      flex: 1;
-      text-align: center;
-    }
-
-    .mobile-nav-item i {
-      font-size: 1.25rem;
-      margin-bottom: 2px;
-      transition: transform 0.2s ease, color 0.2s ease;
-    }
-
-    .mobile-nav-item.active {
-      color: var(--primary-color) !important;
-    }
-
-    .mobile-nav-item.active i {
-      transform: translateY(-2px);
-      color: var(--primary-color) !important;
-    }
-
-    @media (max-width: 991.98px) {
-      /* Force hide sidebar & toggle button on Mobile HP screen */
-      .sidebar {
-        display: none !important;
-      }
-      .sidebar-backdrop {
-        display: none !important;
-      }
-      .sidebar-toggle {
-        display: none !important;
-      }
-      .app-body {
-        padding-bottom: 80px !important;
-      }
-    }
-
-    @media (min-width: 992px) {
-      .mobile-bottom-nav {
-        display: none !important;
-      }
-    }
+    
 </style>
 </head>
 
@@ -2099,12 +2024,6 @@
           item.classList.remove('active');
         });
         if (navEl) navEl.classList.add('active');
-
-        document.querySelectorAll('.mobile-nav-item').forEach(function (item) {
-          item.classList.remove('active');
-        });
-        var bnavEl = document.getElementById('bnav-' + pageName);
-        if (bnavEl) bnavEl.classList.add('active');
 
         var titles = {
           'karyawan': 'Kelola Data Karyawan',
