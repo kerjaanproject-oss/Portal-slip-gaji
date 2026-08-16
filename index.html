@@ -1478,12 +1478,16 @@
                     maxlength="6" required style="letter-spacing: 4px; font-size: 1.1rem;">
                 </div>
               </div>
-              <div class="mb-3">
+                            <div class="mb-3">
                 <label class="form-label small fw-semibold">Password Baru</label>
                 <div class="input-group">
                   <span class="input-group-text login-icon-box login-icon-pass"><i class="bi bi-lock-fill"></i></span>
                   <input type="password" id="otpNewPassword" class="form-control" placeholder="Minimal 6 Karakter"
-                    required minlength="6">
+                    required minlength="6" oninput="checkOtpPasswordMatch()">
+                  <button class="btn btn-outline-secondary" type="button"
+                    onclick="togglePasswordVisibility('otpNewPassword', this)" title="Tampilkan / Sembunyikan Password">
+                    <i class="bi bi-eye"></i>
+                  </button>
                 </div>
               </div>
               <div class="mb-3">
@@ -1491,8 +1495,13 @@
                 <div class="input-group">
                   <span class="input-group-text login-icon-box login-icon-pass"><i class="bi bi-lock-fill"></i></span>
                   <input type="password" id="otpConfirmPassword" class="form-control" placeholder="Ulangi Password Baru"
-                    required minlength="6">
+                    required minlength="6" oninput="checkOtpPasswordMatch()">
+                  <button class="btn btn-outline-secondary" type="button"
+                    onclick="togglePasswordVisibility('otpConfirmPassword', this)" title="Tampilkan / Sembunyikan Password">
+                    <i class="bi bi-eye"></i>
+                  </button>
                 </div>
+                <div id="otpPasswordMatchFeedback" class="form-text extra-small mt-1 fw-semibold" style="display: none;"></div>
               </div>
             </div>
             <div class="modal-footer d-flex justify-content-between">
