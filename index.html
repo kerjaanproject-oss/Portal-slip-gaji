@@ -727,7 +727,7 @@
             </div>
             <div>
               <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Install Aplikasi di HP</h6>
-             
+              <span class="text-muted" style="font-size: 0.75rem;">Akses cepat dari Layar Utama HP</span>
             </div>
           </div>
           <button type="button" class="btn btn-sm btn-primary px-3 py-1 text-nowrap shadow-sm"
@@ -2571,7 +2571,7 @@
             document.getElementById('uploadCatatan').value = item.catatan || '';
             document.getElementById('uploadFilePdf').value = '';
             document.getElementById('uploadFilePdf').required = false;
-            document.getElementById('helpFilePdf').innerText = 'Kosongkan jika tidak ingin mengganti file PDF di Google Drive. Maksimal ukuran file 1 MB.';
+            document.getElementById('helpFilePdf').innerText = 'Kosongkan jika tidak ingin mengganti file PDF di Data Base. Maksimal ukuran file 1 MB.';
             document.getElementById('btnSubmitUploadPdf').innerHTML = '<i class="bi bi-check-circle me-1"></i>Simpan Perubahan Slip';
           } else {
             document.getElementById('modalUploadPdfTitle').innerText = 'Upload File PDF Slip Gaji';
@@ -2632,7 +2632,7 @@
             return;
           }
 
-          showFullPageLoading('Mengunggah File PDF ke Drive...');
+          showFullPageLoading('Mengunggah File PDF ke Data Base...');
 
           var reader = new FileReader();
           reader.onload = function (e) {
