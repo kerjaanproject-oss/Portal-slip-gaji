@@ -768,9 +768,9 @@
       </form>
 
       <div class="text-center mt-3 pt-2 border-top">
-         <p class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">PT BERKAH BATU BARA</p>
+        <p class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">PT BERKAH BATU BARA</p>
         <p class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">&copy; 2026</p>
-        
+
       </div>
     </div>
   </section>
@@ -1479,7 +1479,7 @@
                     maxlength="6" required style="letter-spacing: 4px; font-size: 1.1rem;">
                 </div>
               </div>
-                            <div class="mb-3">
+              <div class="mb-3">
                 <label class="form-label small fw-semibold">Password Baru</label>
                 <div class="input-group">
                   <span class="input-group-text login-icon-box login-icon-pass"><i class="bi bi-lock-fill"></i></span>
@@ -1498,11 +1498,13 @@
                   <input type="password" id="otpConfirmPassword" class="form-control" placeholder="Ulangi Password Baru"
                     required minlength="6" oninput="checkOtpPasswordMatch()">
                   <button class="btn btn-outline-secondary" type="button"
-                    onclick="togglePasswordVisibility('otpConfirmPassword', this)" title="Tampilkan / Sembunyikan Password">
+                    onclick="togglePasswordVisibility('otpConfirmPassword', this)"
+                    title="Tampilkan / Sembunyikan Password">
                     <i class="bi bi-eye"></i>
                   </button>
                 </div>
-                <div id="otpPasswordMatchFeedback" class="form-text extra-small mt-1 fw-semibold" style="display: none;"></div>
+                <div id="otpPasswordMatchFeedback" class="form-text extra-small mt-1 fw-semibold"
+                  style="display: none;"></div>
               </div>
             </div>
             <div class="modal-footer d-flex justify-content-between">
