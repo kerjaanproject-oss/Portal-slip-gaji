@@ -523,6 +523,12 @@
       border-color: #bae6fd !important;
     }
 
+    .btn-action-email {
+      color: #15803d !important;
+      background-color: #dcfce7;
+      border-color: #bbf7d0 !important;
+    }
+
     .btn-action-edit {
       color: #475569 !important;
       background-color: #f1f5f9;
@@ -538,6 +544,11 @@
     .btn-action-view:hover {
       color: #ffffff !important;
       background-color: #0284c7;
+    }
+
+    .btn-action-email:hover {
+      color: #ffffff !important;
+      background-color: #16a34a;
     }
 
     .btn-action-edit:hover {
@@ -2802,7 +2813,7 @@
             '<td><div class="small text-muted" style="max-width: 150px; max-height: 52px; overflow-y: auto; overflow-x: hidden; word-break: break-word; padding-right: 4px;">' + escapeHTML(s.catatan || '-') + '</div></td>' +
             '<td class="text-center text-nowrap"><div class="action-group">' +
             '<button class="btn btn-sm btn-action btn-action-view btn-view-pdf" title="Lihat PDF"><i class="bi bi-eye"></i>Lihat</button>' +
-            '<button class="btn btn-sm btn-action btn-outline-success btn-send-email" title="Kirim Email Notifikasi"><i class="bi bi-envelope-at me-1"></i>Email</button>' +
+            '<button class="btn btn-sm btn-action btn-action-email btn-send-email" title="Kirim Email Notifikasi"><i class="bi bi-envelope-at"></i>Email</button>' +
             '<button class="btn btn-sm btn-action btn-action-edit btn-edit-slip" title="Edit Data"><i class="bi bi-pencil-square"></i>Edit</button>' +
             '<button class="btn btn-sm btn-action btn-action-delete btn-delete-slip" title="Hapus Data"><i class="bi bi-trash"></i>Hapus</button>' +
             '</div></td>';
