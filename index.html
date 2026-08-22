@@ -680,6 +680,35 @@
         width: 100% !important;
       }
     }
+
+    /* Typewriter Animation for Login Footer */
+    .login-author-typewriter {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      color: #64748b;
+      font-weight: 500;
+      min-height: 22px;
+      letter-spacing: 0.2px;
+    }
+
+    .typewriter-cursor {
+      display: inline-block;
+      color: var(--primary-color, #2563eb);
+      font-weight: 700;
+      margin-left: 2px;
+      animation: cursorBlink 0.8s infinite;
+    }
+
+    @keyframes cursorBlink {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0;
+      }
+    }
   </style>
 </head>
 
@@ -769,8 +798,11 @@
 
       <div class="text-center mt-3 pt-2 border-top">
         <p class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">PT BERKAH BATU BARA</p>
-        <p class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">&copy; 2026</p>
-
+        <p class="fw-bold mb-1 text-dark" style="font-size: 0.85rem;">&copy; 2026</p>
+        <div class="login-author-typewriter">
+          <i class="bi bi-code-slash text-primary me-1"></i>
+          <span id="authorTypewriterText"></span><span class="typewriter-cursor">|</span>
+        </div>
       </div>
     </div>
   </section>
@@ -3310,11 +3342,48 @@
         }
       };
 
+      // --- TYPEWRITER EFFECT ---
+      function initTypewriterEffect() {
+        const textElement = document.getElementById('authorTypewriterText');
+        if (!textElement) return;
+
+        const fullText = "dibuat oleh Sigit Aidil Adha";
+        let charIndex = 0;
+        let isDeleting = false;
+        const typingSpeed = 95;
+        const deletingSpeed = 45;
+        const pauseTime = 2500;
+
+        function type() {
+          if (!isDeleting) {
+            textElement.textContent = fullText.substring(0, charIndex + 1);
+            charIndex++;
+            if (charIndex === fullText.length) {
+              isDeleting = true;
+              setTimeout(type, pauseTime);
+              return;
+            }
+            setTimeout(type, typingSpeed + (Math.random() * 20 - 10));
+          } else {
+            textElement.textContent = fullText.substring(0, charIndex - 1);
+            charIndex--;
+            if (charIndex === 0) {
+              isDeleting = false;
+              setTimeout(type, 600);
+              return;
+            }
+            setTimeout(type, deletingSpeed);
+          }
+        }
+        type();
+      }
+
       // --- INITIALIZATION ---
       document.addEventListener('DOMContentLoaded', function () {
         initPWA();
         updateSidebarToggleState();
         checkLoginState();
+        initTypewriterEffect();
         console.log('App generated using GAS WebApp Builder');
       });
 
