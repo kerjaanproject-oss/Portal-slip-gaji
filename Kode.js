@@ -1,28 +1,36 @@
-function doGet(e) {
-  if (e && e.parameter && e.parameter.action) {
-    try {
-      const action = e.parameter.action;
-      let args = [];
-      if (e.parameter.args) {
-        args = JSON.parse(e.parameter.args);
-      }
-      if (typeof this[action] === 'function') {
-        let result = this[action].apply(this, args);
-        if (result === undefined) result = { success: true };
-        return ContentService.createTextOutput(JSON.stringify(result))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-    } catch (err) {
-      return ContentService.createTextOutput(JSON.stringify({ success: false, message: err.toString() }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-  }
+// --- API FUNCTION WHITELISTS ---
+const ALLOWED_PUBLIC_ACTIONS = [
+  'loginUser',
+  'requestPasswordReset',
+  'verifyAndResetPassword'
+];
 
+const ALLOWED_PROTECTED_ACTIONS = [
+  'destroySession',
+  'changeOwnPassword',
+  'getInitialData',
+  'getSlipKaryawan',
+  'saveDepartemen',
+  'deleteDepartemen',
+  'saveKaryawan',
+  'deleteKaryawan',
+  'importKaryawanBatch',
+  'uploadSlipPdf',
+  'updateSlipPdf',
+  'deleteSlipPdf',
+  'recordSlipAccess',
+  'getSlipPdfBase64',
+  'sendSlipEmailNotification',
+  'sendSlipEmailNotificationBatch'
+];
+
+function doGet(e) {
+  // Hanya layani UI HTML Web App (Cegah eksekusi aksi sensitif via GET URL parameter)
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('E-Slip Gaji')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
 }
 
 function doPost(e) {
@@ -31,8 +39,19 @@ function doPost(e) {
     if (e && e.postData && e.postData.contents) {
       postData = JSON.parse(e.postData.contents);
     }
-    const action = postData.action;
-    const args = postData.args || [];
+    const action = String(postData.action || '').trim();
+    const args = Array.isArray(postData.args) ? postData.args : [];
+
+    // Validasi Keamanan: Pastikan hanya fungsi dalam Whitelist yang dapat dieksekusi
+    const isPublic = ALLOWED_PUBLIC_ACTIONS.indexOf(action) !== -1;
+    const isProtected = ALLOWED_PROTECTED_ACTIONS.indexOf(action) !== -1;
+
+    if (!isPublic && !isProtected) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Akses ditolak: aksi tidak diizinkan atau tidak terdaftar.'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
 
     if (typeof this[action] === 'function') {
       let result = this[action].apply(this, args);
@@ -63,7 +82,7 @@ function setupDatabase() {
     userSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#e2e8f0');
 
     // Default Admin Login: admin / Admin@2026
-    const defaultPassHash = hashPassword('Admin@2026');
+    const defaultPassHash = hashPassword('Admin@2026', 'admin');
     userSheet.appendRow(['admin', 'HRD Administrator', 'HR Manager', 'Human Resource', defaultPassHash, 'Admin', 'admin@company.com', new Date()]);
   }
 
@@ -96,7 +115,17 @@ function setupDatabase() {
 }
 
 // --- HASH & SECURITY HELPERS ---
-function hashPassword(password) {
+function hashPassword(password, username) {
+  const salt = username ? String(username).trim().toLowerCase() : '';
+  const combined = 'eSlip_Salt_' + salt + '_' + String(password);
+  const rawHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, combined, Utilities.Charset.UTF_8);
+  return rawHash.map(function (b) {
+    const hex = (b < 0 ? b + 256 : b).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }).join('');
+}
+
+function hashLegacyPassword(password) {
   const rawHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(password), Utilities.Charset.UTF_8);
   return rawHash.map(function (b) {
     const hex = (b < 0 ? b + 256 : b).toString(16);
@@ -164,24 +193,35 @@ function loginUser(username, password) {
   if (!userSheet) return { success: false, message: 'Database belum disiapkan. Jalankan setupDatabase() terlebih dahulu.' };
 
   const data = userSheet.getDataRange().getValues();
-  const inputHash = hashPassword(password);
   const inputHashSalted = hashPassword(password, username);
+  const inputHashLegacy = hashLegacyPassword(password);
 
   for (let i = 1; i < data.length; i++) {
     const rowId = String(data[i][0]).trim();
     const rowPassHash = String(data[i][4]).trim();
 
-    if (rowId.toLowerCase() === username.toLowerCase() && (rowPassHash === inputHash || rowPassHash === inputHashSalted)) {
-      clearLoginFailures(username);
-      const userObj = {
-        username: data[i][0],
-        fullname: data[i][1],
-        jabatan: data[i][2],
-        dept: data[i][3],
-        role: data[i][5]
-      };
-      const token = generateSessionToken(userObj.username, userObj.role, userObj.fullname);
-      return { success: true, user: userObj, token: token };
+    if (rowId.toLowerCase() === username.toLowerCase()) {
+      const isMatch = (rowPassHash === inputHashSalted || rowPassHash === inputHashLegacy);
+      if (isMatch) {
+        clearLoginFailures(username);
+        // Otomatis tingkatkan hash legacy ke salted hash saat login berhasil
+        if (rowPassHash !== inputHashSalted) {
+          try {
+            userSheet.getRange(i + 1, 5).setValue(inputHashSalted);
+          } catch (upErr) {
+            console.error('Password hash upgrade note:', upErr);
+          }
+        }
+        const userObj = {
+          username: data[i][0],
+          fullname: data[i][1],
+          jabatan: data[i][2],
+          dept: data[i][3],
+          role: data[i][5]
+        };
+        const token = generateSessionToken(userObj.username, userObj.role, userObj.fullname);
+        return { success: true, user: userObj, token: token };
+      }
     }
   }
 
@@ -332,7 +372,7 @@ function verifyAndResetPassword(username, otpCode, newPassword) {
   for (let u = 1; u < userData.length; u++) {
     const rowId = String(userData[u][0]).trim();
     if (rowId.toLowerCase() === username.toLowerCase()) {
-      const newHash = hashPassword(newPassword);
+      const newHash = hashPassword(newPassword, username);
       userSheet.getRange(u + 1, 5).setValue(newHash); // Column 5 = Password Hash
       userUpdated = true;
       break;
@@ -370,15 +410,16 @@ function changeOwnPassword(token, oldPassword, newPassword) {
   if (!userSheet) return { success: false, message: 'Sheet Users tidak ditemukan.' };
 
   const data = userSheet.getDataRange().getValues();
-  const oldHash = hashPassword(oldPassword);
-  const newHash = hashPassword(newPassword);
   const username = session.user.username;
+  const oldHashSalted = hashPassword(oldPassword, username);
+  const oldHashLegacy = hashLegacyPassword(oldPassword);
+  const newHash = hashPassword(newPassword, username);
 
   for (let i = 1; i < data.length; i++) {
     const rowId = String(data[i][0] || '').trim();
     if (rowId.toLowerCase() === username.toLowerCase()) {
       const currentHash = String(data[i][4] || '').trim();
-      if (currentHash !== oldHash) {
+      if (currentHash !== oldHashSalted && currentHash !== oldHashLegacy) {
         return { success: false, message: 'Password saat ini (lama) yang Anda masukkan tidak sesuai.' };
       }
       userSheet.getRange(i + 1, 5).setValue(newHash);
@@ -643,7 +684,7 @@ function saveKaryawan(token, payload) {
         payload.name,
         payload.jabatan,
         payload.dept,
-        hashPassword(payload.pass),
+        hashPassword(payload.pass, payload.id),
         payload.role || 'Karyawan',
         payload.email || '',
         new Date()
@@ -678,7 +719,7 @@ function saveKaryawan(token, payload) {
       userSheet.getRange(foundIndex, 6).setValue(payload.role);
       userSheet.getRange(foundIndex, 7).setValue(payload.email || '');
       if (payload.pass) {
-        userSheet.getRange(foundIndex, 5).setValue(hashPassword(payload.pass));
+        userSheet.getRange(foundIndex, 5).setValue(hashPassword(payload.pass, payload.id));
       }
 
       // Sync SlipGaji records (update ID & Nama Karyawan)
@@ -762,7 +803,7 @@ function importKaryawanBatch(token, karyawanList) {
       const jabatan = String(k.jabatan || k['Jabatan'] || '').trim();
       const dept = String(k.dept || k['Departemen'] || '').trim();
       const rawPass = String(k.pass || k.password || k['Password'] || '123456').trim();
-      const hashedPass = hashPassword(rawPass);
+      const hashedPass = hashPassword(rawPass, empId);
       const roleStr = String(k.role || k['Role'] || '').trim().toLowerCase();
       const role = (roleStr === 'admin' || roleStr === 'hrd') ? 'Admin' : 'Karyawan';
 
@@ -859,7 +900,6 @@ function uploadSlipPdf(token, payload) {
     const decoded = Utilities.base64Decode(payload.fileData);
     const blob = Utilities.newBlob(decoded, payload.mimeType || 'application/pdf', payload.fileName);
     const file = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
     const slipId = 'SLIP-' + Date.now().toString().slice(-6);
     const fileUrl = file.getUrl();
@@ -950,7 +990,6 @@ function updateSlipPdf(token, payload) {
       const decoded = Utilities.base64Decode(payload.fileData);
       const blob = Utilities.newBlob(decoded, payload.mimeType || 'application/pdf', payload.fileName);
       const newFile = folder.createFile(blob);
-      newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
       slipSheet.getRange(rowIndex, 6).setValue(payload.fileName); // Nama File
       slipSheet.getRange(rowIndex, 8).setValue(newFile.getUrl()); // URL Drive

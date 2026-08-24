@@ -3280,7 +3280,7 @@
         reader.readAsArrayBuffer(file);
       };
 
-      // --- PWA MANIFEST & SERVICE WORKER INJECTION ---
+      // --- PWA MANIFEST INJECTION ---
       var deferredPwaPrompt = null;
 
       function initPWA() {
@@ -3293,7 +3293,15 @@
             display: "standalone",
             orientation: "portrait",
             background_color: "#0f172a",
-            theme_color: "#2563eb"
+            theme_color: "#2563eb",
+            icons: [
+              {
+                src: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+                sizes: "512x512",
+                type: "image/png",
+                purpose: "any maskable"
+              }
+            ]
           };
 
           var manifestStr = JSON.stringify(manifestObj);
@@ -3304,19 +3312,6 @@
           manifestLink.rel = 'manifest';
           manifestLink.href = manifestURL;
           document.head.appendChild(manifestLink);
-
-          if ('serviceWorker' in navigator) {
-            var swCode = `
-              self.addEventListener('install', (e) => { self.skipWaiting(); });
-              self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
-              self.addEventListener('fetch', (e) => {
-                e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-              });
-            `;
-            var swBlob = new Blob([swCode], { type: 'text/javascript' });
-            var swURL = URL.createObjectURL(swBlob);
-            navigator.serviceWorker.register(swURL).catch(function () { });
-          }
         } catch (err) {
           console.log('PWA init note:', err);
         }
@@ -3389,13 +3384,71 @@
         type();
       }
 
+      // --- CONSOLE SECURITY & ANTI-INSPECT PROTECTION ---
+      function initConsoleSecurity() {
+        try {
+          console.clear();
+          console.log(
+            '%c⛔ PERINGATAN KEAMANAN!',
+            'color: #ef4444; font-size: 28px; font-weight: 800; font-family: sans-serif; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);'
+          );
+          console.log(
+            '%cFitur ini hanya untuk keperluan diagnostik pengembang sistem e-Slip Gaji.\n\n' +
+            'JANGAN PERNAH menyalin dan menempelkan (copy-paste) kode atau script apapun yang Anda dapatkan dari pihak lain ke tab Console ini.\n' +
+            'Menempelkan kode dari pihak luar adalah serangan manipulasi (Self-XSS) yang berpotensi membahayakan akun Anda.',
+            'font-size: 13px; color: #1e293b; line-height: 1.6; font-weight: 500;'
+          );
+        } catch (e) { }
+      }
+
+      function initInspectProtection() {
+        // 1. Nonaktifkan Menu Klik Kanan
+        document.addEventListener('contextmenu', function (e) {
+          e.preventDefault();
+        });
+
+        // 2. Blokir Shortcut Keyboard Developer Tools & View Source
+        document.addEventListener('keydown', function (e) {
+          var isCtrlOrMeta = e.ctrlKey || e.metaKey;
+
+          // F12 (DevTools)
+          if (e.key === 'F12' || e.keyCode === 123) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+
+          if (isCtrlOrMeta) {
+            // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+Shift+C (Element Picker)
+            if (e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c' || e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+            // Ctrl+U (View Source)
+            if (e.key === 'U' || e.key === 'u' || e.keyCode === 85) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+            // Ctrl+S (Save Page)
+            if (e.key === 'S' || e.key === 's' || e.keyCode === 83) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+          }
+        });
+      }
+
       // --- INITIALIZATION ---
       document.addEventListener('DOMContentLoaded', function () {
+        initConsoleSecurity();
+        initInspectProtection();
         initPWA();
         updateSidebarToggleState();
         checkLoginState();
         initTypewriterEffect();
-        console.log('App generated using GAS WebApp Builder');
       });
 
     })();
