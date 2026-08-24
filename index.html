@@ -77,6 +77,108 @@
       width: 100%;
       max-width: 420px;
       overflow: hidden;
+      margin-block: auto;
+    }
+
+    /* Login Page - Mobile Optimization */
+    @media (max-width: 575.98px) {
+      .auth-page {
+        padding: 1rem 0.85rem;
+      }
+
+      @supports (min-height: 100dvh) {
+        .auth-page {
+          min-height: 100dvh;
+        }
+      }
+
+      .auth-card {
+        max-width: 100%;
+        padding: 1.05rem 0.85rem !important;
+        border-radius: 0.85rem;
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 16px 34px -10px rgba(0, 0, 0, 0.4);
+      }
+
+      /* Logo lebih kecil */
+      .auth-card>.text-center>div.rounded-circle {
+        width: 58px !important;
+        height: 58px !important;
+        margin-bottom: 0.35rem !important;
+      }
+
+      .auth-card>.text-center>div.rounded-circle>img {
+        width: 40px !important;
+        height: 40px !important;
+      }
+
+      .auth-card .text-center h4 {
+        font-size: 1.15rem;
+      }
+
+      .auth-card .text-center .text-muted {
+        font-size: 0.8rem;
+      }
+
+      .auth-card>.text-center.mb-3 {
+        margin-bottom: 0.85rem !important;
+      }
+
+      /* Banner PWA lebih ringkas */
+      #loginPwaCard {
+        padding: 0.45rem 0.6rem !important;
+        margin-bottom: 0.85rem !important;
+      }
+
+      #loginPwaCard .pwa-icon-box {
+        width: 27px !important;
+        height: 27px !important;
+      }
+
+      #loginPwaCard .pwa-icon-box i {
+        font-size: 0.8rem !important;
+      }
+
+      #loginPwaCard h6 {
+        font-size: 0.78rem !important;
+      }
+
+      #loginPwaCard .btn {
+        padding: 0.22rem 0.65rem !important;
+        font-size: 0.74rem !important;
+      }
+
+      /* Form & jarak antar elemen lebih rapat */
+      .auth-card form>div {
+        margin-bottom: 0.8rem !important;
+      }
+
+      .auth-card form .form-label {
+        font-size: 0.78rem;
+        margin-bottom: 0.3rem;
+      }
+
+      .auth-card .input-group-text.login-icon-box {
+        width: 40px;
+        font-size: 1rem;
+      }
+
+      .auth-card form .btn-primary {
+        padding-top: 0.55rem;
+        padding-bottom: 0.55rem;
+        font-size: 0.9rem;
+      }
+
+      /* Footer lebih ringkas */
+      .auth-card>.text-center.mt-3 {
+        margin-top: 0.8rem !important;
+        padding-top: 0.7rem !important;
+      }
+
+      .auth-card>.text-center.mt-3 p {
+        font-size: 0.78rem !important;
+      }
     }
 
     /* App Shell Layout */
