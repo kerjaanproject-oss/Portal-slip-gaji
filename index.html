@@ -125,30 +125,6 @@
         margin-bottom: 0.85rem !important;
       }
 
-      /* Banner PWA lebih ringkas */
-      #loginPwaCard {
-        padding: 0.45rem 0.6rem !important;
-        margin-bottom: 0.85rem !important;
-      }
-
-      #loginPwaCard .pwa-icon-box {
-        width: 27px !important;
-        height: 27px !important;
-      }
-
-      #loginPwaCard .pwa-icon-box i {
-        font-size: 0.8rem !important;
-      }
-
-      #loginPwaCard h6 {
-        font-size: 0.78rem !important;
-      }
-
-      #loginPwaCard .btn {
-        padding: 0.22rem 0.65rem !important;
-        font-size: 0.74rem !important;
-      }
-
       /* Form & jarak antar elemen lebih rapat */
       .auth-card form>div {
         margin-bottom: 0.8rem !important;
@@ -856,27 +832,6 @@
         </div>
         <h4 class="fw-bold mb-1">E-SLIP GAJI</h4>
         <p class="text-muted small">Masukan ID Karyawan & Password Anda</p>
-      </div>
-
-      <!-- PWA Install Banner inside Auth Card -->
-      <div id="loginPwaCard" class="p-2 px-3 mb-3 rounded-3 text-start border shadow-sm"
-        style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border-color: #bfdbfe !important;">
-        <div class="d-flex align-items-center justify-content-between gap-2">
-          <div class="d-flex align-items-center gap-2">
-            <div
-              class="pwa-icon-box bg-primary text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-              style="width: 32px; height: 32px;">
-              <i class="bi bi-phone-vibrate fs-6"></i>
-            </div>
-            <div>
-              <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.85rem;">Install Aplikasi di HP</h6>
-            </div>
-          </div>
-          <button type="button" class="btn btn-sm btn-primary px-3 py-1 text-nowrap shadow-sm"
-            onclick="promptPwaInstall()">
-            <i class="bi bi-download me-1"></i> Install
-          </button>
-        </div>
       </div>
 
       <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
