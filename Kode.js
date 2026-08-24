@@ -133,37 +133,71 @@ function hashLegacyPassword(password) {
   }).join('');
 }
 
+// --- SECURE HMAC-SHA256 STATELESS SESSION TOKEN ---
+const SESSION_SECRET_KEY = 'eSlip_Portal_Secret_Session_Key_2026_x89q!';
+
 function generateSessionToken(username, role, fullname) {
-  const token = Utilities.getUuid();
-  const cache = CacheService.getScriptCache();
-  const userData = JSON.stringify({ username: username, role: role, fullname: fullname });
-  // Batas maksimal waktu CacheService di Google Apps Script adalah 21600 detik (6 jam)
-  try {
-    cache.put('token_' + token, userData, 21600);
-  } catch (err) {
-    console.error('Cache put error:', err);
-  }
-  return token;
+  const payload = {
+    u: String(username),
+    r: String(role),
+    f: String(fullname),
+    exp: Date.now() + (8 * 3600 * 1000) // Berlaku 8 Jam
+  };
+  const payloadStr = JSON.stringify(payload);
+  const payloadB64 = Utilities.base64EncodeWebSafe(payloadStr);
+  const sigBytes = Utilities.computeHmacSha256Signature(payloadB64, SESSION_SECRET_KEY);
+  const sigB64 = Utilities.base64EncodeWebSafe(sigBytes);
+  return payloadB64 + '.' + sigB64;
 }
 
 function validateSession(token) {
-  if (!token) return { valid: false, message: 'Token tidak ditemukan.' };
-  const cache = CacheService.getScriptCache();
-  let userData = null;
-  try {
-    userData = cache.get('token_' + token);
-  } catch (err) {
-    console.error('Cache get error:', err);
+  if (!token || typeof token !== 'string') {
+    return { valid: false, message: 'Token tidak ditemukan.' };
   }
-  if (!userData) return { valid: false, message: 'Sesi telah berakhir. Silakan login kembali.' };
-  return { valid: true, user: JSON.parse(userData) };
+
+  const parts = token.split('.');
+  if (parts.length !== 2) {
+    return { valid: false, message: 'Format sesi tidak valid. Silakan login kembali.' };
+  }
+
+  const payloadB64 = parts[0];
+  const sigB64 = parts[1];
+
+  // 1. Verifikasi Keaslian Signature HMAC-SHA256
+  try {
+    const expectedSigBytes = Utilities.computeHmacSha256Signature(payloadB64, SESSION_SECRET_KEY);
+    const expectedSigB64 = Utilities.base64EncodeWebSafe(expectedSigBytes);
+    if (sigB64 !== expectedSigB64) {
+      return { valid: false, message: 'Sesi tidak valid (tanda tangan digital salah).' };
+    }
+  } catch (sigErr) {
+    return { valid: false, message: 'Verifikasi keamanan sesi gagal: ' + sigErr.toString() };
+  }
+
+  // 2. Decode Data & Cek Masa Berlaku
+  try {
+    const decodedBytes = Utilities.base64DecodeWebSafe(payloadB64);
+    const jsonStr = Utilities.newBlob(decodedBytes).getDataAsString();
+    const payload = JSON.parse(jsonStr);
+
+    if (!payload.exp || Date.now() > payload.exp) {
+      return { valid: false, message: 'Sesi telah berakhir. Silakan login kembali.' };
+    }
+
+    return {
+      valid: true,
+      user: {
+        username: payload.u,
+        role: payload.r,
+        fullname: payload.f
+      }
+    };
+  } catch (decErr) {
+    return { valid: false, message: 'Gagal memproses data sesi: ' + decErr.toString() };
+  }
 }
 
 function destroySession(token) {
-  if (token) {
-    const cache = CacheService.getScriptCache();
-    cache.remove('token_' + token);
-  }
   return { success: true };
 }
 
