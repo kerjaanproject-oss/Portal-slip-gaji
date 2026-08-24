@@ -137,14 +137,24 @@ function generateSessionToken(username, role, fullname) {
   const token = Utilities.getUuid();
   const cache = CacheService.getScriptCache();
   const userData = JSON.stringify({ username: username, role: role, fullname: fullname });
-  cache.put('token_' + token, userData, 28800); // 8 Hours Expiry
+  // Batas maksimal waktu CacheService di Google Apps Script adalah 21600 detik (6 jam)
+  try {
+    cache.put('token_' + token, userData, 21600);
+  } catch (err) {
+    console.error('Cache put error:', err);
+  }
   return token;
 }
 
 function validateSession(token) {
   if (!token) return { valid: false, message: 'Token tidak ditemukan.' };
   const cache = CacheService.getScriptCache();
-  const userData = cache.get('token_' + token);
+  let userData = null;
+  try {
+    userData = cache.get('token_' + token);
+  } catch (err) {
+    console.error('Cache get error:', err);
+  }
   if (!userData) return { valid: false, message: 'Sesi telah berakhir. Silakan login kembali.' };
   return { valid: true, user: JSON.parse(userData) };
 }
