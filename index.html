@@ -21,13 +21,6 @@
   <!-- PDF.js Library for In-App PDF Rendering -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-  <!-- PWA Meta Tags & Static Web App Manifest -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="e-Slip Gaji">
-  <meta name="theme-color" content="#2563eb">
-  <link id="appTouchIcon" rel="apple-touch-icon" href="">
   <!-- Google Apps Script Deployment API URL -->
   <script>
     window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbyNsMtMsa_s4hmMmMLAqCjvY7H9Hct36zFy2qYGCOyVP0Hug2GTwxaJJoCuxHSUh3H6/exec";
@@ -917,11 +910,6 @@
       </ul>
 
       <div class="sidebar-footer">
-        <a class="nav-item-custom mb-2 text-primary" id="pwaInstallBtn" onclick="promptPwaInstall()"
-          title="Install Aplikasi ke HP" style="display: flex;">
-          <i class="bi bi-download w-20px"></i>
-          <span>Install Aplikasi HP</span>
-        </a>
         <a class="nav-item-custom" onclick="confirmLogout()" title="Keluar Aplikasi">
           <i class="bi bi-box-arrow-right w-20px"></i>
           <span>Keluar Aplikasi</span>
@@ -3336,89 +3324,6 @@
         reader.readAsArrayBuffer(file);
       };
 
-      // --- PWA MANIFEST INJECTION ---
-      var deferredPwaPrompt = null;
-
-      function initPWA() {
-        try {
-          var appLogoEl = document.getElementById('loginAppLogo');
-          var appLogoSrc = (appLogoEl && appLogoEl.src) ? appLogoEl.src : "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
-
-          // Update apple-touch-icon
-          var touchIconLink = document.getElementById('appTouchIcon');
-          if (touchIconLink) {
-            touchIconLink.href = appLogoSrc;
-          }
-
-          var manifestObj = {
-            name: "e-Slip Gaji Online",
-            short_name: "e-Slip Gaji",
-            description: "Portal Akses & Upload Slip Gaji Karyawan Online",
-            start_url: window.location.href,
-            display: "standalone",
-            orientation: "portrait",
-            background_color: "#0f172a",
-            theme_color: "#2563eb",
-            icons: [
-              {
-                src: appLogoSrc,
-                sizes: "512x512",
-                type: "image/png",
-                purpose: "any maskable"
-              },
-              {
-                src: appLogoSrc,
-                sizes: "192x192",
-                type: "image/png",
-                purpose: "any maskable"
-              }
-            ]
-          };
-
-          var manifestStr = JSON.stringify(manifestObj);
-          var manifestBlob = new Blob([manifestStr], { type: 'application/json' });
-          var manifestURL = URL.createObjectURL(manifestBlob);
-
-          var manifestLink = document.createElement('link');
-          manifestLink.rel = 'manifest';
-          manifestLink.href = manifestURL;
-          document.head.appendChild(manifestLink);
-        } catch (err) {
-          console.log('PWA init note:', err);
-        }
-      }
-
-      window.addEventListener('beforeinstallprompt', function (e) {
-        e.preventDefault();
-        deferredPwaPrompt = e;
-        var pwaBtn = document.getElementById('pwaInstallBtn');
-        if (pwaBtn) pwaBtn.style.display = 'flex';
-      });
-
-      window.promptPwaInstall = function () {
-        if (deferredPwaPrompt) {
-          deferredPwaPrompt.prompt();
-          deferredPwaPrompt.userChoice.then(function (choiceResult) {
-            if (choiceResult.outcome === 'accepted') {
-              Swal.fire('Terpasang!', 'Aplikasi e-Slip Gaji telah terinstall di HP Anda.', 'success');
-            }
-            deferredPwaPrompt = null;
-          });
-        } else {
-          Swal.fire({
-            title: '📱 Cara Install Aplikasi di HP',
-            html: '<div class="text-start small p-2">' +
-              '<p class="mb-2"><b>Di HP Android (Chrome/Edge):</b><br>1. Tekan tombol menu titik tiga (⋮) di pojok kanan atas browser.<br>2. Pilih <b>"Tambahkan ke Layar Utama"</b> atau <b>"Install Aplikasi"</b>.</p>' +
-              '<hr class="my-2">' +
-              '<p class="mb-0"><b>Di iPhone / iPad (Safari):</b><br>1. Tekan tombol <b>Share</b> (kotak dengan panah ke atas di bagian bawah Safari).<br>2. Geser ke bawah dan pilih <b>"Add to Home Screen"</b> (*Tambahkan ke Layar Utama*).</p>' +
-              '</div>',
-            icon: 'info',
-            confirmButtonText: 'Saya Mengerti',
-            confirmButtonColor: '#2563eb'
-          });
-        }
-      };
-
       // --- TYPEWRITER EFFECT ---
       function initTypewriterEffect() {
         const textElement = document.getElementById('authorTypewriterText');
@@ -3516,7 +3421,6 @@
       document.addEventListener('DOMContentLoaded', function () {
         initConsoleSecurity();
         initInspectProtection();
-        initPWA();
         updateSidebarToggleState();
         checkLoginState();
         initTypewriterEffect();
