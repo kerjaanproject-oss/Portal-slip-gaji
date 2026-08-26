@@ -20,6 +20,7 @@ const ALLOWED_PROTECTED_ACTIONS = [
   'deleteSlipPdf',
   'recordSlipAccess',
   'getSlipPdfBase64',
+  'getResiFileBase64',
   'sendSlipEmailNotification',
   'sendSlipEmailNotificationBatch'
 ];
@@ -509,6 +510,8 @@ function getInitialData(token) {
   for (let j = 1; j < slipData.length; j++) {
     const empId = String(slipData[j][1] || '').trim().toLowerCase();
     if (isHRD || empId === currentUsername) {
+      const resiId = String(slipData[j][13] || '').trim();
+      const resiName = String(slipData[j][11] || '').trim();
       slipList.push({
         id: String(slipData[j][0]),
         empId: String(slipData[j][1]),
@@ -520,7 +523,10 @@ function getInitialData(token) {
         driveUrl: String(slipData[j][7]),
         uploadDate: slipData[j][9] ? Utilities.formatDate(new Date(slipData[j][9]), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : '-',
         downloaded: String(slipData[j][10]).startsWith('Terkirim') || String(slipData[j][10]) === 'Diakses',
-        emailStatus: String(slipData[j][10] || 'Belum')
+        emailStatus: String(slipData[j][10] || 'Belum'),
+        resiFileName: resiName,
+        resiDriveUrl: String(slipData[j][12] || ''),
+        hasResi: !!(resiId || resiName)
       });
     }
   }
@@ -583,6 +589,8 @@ function getSlipKaryawan(token, filterBulan, filterTahun) {
 
     if (empId === currentEmpId) {
       if ((filterBulan === 'SEMUA' || bulan === filterBulan) && tahun === String(filterTahun)) {
+        const resiId = String(slipData[i][13] || '').trim();
+        const resiName = String(slipData[i][11] || '').trim();
         result.push({
           id: String(slipData[i][0]),
           empId: empId,
@@ -592,7 +600,10 @@ function getSlipKaryawan(token, filterBulan, filterTahun) {
           fileName: String(slipData[i][5]),
           catatan: String(slipData[i][6]),
           driveUrl: String(slipData[i][7]),
-          uploadDate: slipData[i][9] ? Utilities.formatDate(new Date(slipData[i][9]), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : '-'
+          uploadDate: slipData[i][9] ? Utilities.formatDate(new Date(slipData[i][9]), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : '-',
+          resiFileName: resiName,
+          resiDriveUrl: String(slipData[i][12] || ''),
+          hasResi: !!(resiId || resiName)
         });
       }
     }
@@ -877,6 +888,7 @@ function importKaryawanBatch(token, karyawanList) {
 }
 
 const MAX_FILE_SIZE_BYTES = 1048576; // 1 MB
+const MAX_RESI_SIZE_BYTES = 2097152; // 2 MB
 
 function getOrCreateFolder(parent, name) {
   const safeName = String(name || '').replace(/[\\/:*?"<>|]/g, '_').trim();
@@ -935,7 +947,7 @@ function uploadSlipPdf(token, payload) {
     // Validate PDF file size (max 1 MB)
     if (!payload.fileData || getBase64FileSize(payload.fileData) > MAX_FILE_SIZE_BYTES) {
       lock.releaseLock();
-      return { success: false, message: 'Ukuran file melebihi batas maksimal 1 MB.' };
+      return { success: false, message: 'Ukuran file PDF melebihi batas maksimal 1 MB.' };
     }
 
     // Save PDF to Drive: Storage/Tahun/Bulan/Nama Karyawan
@@ -949,7 +961,30 @@ function uploadSlipPdf(token, payload) {
     const fileUrl = file.getUrl();
     const fileId = file.getId();
 
+    // Process Resi / Bukti Transfer if provided
+    let resiFileName = '';
+    let resiFileUrl = '';
+    let resiFileId = '';
+
+    if (payload.resiFileData && payload.resiFileName) {
+      if (getBase64FileSize(payload.resiFileData) > MAX_RESI_SIZE_BYTES) {
+        lock.releaseLock();
+        return { success: false, message: 'Ukuran file resi melebihi batas maksimal 2 MB.' };
+      }
+      const resiDecoded = Utilities.base64Decode(payload.resiFileData);
+      const resiBlob = Utilities.newBlob(resiDecoded, payload.resiMimeType || 'image/jpeg', payload.resiFileName);
+      const resiFile = folder.createFile(resiBlob);
+      resiFileName = payload.resiFileName;
+      resiFileUrl = resiFile.getUrl();
+      resiFileId = resiFile.getId();
+    }
+
     const slipSheet = ss.getSheetByName('SlipGaji');
+    // Ensure header columns if needed
+    if (slipSheet.getLastRow() >= 1 && slipSheet.getLastColumn() < 14) {
+      slipSheet.getRange(1, 12, 1, 3).setValues([['Nama File Resi', 'URL Drive Resi', 'File ID Resi']]);
+    }
+
     slipSheet.appendRow([
       slipId,
       payload.empId,
@@ -961,11 +996,14 @@ function uploadSlipPdf(token, payload) {
       fileUrl,
       fileId,
       new Date(),
-      'Belum'
+      'Belum',
+      resiFileName,
+      resiFileUrl,
+      resiFileId
     ]);
 
     lock.releaseLock();
-    return { success: true, fileUrl: fileUrl };
+    return { success: true, fileUrl: fileUrl, resiFileUrl: resiFileUrl };
   } catch (err) {
     lock.releaseLock();
     return { success: false, message: err.toString() };
@@ -1010,18 +1048,16 @@ function updateSlipPdf(token, payload) {
       return { success: false, message: 'Data slip tidak ditemukan.' };
     }
 
-    // If new file is uploaded
+    const folder = getSlipStorageFolder(payload.tahun, payload.bulan, empName);
+
+    // If new slip PDF file is uploaded
     if (payload.fileData && payload.fileName) {
-      // Validate PDF file size (max 1 MB)
       if (getBase64FileSize(payload.fileData) > MAX_FILE_SIZE_BYTES) {
         lock.releaseLock();
-        return { success: false, message: 'Ukuran file melebihi batas maksimal 1 MB.' };
+        return { success: false, message: 'Ukuran file PDF melebihi batas maksimal 1 MB.' };
       }
 
-      // Save PDF to Drive: Storage/Tahun/Bulan/Nama Karyawan
-      const folder = getSlipStorageFolder(payload.tahun, payload.bulan, empName);
-
-      // Trash old file if exists
+      // Trash old slip PDF file if exists
       const oldFileId = data[rowIndex - 1][8];
       if (oldFileId) {
         try {
@@ -1038,6 +1074,45 @@ function updateSlipPdf(token, payload) {
       slipSheet.getRange(rowIndex, 6).setValue(payload.fileName); // Nama File
       slipSheet.getRange(rowIndex, 8).setValue(newFile.getUrl()); // URL Drive
       slipSheet.getRange(rowIndex, 9).setValue(newFile.getId()); // File ID Drive
+    }
+
+    // If new resi file is uploaded
+    if (payload.resiFileData && payload.resiFileName) {
+      if (getBase64FileSize(payload.resiFileData) > MAX_RESI_SIZE_BYTES) {
+        lock.releaseLock();
+        return { success: false, message: 'Ukuran file resi melebihi batas maksimal 2 MB.' };
+      }
+
+      // Trash old resi file if exists
+      const oldResiId = data[rowIndex - 1][13];
+      if (oldResiId) {
+        try {
+          DriveApp.getFileById(oldResiId).setTrashed(true);
+        } catch (e) {
+          console.error('Drive resi delete error during update:', e);
+        }
+      }
+
+      const resiDecoded = Utilities.base64Decode(payload.resiFileData);
+      const resiBlob = Utilities.newBlob(resiDecoded, payload.resiMimeType || 'image/jpeg', payload.resiFileName);
+      const newResiFile = folder.createFile(resiBlob);
+
+      slipSheet.getRange(rowIndex, 12).setValue(payload.resiFileName);
+      slipSheet.getRange(rowIndex, 13).setValue(newResiFile.getUrl());
+      slipSheet.getRange(rowIndex, 14).setValue(newResiFile.getId());
+    } else if (payload.deleteResi === true) {
+      // Admin chose to remove existing resi
+      const oldResiId = data[rowIndex - 1][13];
+      if (oldResiId) {
+        try {
+          DriveApp.getFileById(oldResiId).setTrashed(true);
+        } catch (e) {
+          console.error('Drive resi delete error during removal:', e);
+        }
+      }
+      slipSheet.getRange(rowIndex, 12).setValue('');
+      slipSheet.getRange(rowIndex, 13).setValue('');
+      slipSheet.getRange(rowIndex, 14).setValue('');
     }
 
     // Update metadata fields
@@ -1071,11 +1146,19 @@ function deleteSlipPdf(token, slipId) {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][0]) === String(slipId)) {
         const fileId = data[i][8];
+        const resiFileId = data[i][13];
         if (fileId) {
           try {
             DriveApp.getFileById(fileId).setTrashed(true);
           } catch (e) {
             console.error('Drive file delete error:', e);
+          }
+        }
+        if (resiFileId) {
+          try {
+            DriveApp.getFileById(resiFileId).setTrashed(true);
+          } catch (e) {
+            console.error('Drive resi delete error:', e);
           }
         }
         slipSheet.deleteRow(i + 1);
@@ -1168,6 +1251,61 @@ function getSlipPdfBase64(token, slipId) {
   }
 }
 
+function getResiFileBase64(token, slipId) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const slipSheet = ss.getSheetByName('SlipGaji');
+    if (!slipSheet) return { success: false, message: 'Sheet SlipGaji tidak ditemukan.' };
+
+    const data = slipSheet.getDataRange().getValues();
+    let resiFileId = null;
+    let empId = null;
+    let empName = '';
+    let bulan = '';
+    let tahun = '';
+    let resiFileName = '';
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(slipId)) {
+        empId = String(data[i][1]);
+        empName = String(data[i][2]);
+        bulan = String(data[i][3]);
+        tahun = String(data[i][4]);
+        resiFileName = String(data[i][11] || '');
+        resiFileId = data[i][13];
+        break;
+      }
+    }
+
+    if (!resiFileId) return { success: false, message: 'File bukti transfer / resi tidak ditemukan.' };
+
+    // Security check: Karyawan can only view their own receipt unless Admin
+    if (session.user.role !== 'Admin' && String(session.user.username).trim().toLowerCase() !== String(empId).trim().toLowerCase()) {
+      return { success: false, message: 'Akses ditolak.' };
+    }
+
+    const file = DriveApp.getFileById(resiFileId);
+    const blob = file.getBlob();
+    const base64 = Utilities.base64Encode(blob.getBytes());
+
+    return {
+      success: true,
+      base64: base64,
+      mimeType: file.getMimeType(),
+      fileName: file.getName() || resiFileName || 'Bukti_Transfer',
+      empId: empId,
+      empName: empName,
+      bulan: bulan,
+      tahun: tahun
+    };
+  } catch (err) {
+    return { success: false, message: 'Gagal mengambil file bukti transfer dari Drive: ' + err.toString() };
+  }
+}
+
 function sendSlipEmailNotification(token, slipId) {
   const session = validateSession(token);
   if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
@@ -1186,6 +1324,8 @@ function sendSlipEmailNotification(token, slipId) {
     let tahun = '';
     let fileName = '';
     let fileId = '';
+    let resiFileName = '';
+    let resiFileId = '';
 
     for (let i = 1; i < slipData.length; i++) {
       if (String(slipData[i][0]).trim() === String(slipId).trim()) {
@@ -1196,6 +1336,8 @@ function sendSlipEmailNotification(token, slipId) {
         tahun = String(slipData[i][4]).trim();
         fileName = String(slipData[i][5]).trim();
         fileId = String(slipData[i][8]).trim();
+        resiFileName = String(slipData[i][11] || '').trim();
+        resiFileId = String(slipData[i][13] || '').trim();
         break;
       }
     }
@@ -1228,6 +1370,18 @@ function sendSlipEmailNotification(token, slipId) {
     const blob = file.getBlob();
     if (fileName) blob.setName(fileName);
 
+    const emailAttachments = [blob];
+    if (resiFileId) {
+      try {
+        const resiFile = DriveApp.getFileById(resiFileId);
+        const resiBlob = resiFile.getBlob();
+        if (resiFileName) resiBlob.setName(resiFileName);
+        emailAttachments.push(resiBlob);
+      } catch (rErr) {
+        console.error('Error attaching resi file to email:', rErr);
+      }
+    }
+
     const appTitle = 'e-Slip Gaji Online';
     const periodeStr = bulan + ' ' + tahun;
     // Clean subject without brackets or spammy prefixes
@@ -1236,7 +1390,7 @@ function sendSlipEmailNotification(token, slipId) {
     // Plain text fallback (Crucial for spam filtering)
     const plainBody = 'Yth. ' + empName + ' (' + empId + '),\n\n' +
       'Slip gaji Anda untuk periode ' + periodeStr + ' telah diterbitkan.\n' +
-      'Dokumen PDF slip gaji terlampir langsung pada email ini.\n\n' +
+      'Dokumen PDF slip gaji' + (resiFileId ? ' dan bukti transfer' : '') + ' terlampir langsung pada email ini.\n\n' +
       'Anda dapat menyimpan dokumen ini atau mengakses portal e-Slip Gaji Online kapan saja.\n\n' +
       'Hormat kami,\n' +
       'Tim HRD & Payroll';
@@ -1256,10 +1410,11 @@ function sendSlipEmailNotification(token, slipId) {
       '<tr><td style="padding: 4px 0; color: #64748b;">Nama Lengkap</td><td style="font-weight: bold; color: #0f172a;">: ' + empName + '</td></tr>' +
       '<tr><td style="padding: 4px 0; color: #64748b;">Periode Gaji</td><td style="font-weight: bold; color: #2563eb;">: ' + periodeStr + '</td></tr>' +
       '<tr><td style="padding: 4px 0; color: #64748b;">Nama File</td><td style="color: #475569;">: ' + fileName + '</td></tr>' +
+      (resiFileName ? '<tr><td style="padding: 4px 0; color: #64748b;">Bukti Transfer</td><td style="color: #ea580c; font-weight: 600;">: ' + resiFileName + ' (Terlampir)</td></tr>' : '') +
       '</table>' +
       '</div>' +
       '<p style="font-size: 13px; color: #475569; line-height: 1.5; background-color: #f1f5f9; border-left: 3px solid #94a3b8; padding: 12px; border-radius: 4px;">' +
-      '<strong>Catatan Kerahasiaan:</strong> Dokumen PDF slip gaji terlampir langsung pada email ini. Dokumen ini hanya ditujukan kepada pemilik gaji.' +
+      '<strong>Catatan Kerahasiaan:</strong> Dokumen PDF slip gaji' + (resiFileId ? ' dan bukti transfer' : '') + ' terlampir langsung pada email ini. Dokumen ini hanya ditujukan kepada pemilik gaji.' +
       '</p>' +
       '</div>' +
       '<div style="background-color: #f8fafc; padding: 14px; text-align: center; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; font-size: 12px; color: #64748b; border-top: 1px solid #f1f5f9;">' +
@@ -1276,7 +1431,7 @@ function sendSlipEmailNotification(token, slipId) {
     const mailOptions = {
       htmlBody: htmlBody,
       name: 'HRD e-Slip Gaji',
-      attachments: [blob]
+      attachments: emailAttachments
     };
     if (activeUserEmail && activeUserEmail.includes('@')) {
       mailOptions.replyTo = activeUserEmail;
@@ -1294,7 +1449,7 @@ function sendSlipEmailNotification(token, slipId) {
         htmlBody: htmlBody,
         name: 'HRD e-Slip Gaji',
         replyTo: activeUserEmail || recipientEmail,
-        attachments: [blob]
+        attachments: emailAttachments
       });
     }
 
