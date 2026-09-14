@@ -282,6 +282,64 @@
       background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
     }
 
+    .nav-item-custom i.bi-calendar-check {
+      background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%);
+    }
+
+    .submenu-list {
+      list-style: none;
+      padding-left: 2rem;
+      margin: 0.25rem 0 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .nav-subitem-custom {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.55rem 0.85rem;
+      color: rgba(255, 255, 255, 0.85);
+      text-decoration: none;
+      border-radius: 0.65rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .nav-subitem-custom i {
+      font-size: 1rem;
+      color: #38bdf8;
+    }
+
+    .nav-subitem-custom:hover {
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.12);
+      transform: translateX(3px);
+    }
+
+    .nav-subitem-custom.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);
+      font-weight: 600;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .nav-subitem-custom.active i {
+      color: #ffffff;
+    }
+
+    .submenu-arrow {
+      transition: transform 0.25s ease;
+    }
+
+    .submenu-open .submenu-arrow {
+      transform: rotate(180deg);
+    }
+
     .nav-item-custom:hover {
       color: #ffffff;
       background-color: rgba(255, 255, 255, 0.1);
@@ -923,6 +981,35 @@
             <span>Slip Gaji Saya</span>
           </a>
         </li>
+
+        <!-- MENU CUTI (HRD & KARYAWAN) -->
+        <li class="nav-item-dropdown" id="dropdownMenuCuti">
+          <a class="nav-item-custom" id="btnNavMenuCuti" onclick="toggleSubmenu('submenuCuti', this)">
+            <i class="bi bi-calendar-check w-20px"></i>
+            <span class="flex-grow-1">Menu Cuti</span>
+            <i class="bi bi-chevron-down submenu-arrow ms-auto" style="width:auto;height:auto;background:none;box-shadow:none;font-size:0.75rem;"></i>
+          </a>
+          <ul class="submenu-list d-none" id="submenuCuti">
+            <li>
+              <a class="nav-subitem-custom" id="subitem-pengajuan-cuti" onclick="showPage('pengajuan-cuti', this)">
+                <i class="bi bi-file-earmark-plus"></i>
+                <span>Pengajuan Cuti</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-subitem-custom" id="subitem-riwayat-cuti" onclick="showPage('riwayat-cuti', this)">
+                <i class="bi bi-clock-history"></i>
+                <span>Riwayat Cuti</span>
+              </a>
+            </li>
+            <li class="hrd-only">
+              <a class="nav-subitem-custom" id="subitem-master-roster" onclick="showPage('master-roster', this)">
+                <i class="bi bi-gear-wide-connected"></i>
+                <span>Master Roster</span>
+              </a>
+            </li>
+          </ul>
+        </li>
       </ul>
 
       <div class="sidebar-footer">
@@ -1210,6 +1297,284 @@
           </div>
         </div>
 
+        <!-- PAGE 4: PENGAJUAN CUTI KARYAWAN -->
+        <div id="page-pengajuan-cuti" class="app-page d-none">
+          <!-- Banner Header -->
+          <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%); color: white; border-radius: 1rem;">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center justify-content-center bg-white bg-opacity-20 rounded-3" style="width: 52px; height: 52px;">
+                  <i class="bi bi-pencil-square fs-2 text-white"></i>
+                </div>
+                <div>
+                  <h4 class="fw-bold mb-1 text-white">Formulir Pengajuan Cuti</h4>
+                  <p class="mb-0 text-white-50 small">Ajukan permohonan cuti Anda secara mandiri dengan cepat dan mudah.</p>
+                </div>
+              </div>
+              <div>
+                <button type="button" class="btn btn-light btn-sm fw-semibold px-3 py-2 text-primary shadow-sm" onclick="showPage('riwayat-cuti', document.getElementById('subitem-riwayat-cuti'))">
+                  <i class="bi bi-clock-history me-1"></i>Buka Riwayat Cuti
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="row justify-content-center">
+            <div class="col-lg-10">
+              <div class="card border-0 shadow-sm" style="border-radius: 1rem;">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+                  <h6 class="fw-bold m-0 text-primary"><i class="bi bi-file-earmark-text me-2"></i>Formulir Permohonan Cuti Baru</h6>
+                  <span class="badge bg-light text-muted border extra-small"><i class="bi bi-info-circle me-1"></i>Perhitungan Hari Kalender</span>
+                </div>
+                <div class="card-body p-4">
+                  <form id="formPengajuanCuti" onsubmit="event.preventDefault(); handleSavePengajuanCuti();">
+                    <!-- Profil Karyawan (Auto-Filled) -->
+                    <div class="bg-light p-3 rounded-3 mb-4 border">
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi bi-person-badge text-primary fs-5"></i>
+                        <span class="fw-bold small text-dark">Data Pemohon (Otomatis dari Akun Login)</span>
+                      </div>
+                      <div class="row g-3">
+                        <div class="col-md-6 col-lg-3">
+                          <label class="form-label extra-small fw-bold text-muted mb-1">NAMA KARYAWAN</label>
+                          <input type="text" id="cutiNamaKaryawan" class="form-control form-control-sm bg-white" readonly>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                          <label class="form-label extra-small fw-bold text-muted mb-1">NIK / ID KARYAWAN</label>
+                          <input type="text" id="cutiIdKaryawan" class="form-control form-control-sm bg-white" readonly>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                          <label class="form-label extra-small fw-bold text-muted mb-1">DEPARTEMEN / DIVISI</label>
+                          <input type="text" id="cutiDept" class="form-control form-control-sm bg-white" readonly>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                          <label class="form-label extra-small fw-bold text-muted mb-1">JABATAN</label>
+                          <input type="text" id="cutiJabatan" class="form-control form-control-sm bg-white" readonly>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Rincian Cuti -->
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Jenis Cuti <span class="text-danger">*</span></label>
+                        <select id="cutiJenis" class="form-select form-select-sm" required onchange="handleJenisCutiChange()">
+                          <option value="">-- Pilih Jenis Cuti --</option>
+                          <option value="Cuti Tahunan">Cuti Tahunan</option>
+                          <option value="Cuti Roster">Cuti Roster</option>
+                          <option value="Cuti Sakit">Cuti Sakit</option>
+                          <option value="Cuti Melahirkan">Cuti Melahirkan</option>
+                          <option value="Cuti Khusus">Cuti Khusus</option>
+                          <option value="Cuti Pernikahan">Cuti Pernikahan</option>
+                          <option value="Cuti Keluarga">Cuti Keluarga</option>
+                          <option value="Cuti Tanpa Dibayar">Cuti Tanpa Dibayar</option>
+                          <option value="Lainnya">Lainnya (sesuai kebijakan perusahaan)</option>
+                        </select>
+                        <div id="cutiSakitAlert" class="alert alert-info py-2 px-3 mt-2 mb-0 d-none" style="font-size: 0.8rem;">
+                          <i class="bi bi-info-circle-fill me-1"></i>Untuk <strong>Cuti Sakit</strong>, disarankan melampirkan Surat Keterangan Dokter pada kolom lampiran di bawah.
+                        </div>
+                      </div>
+                      <div class="col-md-6 d-none" id="cutiPolaRosterCol">
+                        <label class="form-label small fw-semibold">Pilih Pola Roster <span class="text-danger">*</span></label>
+                        <select id="cutiPolaRoster" class="form-select form-select-sm" onchange="handleRosterPatternChange()">
+                          <option value="">-- Pilih Pola Roster --</option>
+                        </select>
+                        <div id="cutiRosterInfoAlert" class="alert alert-primary py-2 px-3 mt-2 mb-0 d-none" style="font-size: 0.8rem;">
+                          <!-- Diisi info kuota hari cuti & durasi kerja secara otomatis -->
+                        </div>
+                      </div>
+                      <div class="col-md-6 d-none" id="cutiJenisLainnyaCol">
+                        <label class="form-label small fw-semibold">Sebutkan Jenis Cuti Lainnya <span class="text-danger">*</span></label>
+                        <input type="text" id="cutiJenisLainnya" class="form-control form-control-sm" placeholder="Contoh: Cuti Ibadah / Keperluan Khusus">
+                      </div>
+                    </div>
+
+                    <!-- Tanggal Cuti & Kalkulasi -->
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Tanggal Mulai <span class="text-danger">*</span></label>
+                        <input type="date" id="cutiTanggalMulai" class="form-control form-control-sm" required onchange="handleCutiTanggalMulaiChange()">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Tanggal Selesai <span class="text-danger">*</span></label>
+                        <input type="date" id="cutiTanggalSelesai" class="form-control form-control-sm" required onchange="calculateCutiDays()">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Jumlah Hari Cuti</label>
+                        <div class="input-group input-group-sm">
+                          <input type="number" id="cutiJumlahHari" class="form-control form-control-sm bg-light fw-bold text-primary" value="0" readonly>
+                          <span class="input-group-text bg-light fw-semibold">Hari Kalender</span>
+                        </div>
+                        <div class="form-text extra-small" id="cutiDaysHelper">Otomatis dihitung dari rentang tanggal.</div>
+                      </div>
+                    </div>
+
+                    <!-- Alasan Cuti -->
+                    <div class="mb-3">
+                      <label class="form-label small fw-semibold">Alasan Cuti <span class="text-danger">*</span></label>
+                      <textarea id="cutiAlasan" class="form-control form-control-sm" rows="3" placeholder="Jelaskan alasan atau keperluan pengajuan cuti Anda..." required></textarea>
+                    </div>
+
+                    <!-- Alamat & Nomor Kontak (Opsional) -->
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Alamat Selama Cuti <span class="text-muted fw-normal">(Opsional)</span></label>
+                        <input type="text" id="cutiAlamat" class="form-control form-control-sm" placeholder="Alamat tinggal/keberadaan selama masa cuti...">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Nomor yang Dapat Dihubungi <span class="text-muted fw-normal">(Opsional)</span></label>
+                        <input type="tel" id="cutiKontak" class="form-control form-control-sm" placeholder="No. HP / WhatsApp (Contoh: 08123456789)">
+                      </div>
+                    </div>
+
+                    <!-- Lampiran / Bukti & Catatan Tambahan -->
+                    <div class="row g-3 mb-4">
+                      <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Lampiran / Bukti <span class="text-muted fw-normal">(Opsional / Surat Dokter)</span></label>
+                        <input type="file" id="cutiLampiran" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png">
+                        <div class="form-text extra-small">Format: PDF, JPG, JPEG, PNG (Maks. 5 MB).</div>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Catatan Tambahan <span class="text-muted fw-normal">(Opsional)</span></label>
+                        <textarea id="cutiCatatan" class="form-control form-control-sm" rows="1" placeholder="Catatan atau keterangan pendukung lainnya..."></textarea>
+                      </div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-flex align-items-center justify-content-end gap-2 pt-3 border-top">
+                      <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="resetCutiForm()">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Formulir
+                      </button>
+                      <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold" id="btnSubmitCuti">
+                        <i class="bi bi-send-fill me-1"></i>Kirim Pengajuan Cuti
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 5: RIWAYAT CUTI KARYAWAN -->
+        <div id="page-riwayat-cuti" class="app-page d-none">
+          <!-- Banner Header -->
+          <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; border-radius: 1rem;">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center justify-content-center bg-white bg-opacity-20 rounded-3" style="width: 52px; height: 52px;">
+                  <i class="bi bi-clock-history fs-2 text-white"></i>
+                </div>
+                <div>
+                  <h4 class="fw-bold mb-1 text-white">Riwayat Pengajuan Cuti</h4>
+                  <p class="mb-0 text-white-50 small">Pantau status persetujuan dan riwayat seluruh permohonan cuti Anda.</p>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-light btn-sm fw-semibold px-3 py-2 text-primary shadow-sm" onclick="showPage('pengajuan-cuti', document.getElementById('subitem-pengajuan-cuti'))">
+                  <i class="bi bi-pencil-square me-1"></i>Ajukan Cuti Baru
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card border-0 shadow-sm" style="border-radius: 1rem;">
+            <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-journal-check text-primary fs-5"></i>
+                <h6 class="fw-bold m-0 text-dark">Daftar Riwayat Permohonan Cuti</h6>
+                <span class="badge bg-primary-subtle text-primary fw-bold ms-1" id="badgeCutiCount">0</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <input type="text" id="searchCuti" class="form-control form-control-sm" placeholder="Cari cuti / alasan..." style="max-width: 200px;" oninput="renderRiwayatCutiTable()">
+                <select id="filterStatusCuti" class="form-select form-select-sm" style="max-width: 180px;" onchange="renderRiwayatCutiTable()">
+                  <option value="SEMUA">Semua Status</option>
+                  <option value="Menunggu Persetujuan">Menunggu Persetujuan</option>
+                  <option value="Disetujui">Disetujui</option>
+                  <option value="Ditolak">Ditolak</option>
+                </select>
+                <button class="btn btn-light btn-sm border" title="Refresh Riwayat" onclick="loadRiwayatCuti()">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="tableRiwayatCuti">
+                  <thead class="table-light extra-small text-muted fw-bold">
+                    <tr>
+                      <th class="ps-3 py-3" style="width: 50px;">NO</th>
+                      <th class="py-3">ID PENGAJUAN</th>
+                      <th class="py-3">TGL AJUAN</th>
+                      <th class="py-3">JENIS CUTI</th>
+                      <th class="py-3">PERIODE CUTI</th>
+                      <th class="py-3 text-center">HARI</th>
+                      <th class="py-3">ALASAN</th>
+                      <th class="py-3 text-center">LAMPIRAN</th>
+                      <th class="py-3 text-center">STATUS</th>
+                      <th class="pe-3 py-3 text-center" style="width: 110px;">AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyRiwayatCuti" class="small">
+                    <tr>
+                      <td colspan="10" class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                        <p class="mb-0">Memuat riwayat pengajuan cuti...</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 6: MASTER ROSTER (HRD ONLY) -->
+        <div id="page-master-roster" class="app-page d-none hrd-only">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-2 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <h6 class="fw-bold m-0 text-dark">
+                <i class="bi bi-gear-wide-connected text-primary me-2"></i>Master Pola Roster Kerja & Cuti
+              </h6>
+              <div class="d-flex align-items-center gap-2">
+                <input type="text" id="searchRoster" class="form-control form-control-sm"
+                  placeholder="Cari pola roster..." onkeyup="currentPageRoster=1; renderRosterTable()"
+                  style="width: 200px;">
+                <button class="btn btn-outline-secondary btn-sm fw-semibold" onclick="resetRosterFilters()"
+                  title="Reset Filter">
+                  <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                </button>
+                <button class="btn btn-primary btn-sm fw-semibold" onclick="openAddRosterModal()">
+                  <i class="bi bi-plus-circle me-1"></i>Tambah Pola Roster
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem;">
+                  <thead class="text-white text-uppercase extra-small fw-bold" style="background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);">
+                    <tr>
+                      <th class="text-center text-nowrap" style="width: 60px;">No</th>
+                      <th>Nama Pola Roster</th>
+                      <th class="text-center text-nowrap">Durasi Kerja</th>
+                      <th class="text-center text-nowrap">Jatah Cuti</th>
+                      <th>Keterangan</th>
+                      <th class="text-center text-nowrap" style="width: 130px;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableRoster">
+                    <tr>
+                      <td colspan="6" class="text-center text-muted py-4">Memuat data pola roster...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div id="paginationRoster"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </section>
@@ -1311,6 +1676,58 @@
             <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
             <button type="submit" class="btn btn-primary btn-sm fw-semibold">
               <i class="bi bi-check-circle me-1"></i>Simpan Departemen
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MASTER ROSTER -->
+  <div class="modal fade" id="modalRoster" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="modalRosterTitle">Tambah Pola Roster</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="formRoster" onsubmit="event.preventDefault(); handleSaveRoster();">
+          <div class="modal-body">
+            <input type="hidden" id="rosterId" value="">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Nama Pola Roster <span class="text-danger">*</span></label>
+              <input type="text" id="rosterName" class="form-control form-control-sm" placeholder="Contoh: 12 : 2 atau 8 : 2"
+                required>
+              <div class="form-text extra-small">Format umum nama roster di perusahaan, misal 12 : 2, 8 : 2, 6 : 2.</div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Hari Kerja <span class="text-danger">*</span></label>
+                <div class="input-group input-group-sm">
+                  <input type="number" id="rosterWorkDays" class="form-control form-control-sm" placeholder="Contoh: 90" min="1" required>
+                  <span class="input-group-text">Hari</span>
+                </div>
+                <div class="form-text extra-small">Contoh: 12 minggu (90 hari).</div>
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Jatah Cuti <span class="text-danger">*</span></label>
+                <div class="input-group input-group-sm">
+                  <input type="number" id="rosterLeaveDays" class="form-control form-control-sm" placeholder="Contoh: 14" min="1" required>
+                  <span class="input-group-text">Hari</span>
+                </div>
+                <div class="form-text extra-small">Contoh: 2 minggu (14 hari).</div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Keterangan / Catatan <span class="text-muted fw-normal">(Opsional)</span></label>
+              <input type="text" id="rosterNotes" class="form-control form-control-sm"
+                placeholder="Contoh: Standar Operasional Site Tambang / Proyek">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary btn-sm fw-semibold">
+              <i class="bi bi-check-circle me-1"></i>Simpan Pola Roster
             </button>
           </div>
         </form>
@@ -1582,6 +1999,65 @@
     </div>
   </div>
 
+  <!-- MODAL: DETAIL PENGAJUAN CUTI -->
+  <div class="modal fade" id="modalDetailCuti" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header bg-light py-3 px-4 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-calendar-event text-primary fs-5"></i>
+            <h6 class="modal-title fw-bold text-dark" id="modalDetailCutiTitle">Detail Pengajuan Cuti</h6>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" id="modalDetailCutiBody">
+          <!-- Populated dynamically via JS -->
+        </div>
+        <div class="modal-footer bg-light py-2 px-4 justify-content-between">
+          <span id="modalDetailStatusBadge"></span>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VIEWER LAMPIRAN BUKTI CUTI -->
+  <div class="modal fade" id="modalViewLampiranCuti" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content shadow-lg border-0">
+        <div class="modal-header bg-dark text-white py-2 px-3">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-paperclip text-info fs-4 me-2"></i>
+            <div>
+              <h6 class="modal-title fw-bold mb-0 text-white" id="lampiranViewFileName">Berkas_Lampiran</h6>
+              <small class="text-light opacity-75" id="lampiranViewSub" style="font-size: 0.78rem;">Dokumen Lampiran Cuti</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3 text-center bg-light" style="min-height: 400px; max-height: 75vh; overflow: auto;">
+          <div id="lampiranLoadingSpinner" class="py-5 text-muted">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <p class="fw-semibold mb-0">Memuat Lampiran...</p>
+            <small class="text-muted">Mengambil data dari Google Drive...</small>
+          </div>
+          <div id="lampiranImageWrapper" class="d-none py-2">
+            <img id="lampiranPreviewImg" src="" alt="Lampiran Cuti" class="img-fluid rounded shadow-sm border bg-white" style="max-height: 65vh; object-fit: contain;">
+          </div>
+          <div id="lampiranPdfWrapper" class="d-none py-2">
+            <canvas id="lampiranPdfCanvas" class="shadow-sm rounded border bg-white" style="max-width: 100%; height: auto;"></canvas>
+          </div>
+        </div>
+        <div class="modal-footer bg-light py-2 px-3 justify-content-between">
+          <button type="button" class="btn btn-primary btn-sm fw-semibold" id="btnDownloadLampiran" onclick="downloadCurrentLampiran()">
+            <i class="bi bi-download me-1"></i>Unduh Berkas
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- MODAL: KONFIRMASI LOGOUT -->
   <div class="modal fade" id="modalLogout" tabindex="-1">
@@ -1796,14 +2272,22 @@
       var bsModalUploadPdf = null;
       var bsModalViewPdf = null;
       var bsModalLogout = null;
+      var bsModalDetailCuti = null;
+      var bsModalViewLampiranCuti = null;
+      var bsModalRoster = null;
 
       var dbKaryawan = [];
       var dbSlips = [];
       var dbDepartemen = [];
+      var dbCutiList = [];
+      var dbRoster = [];
+      var currentLampiranBase64 = null;
+      var currentLampiranFileName = null;
 
       var currentPageKaryawan = 1;
       var currentPageDepartemen = 1;
       var currentPageUploadSlip = 1;
+      var currentPageRoster = 1;
       var pageSize = 10;
 
       // --- GAS RUNNER PROMISE HELPER (GAS & EXTERNAL PWA CORS SUPPORT) ---
@@ -2209,16 +2693,28 @@
         var target = document.getElementById('page-' + pageName);
         if (target) target.classList.remove('d-none');
 
-        document.querySelectorAll('.nav-item-custom').forEach(function (item) {
+        document.querySelectorAll('.nav-item-custom, .nav-subitem-custom').forEach(function (item) {
           item.classList.remove('active');
         });
         if (navEl) navEl.classList.add('active');
+
+        if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'master-roster') {
+          var subm = document.getElementById('submenuCuti');
+          if (subm) subm.classList.remove('d-none');
+          var dropEl = document.getElementById('dropdownMenuCuti');
+          if (dropEl) dropEl.classList.add('submenu-open');
+          var subItem = document.getElementById('subitem-' + pageName);
+          if (subItem) subItem.classList.add('active');
+        }
 
         var titles = {
           'karyawan': 'Kelola Data Karyawan',
           'master': 'Master Data Departemen',
           'upload-slip': 'Upload PDF Slip Gaji Karyawan',
-          'slip-saya': 'Daftar Slip Gaji Saya'
+          'slip-saya': 'Daftar Slip Gaji Saya',
+          'pengajuan-cuti': 'Formulir Pengajuan Cuti',
+          'riwayat-cuti': 'Riwayat Pengajuan Cuti',
+          'master-roster': 'Master Pola Roster Perusahaan'
         };
         document.getElementById('pageTitle').innerText = titles[pageName] || 'Portal Slip Gaji';
 
@@ -2239,6 +2735,7 @@
               dbKaryawan = res.karyawan || [];
               dbSlips = res.slips || [];
               dbDepartemen = res.departemen || [];
+              dbRoster = res.roster || [];
               if (pageName === 'karyawan') {
                 populateKaryawanDeptFilter();
                 currentPageKaryawan = 1;
@@ -2265,13 +2762,24 @@
             hideFullPageLoading();
             if (handleSessionExpired(res)) return;
             if (res.success) {
-              dbSlips = res.data || [];
+              dbSlips = res.slips || [];
               renderSlipKaryawan();
-              if (isFirstLogin) {
-                showWelcomeModal();
-              }
+            } else {
+              Swal.fire('Info', res.message || 'Belum ada data slip gaji.', 'info');
             }
+          }).catch(function (err) {
+            hideFullPageLoading();
+            Swal.fire('Error Server', err.message || err.toString(), 'error');
           });
+        } else if (pageName === 'pengajuan-cuti') {
+          hideFullPageLoading();
+          initPengajuanCutiForm();
+        } else if (pageName === 'riwayat-cuti') {
+          hideFullPageLoading();
+          loadRiwayatCuti();
+        } else if (pageName === 'master-roster') {
+          hideFullPageLoading();
+          loadRosterData();
         }
       }
 
@@ -2428,6 +2936,182 @@
             });
           }
         });
+      };
+
+      // --- MASTER ROSTER MODULE (HRD ONLY) ---
+      window.loadRosterData = function () {
+        var tbody = document.getElementById('tableRoster');
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div><p class="mb-0">Memuat data pola roster...</p></td></tr>';
+        }
+        gasRun('getRosterList', Auth.getToken()).then(function (res) {
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            dbRoster = res.roster || [];
+            currentPageRoster = 1;
+            renderRosterTable();
+          } else {
+            Swal.fire('Info', res.message || 'Gagal memuat data roster.', 'warning');
+          }
+        }).catch(function (err) {
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.renderRosterTable = function () {
+        var tbody = document.getElementById('tableRoster');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        var searchEl = document.getElementById('searchRoster');
+        var search = searchEl ? searchEl.value.trim().toLowerCase() : '';
+
+        var filtered = dbRoster.filter(function (r) {
+          return !search ||
+            (r.name && r.name.toLowerCase().includes(search)) ||
+            (r.notes && r.notes.toLowerCase().includes(search)) ||
+            String(r.workDays).includes(search) ||
+            String(r.leaveDays).includes(search);
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada data pola roster yang sesuai.</td></tr>';
+          renderPaginationControls('paginationRoster', 0, 1, function () { });
+          return;
+        }
+
+        var totalPages = Math.ceil(filtered.length / pageSize) || 1;
+        if (currentPageRoster > totalPages) currentPageRoster = totalPages;
+
+        var pageData = filtered.slice((currentPageRoster - 1) * pageSize, currentPageRoster * pageSize);
+
+        pageData.forEach(function (r, idx) {
+          var tr = document.createElement('tr');
+          var globalIdx = ((currentPageRoster - 1) * pageSize) + (idx + 1);
+
+          tr.innerHTML =
+            '<td class="text-center fw-bold text-dark">' + globalIdx + '</td>' +
+            '<td class="fw-bold"><span class="badge bg-primary bg-opacity-10 text-primary fs-6 px-3 py-2 border border-primary border-opacity-25">' + escapeHTML(r.name) + '</span></td>' +
+            '<td class="text-center"><span class="badge bg-info bg-opacity-10 text-info-emphasis px-2 py-1"><i class="bi bi-briefcase me-1"></i>' + escapeHTML(String(r.workDays)) + ' Hari</span></td>' +
+            '<td class="text-center"><span class="badge bg-success bg-opacity-10 text-success-emphasis px-2 py-1"><i class="bi bi-calendar2-check me-1"></i>' + escapeHTML(String(r.leaveDays)) + ' Hari</span></td>' +
+            '<td class="small text-muted">' + (r.notes ? escapeHTML(r.notes) : '<em class="text-black-50">-</em>') + '</td>' +
+            '<td class="text-center text-nowrap"><div class="action-group">' +
+            '<button class="btn btn-sm btn-action btn-action-edit" onclick="openEditRosterModal(\'' + escapeHTML(r.id) + '\')" title="Edit Pola Roster"><i class="bi bi-pencil-square"></i>Edit</button>' +
+            '<button class="btn btn-sm btn-action btn-action-delete" onclick="handleDeleteRoster(\'' + escapeHTML(r.id) + '\')" title="Hapus Pola Roster"><i class="bi bi-trash"></i>Hapus</button>' +
+            '</div></td>';
+
+          tbody.appendChild(tr);
+        });
+
+        renderPaginationControls('paginationRoster', filtered.length, currentPageRoster, function (newPage) {
+          currentPageRoster = newPage;
+          renderRosterTable();
+        });
+      };
+
+      window.openAddRosterModal = function () {
+        if (!bsModalRoster) {
+          bsModalRoster = new bootstrap.Modal(document.getElementById('modalRoster'));
+        }
+        document.getElementById('modalRosterTitle').innerText = 'Tambah Pola Roster';
+        document.getElementById('formRoster').reset();
+        document.getElementById('rosterId').value = '';
+        bsModalRoster.show();
+      };
+
+      window.openEditRosterModal = function (rosterId) {
+        if (!bsModalRoster) {
+          bsModalRoster = new bootstrap.Modal(document.getElementById('modalRoster'));
+        }
+        var item = dbRoster.find(function (r) { return r.id === rosterId; });
+        if (!item) return;
+
+        document.getElementById('modalRosterTitle').innerText = 'Edit Pola Roster';
+        document.getElementById('rosterId').value = item.id;
+        document.getElementById('rosterName').value = item.name;
+        document.getElementById('rosterWorkDays').value = item.workDays;
+        document.getElementById('rosterLeaveDays').value = item.leaveDays;
+        document.getElementById('rosterNotes').value = item.notes || '';
+        bsModalRoster.show();
+      };
+
+      window.handleSaveRoster = function () {
+        var payload = {
+          id: document.getElementById('rosterId').value.trim(),
+          name: document.getElementById('rosterName').value.trim(),
+          workDays: document.getElementById('rosterWorkDays').value.trim(),
+          leaveDays: document.getElementById('rosterLeaveDays').value.trim(),
+          notes: document.getElementById('rosterNotes').value.trim()
+        };
+
+        if (!payload.name) {
+          Swal.fire('Peringatan', 'Nama pola roster wajib diisi.', 'warning');
+          return;
+        }
+        if (!payload.workDays || isNaN(payload.workDays) || Number(payload.workDays) <= 0) {
+          Swal.fire('Peringatan', 'Jumlah hari kerja harus berupa angka positif.', 'warning');
+          return;
+        }
+        if (!payload.leaveDays || isNaN(payload.leaveDays) || Number(payload.leaveDays) <= 0) {
+          Swal.fire('Peringatan', 'Jumlah jatah cuti harus berupa angka positif.', 'warning');
+          return;
+        }
+
+        showFullPageLoading('Menyimpan data pola roster...');
+        gasRun('saveRoster', Auth.getToken(), payload).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            if (bsModalRoster) bsModalRoster.hide();
+            Swal.fire('Berhasil', res.message || 'Data pola roster berhasil disimpan.', 'success');
+            loadRosterData();
+          } else {
+            Swal.fire('Gagal', res.message || 'Gagal menyimpan data roster.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.handleDeleteRoster = function (rosterId) {
+        var item = dbRoster.find(function (r) { return r.id === rosterId; });
+        var name = item ? item.name : 'pola roster ini';
+
+        Swal.fire({
+          title: 'Hapus Pola Roster?',
+          text: 'Apakah Anda yakin ingin menghapus pola "' + name + '"?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: 'Ya, Hapus',
+          cancelButtonText: 'Batal'
+        }).then(function (res) {
+          if (res.isConfirmed) {
+            showFullPageLoading('Menghapus pola roster...');
+            gasRun('deleteRoster', Auth.getToken(), rosterId).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp.success) {
+                Swal.fire('Terhapus', resp.message || 'Pola roster telah dihapus.', 'success');
+                loadRosterData();
+              } else {
+                Swal.fire('Gagal', resp.message || 'Gagal menghapus pola roster.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error Server', err.message || err.toString(), 'error');
+            });
+          }
+        });
+      };
+
+      window.resetRosterFilters = function () {
+        var searchEl = document.getElementById('searchRoster');
+        if (searchEl) searchEl.value = '';
+        currentPageRoster = 1;
+        renderRosterTable();
       };
 
       function populateDeptFilter() {
@@ -3617,6 +4301,592 @@
         }
         type();
       }
+
+      // --- SUBMENU & CUTI MODULE HANDLERS ---
+
+      window.toggleSubmenu = function (submenuId, triggerEl) {
+        var submenu = document.getElementById(submenuId);
+        if (!submenu) return;
+        var parentLi = triggerEl.closest('.nav-item-dropdown') || triggerEl.parentElement;
+        var isOpen = !submenu.classList.contains('d-none');
+        if (isOpen) {
+          submenu.classList.add('d-none');
+          if (parentLi) parentLi.classList.remove('submenu-open');
+        } else {
+          submenu.classList.remove('d-none');
+          if (parentLi) parentLi.classList.add('submenu-open');
+        }
+      };
+
+      window.handleJenisCutiChange = function () {
+        var jenis = document.getElementById('cutiJenis').value;
+        var colLainnya = document.getElementById('cutiJenisLainnyaCol');
+        var inputLainnya = document.getElementById('cutiJenisLainnya');
+        var alertSakit = document.getElementById('cutiSakitAlert');
+        var colRoster = document.getElementById('cutiPolaRosterCol');
+        var selectRoster = document.getElementById('cutiPolaRoster');
+        var alertRoster = document.getElementById('cutiRosterInfoAlert');
+
+        if (jenis === 'Lainnya') {
+          colLainnya.classList.remove('d-none');
+          inputLainnya.setAttribute('required', 'required');
+        } else {
+          colLainnya.classList.add('d-none');
+          inputLainnya.removeAttribute('required');
+          inputLainnya.value = '';
+        }
+
+        if (jenis === 'Cuti Roster') {
+          colRoster.classList.remove('d-none');
+          selectRoster.setAttribute('required', 'required');
+          populateCutiRosterSelect();
+        } else {
+          colRoster.classList.add('d-none');
+          selectRoster.removeAttribute('required');
+          selectRoster.value = '';
+          alertRoster.classList.add('d-none');
+          alertRoster.innerHTML = '';
+        }
+
+        if (jenis === 'Cuti Sakit') {
+          alertSakit.classList.remove('d-none');
+        } else {
+          alertSakit.classList.add('d-none');
+        }
+      };
+
+      window.populateCutiRosterSelect = function () {
+        var sel = document.getElementById('cutiPolaRoster');
+        if (!sel) return;
+        var currentVal = sel.value;
+        sel.innerHTML = '<option value="">-- Pilih Pola Roster --</option>';
+        if (dbRoster && dbRoster.length > 0) {
+          dbRoster.forEach(function (r) {
+            sel.innerHTML += '<option value="' + escapeHTML(r.name) + '">' +
+              escapeHTML(r.name) + ' (Kerja ' + r.workDays + ' hr, Cuti ' + r.leaveDays + ' hr)' +
+              '</option>';
+          });
+          if (currentVal) sel.value = currentVal;
+        } else {
+          gasRun('getRosterList', Auth.getToken()).then(function (res) {
+            if (res.success && res.roster) {
+              dbRoster = res.roster;
+              populateCutiRosterSelect();
+            }
+          });
+        }
+      };
+
+      window.handleRosterPatternChange = function () {
+        var pattern = document.getElementById('cutiPolaRoster').value;
+        var alertRoster = document.getElementById('cutiRosterInfoAlert');
+        if (!pattern) {
+          alertRoster.classList.add('d-none');
+          alertRoster.innerHTML = '';
+          return;
+        }
+        var r = dbRoster.find(function (item) { return item.name === pattern; });
+        if (r) {
+          alertRoster.classList.remove('d-none');
+          alertRoster.innerHTML = '<i class="bi bi-info-circle-fill me-1"></i>Pola <strong>' + escapeHTML(r.name) + '</strong>: Jatah Cuti <strong>' + r.leaveDays + ' Hari Kalender</strong> (Periode Kerja: ' + r.workDays + ' Hari).' + (r.notes ? ' <span class="text-white-50 small">(' + escapeHTML(r.notes) + ')</span>' : '');
+
+          var startVal = document.getElementById('cutiTanggalMulai').value;
+          if (startVal && Number(r.leaveDays) > 0) {
+            var d = new Date(startVal + 'T00:00:00');
+            d.setDate(d.getDate() + (parseInt(r.leaveDays, 10) - 1));
+            var yyyy = d.getFullYear();
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            document.getElementById('cutiTanggalSelesai').value = yyyy + '-' + mm + '-' + dd;
+            calculateCutiDays();
+          }
+        }
+      };
+
+      window.handleCutiTanggalMulaiChange = function () {
+        var jenis = document.getElementById('cutiJenis').value;
+        var pattern = document.getElementById('cutiPolaRoster').value;
+        var startVal = document.getElementById('cutiTanggalMulai').value;
+        if (jenis === 'Cuti Roster' && pattern && startVal) {
+          var r = dbRoster.find(function (item) { return item.name === pattern; });
+          if (r && Number(r.leaveDays) > 0) {
+            var d = new Date(startVal + 'T00:00:00');
+            d.setDate(d.getDate() + (parseInt(r.leaveDays, 10) - 1));
+            var yyyy = d.getFullYear();
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            document.getElementById('cutiTanggalSelesai').value = yyyy + '-' + mm + '-' + dd;
+          }
+        }
+        calculateCutiDays();
+      };
+
+      window.calculateCutiDays = function () {
+        var startVal = document.getElementById('cutiTanggalMulai').value;
+        var endVal = document.getElementById('cutiTanggalSelesai').value;
+        var helper = document.getElementById('cutiDaysHelper');
+        var inputDays = document.getElementById('cutiJumlahHari');
+
+        if (!startVal || !endVal) {
+          inputDays.value = 0;
+          helper.className = 'form-text extra-small text-muted';
+          helper.innerText = 'Otomatis dihitung dari rentang tanggal.';
+          return;
+        }
+
+        var dStart = new Date(startVal + 'T00:00:00');
+        var dEnd = new Date(endVal + 'T00:00:00');
+
+        if (dEnd < dStart) {
+          inputDays.value = 0;
+          helper.className = 'form-text extra-small text-danger fw-semibold';
+          helper.innerText = 'Peringatan: Tanggal selesai tidak boleh lebih awal dari tanggal mulai!';
+          return;
+        }
+
+        var diffTime = Math.abs(dEnd.getTime() - dStart.getTime());
+        var days = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        inputDays.value = days;
+        helper.className = 'form-text extra-small text-success fw-semibold';
+        helper.innerText = 'Durasi cuti: ' + days + ' hari kalender.';
+      };
+
+      window.initPengajuanCutiForm = function () {
+        var user = Auth.getUser();
+        if (user) {
+          document.getElementById('cutiNamaKaryawan').value = user.fullname || '';
+          document.getElementById('cutiIdKaryawan').value = user.username || '';
+          document.getElementById('cutiDept').value = user.dept || '-';
+          document.getElementById('cutiJabatan').value = user.jabatan || '-';
+        }
+      };
+
+      window.resetCutiForm = function () {
+        document.getElementById('formPengajuanCuti').reset();
+        initPengajuanCutiForm();
+        document.getElementById('cutiJumlahHari').value = 0;
+        document.getElementById('cutiDaysHelper').className = 'form-text extra-small text-muted';
+        document.getElementById('cutiDaysHelper').innerText = 'Otomatis dihitung dari rentang tanggal.';
+        document.getElementById('cutiJenisLainnyaCol').classList.add('d-none');
+        document.getElementById('cutiSakitAlert').classList.add('d-none');
+        var colRoster = document.getElementById('cutiPolaRosterCol');
+        if (colRoster) colRoster.classList.add('d-none');
+        var alertRoster = document.getElementById('cutiRosterInfoAlert');
+        if (alertRoster) {
+          alertRoster.classList.add('d-none');
+          alertRoster.innerHTML = '';
+        }
+      };
+
+      window.handleSavePengajuanCuti = function () {
+        var jenis = document.getElementById('cutiJenis').value;
+        if (jenis === 'Lainnya') {
+          var lainnyaVal = document.getElementById('cutiJenisLainnya').value.trim();
+          if (!lainnyaVal) {
+            Swal.fire('Peringatan', 'Silakan sebutkan jenis cuti lainnya.', 'warning');
+            return;
+          }
+          jenis = 'Lainnya: ' + lainnyaVal;
+        }
+
+        var polaRoster = '';
+        if (jenis === 'Cuti Roster') {
+          polaRoster = document.getElementById('cutiPolaRoster').value.trim();
+          if (!polaRoster) {
+            Swal.fire('Peringatan', 'Silakan pilih pola roster yang berlaku.', 'warning');
+            return;
+          }
+        }
+
+        var tglMulai = document.getElementById('cutiTanggalMulai').value;
+        var tglSelesai = document.getElementById('cutiTanggalSelesai').value;
+        var jmlHari = parseInt(document.getElementById('cutiJumlahHari').value, 10);
+        var alasan = document.getElementById('cutiAlasan').value.trim();
+        var alamat = document.getElementById('cutiAlamat').value.trim();
+        var kontak = document.getElementById('cutiKontak').value.trim();
+        var catatan = document.getElementById('cutiCatatan').value.trim();
+        var fileInput = document.getElementById('cutiLampiran');
+
+        if (!jenis) {
+          Swal.fire('Peringatan', 'Silakan pilih jenis cuti.', 'warning');
+          return;
+        }
+        if (!tglMulai || !tglSelesai || jmlHari <= 0) {
+          Swal.fire('Peringatan', 'Rentang tanggal cuti belum valid.', 'warning');
+          return;
+        }
+        if (!alasan) {
+          Swal.fire('Peringatan', 'Alasan cuti wajib diisi.', 'warning');
+          return;
+        }
+
+        var file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+        if (file && file.size > 5242880) {
+          Swal.fire('Peringatan', 'Ukuran berkas lampiran maksimal 5 MB.', 'warning');
+          return;
+        }
+
+        Swal.fire({
+          title: 'Kirim Pengajuan Cuti?',
+          text: 'Permohonan cuti selama ' + jmlHari + ' hari kalender (' + tglMulai + ' s/d ' + tglSelesai + ') akan dikirim.',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#2563eb',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: 'Ya, Kirim Sekarang',
+          cancelButtonText: 'Periksa Kembali'
+        }).then(function (result) {
+          if (!result.isConfirmed) return;
+
+          showFullPageLoading('Mengunggah & memproses pengajuan cuti...');
+
+          var processUpload = function (fileData) {
+            var payload = {
+              jenisCuti: jenis,
+              polaRoster: polaRoster,
+              tanggalMulai: tglMulai,
+              tanggalSelesai: tglSelesai,
+              jumlahHari: jmlHari,
+              alasanCuti: alasan,
+              alamatCuti: alamat,
+              nomorKontak: kontak,
+              catatanTambahan: catatan,
+              lampiranBase64: fileData ? fileData.data : '',
+              lampiranName: fileData ? fileData.name : '',
+              lampiranMimeType: fileData ? fileData.type : ''
+            };
+
+            gasRun('submitPengajuanCuti', Auth.getToken(), payload).then(function (res) {
+              hideFullPageLoading();
+              if (handleSessionExpired(res)) return;
+              if (res.success) {
+                Swal.fire({
+                  title: 'Berhasil!',
+                  text: res.message || 'Pengajuan cuti berhasil dikirim.',
+                  icon: 'success',
+                  showCancelButton: true,
+                  confirmButtonColor: '#2563eb',
+                  cancelButtonColor: '#64748b',
+                  confirmButtonText: 'Buka Riwayat Cuti',
+                  cancelButtonText: 'Tetap di Sini'
+                }).then(function (result) {
+                  resetCutiForm();
+                  if (result.isConfirmed) {
+                    showPage('riwayat-cuti', document.getElementById('subitem-riwayat-cuti'));
+                  }
+                });
+              } else {
+                Swal.fire('Gagal Mengajukan Cuti', res.message || 'Terjadi kesalahan sistem.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error Server', err.message || err.toString(), 'error');
+            });
+          };
+
+          if (file) {
+            readFileAsBase64(file).then(function (fileData) {
+              processUpload(fileData);
+            }).catch(function (readErr) {
+              hideFullPageLoading();
+              Swal.fire('Error Berkas', 'Gagal membaca berkas lampiran: ' + readErr.toString(), 'error');
+            });
+          } else {
+            processUpload(null);
+          }
+        });
+      };
+
+      window.loadRiwayatCuti = function () {
+        var token = Auth.getToken();
+        if (!token) return;
+
+        gasRun('getCutiKaryawan', token).then(function (res) {
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            dbCutiList = res.list || [];
+            var badgeCount = document.getElementById('badgeCutiCount');
+            if (badgeCount) badgeCount.innerText = dbCutiList.length;
+            renderRiwayatCutiTable();
+          } else {
+            document.getElementById('tbodyRiwayatCuti').innerHTML =
+              '<tr><td colspan="10" class="text-center py-4 text-muted">' + (res.message || 'Gagal memuat riwayat cuti.') + '</td></tr>';
+          }
+        }).catch(function (err) {
+          document.getElementById('tbodyRiwayatCuti').innerHTML =
+            '<tr><td colspan="10" class="text-center py-4 text-danger">Gagal menghubungi server: ' + err.toString() + '</td></tr>';
+        });
+      };
+
+      window.renderRiwayatCutiTable = function () {
+        var tbody = document.getElementById('tbodyRiwayatCuti');
+        if (!tbody) return;
+
+        var keyword = (document.getElementById('searchCuti') ? document.getElementById('searchCuti').value : '').toLowerCase().trim();
+        var filterStatus = document.getElementById('filterStatusCuti') ? document.getElementById('filterStatusCuti').value : 'SEMUA';
+
+        var filtered = dbCutiList.filter(function (item) {
+          var matchSearch = !keyword ||
+            (item.id && item.id.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.jenisCuti && item.jenisCuti.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.alasan && item.alasan.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.namaKaryawan && item.namaKaryawan.toLowerCase().indexOf(keyword) !== -1);
+
+          var matchStatus = (filterStatus === 'SEMUA' || item.status === filterStatus);
+          return matchSearch && matchStatus;
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center py-5 text-muted">' +
+            '<i class="bi bi-inbox fs-3 d-block mb-2 text-secondary"></i>' +
+            'Belum ada data pengajuan cuti yang sesuai filter.</td></tr>';
+          return;
+        }
+
+        var html = '';
+        filtered.forEach(function (item, idx) {
+          var badgeClass = 'bg-warning text-dark';
+          var statusIcon = 'bi-hourglass-split';
+          if (item.status === 'Disetujui') {
+            badgeClass = 'bg-success text-white';
+            statusIcon = 'bi-check-circle-fill';
+          } else if (item.status === 'Ditolak') {
+            badgeClass = 'bg-danger text-white';
+            statusIcon = 'bi-x-circle-fill';
+          }
+
+          var lampiranBtn = '<span class="text-muted extra-small">-</span>';
+          if (item.lampiranFileId || item.lampiranName) {
+            lampiranBtn = '<button type="button" class="btn btn-xs btn-outline-primary fw-semibold py-1 px-2" style="font-size: 0.75rem;" onclick="viewLampiranCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-paperclip me-1"></i>Lampiran</button>';
+          }
+
+          var cancelBtn = '';
+          if (item.status === 'Menunggu Persetujuan') {
+            cancelBtn = '<button type="button" class="btn btn-xs btn-outline-danger p-1" style="font-size: 0.75rem;" title="Batalkan Pengajuan" onclick="confirmBatalCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-trash3"></i></button>';
+          }
+
+          html += '<tr>' +
+            '<td class="ps-3 py-3 fw-bold text-muted">' + (idx + 1) + '</td>' +
+            '<td class="py-3"><span class="badge bg-light text-primary border font-monospace">' + escapeHTML(item.id) + '</span></td>' +
+            '<td class="py-3 extra-small text-muted">' + escapeHTML(item.tanggalPengajuan) + '</td>' +
+            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + '</td>' +
+            '<td class="py-3 small">' + escapeHTML(item.tanggalMulai) + ' <span class="text-muted">s/d</span> ' + escapeHTML(item.tanggalSelesai) + '</td>' +
+            '<td class="py-3 text-center"><span class="badge bg-primary-subtle text-primary fw-bold">' + item.jumlahHari + ' Hari</span></td>' +
+            '<td class="py-3 text-truncate" style="max-width: 160px;" title="' + escapeHTML(item.alasan) + '">' + escapeHTML(item.alasan) + '</td>' +
+            '<td class="py-3 text-center">' + lampiranBtn + '</td>' +
+            '<td class="py-3 text-center"><span class="badge ' + badgeClass + ' extra-small"><i class="bi ' + statusIcon + ' me-1"></i>' + escapeHTML(item.status) + '</span></td>' +
+            '<td class="pe-3 py-3 text-center">' +
+            '<div class="d-flex align-items-center justify-content-center gap-1">' +
+            '<button type="button" class="btn btn-xs btn-light border p-1" style="font-size: 0.75rem;" title="Lihat Detail" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
+            '<i class="bi bi-eye text-primary"></i></button>' +
+            cancelBtn +
+            '</div>' +
+            '</td>' +
+            '</tr>';
+        });
+
+        tbody.innerHTML = html;
+      };
+
+      window.viewDetailCuti = function (cutiId) {
+        var item = dbCutiList.find(function (c) { return c.id === cutiId; });
+        if (!item) return;
+
+        var bodyHtml =
+          '<div class="row g-3">' +
+          '<div class="col-md-6">' +
+          '<div class="p-3 bg-light rounded-3 border">' +
+          '<span class="extra-small fw-bold text-muted d-block mb-1">ID PENGAJUAN</span>' +
+          '<h6 class="fw-bold text-primary font-monospace mb-2">' + escapeHTML(item.id) + '</h6>' +
+          '<span class="extra-small fw-bold text-muted d-block mb-1">TANGGAL PENGAJUAN</span>' +
+          '<p class="small text-dark mb-0">' + escapeHTML(item.tanggalPengajuan) + '</p>' +
+          '</div>' +
+          '</div>' +
+          '<div class="col-md-6">' +
+          '<div class="p-3 bg-light rounded-3 border">' +
+          '<span class="extra-small fw-bold text-muted d-block mb-1">DATA PEMOHON</span>' +
+          '<h6 class="fw-bold text-dark mb-1">' + escapeHTML(item.namaKaryawan) + ' <small class="text-muted">(' + escapeHTML(item.empId) + ')</small></h6>' +
+          '<p class="small text-muted mb-0">' + escapeHTML(item.jabatan) + ' • ' + escapeHTML(item.dept) + '</p>' +
+          '</div>' +
+          '</div>' +
+          '<div class="col-12">' +
+          '<div class="p-3 bg-light rounded-3 border">' +
+          '<div class="row g-2">' +
+          '<div class="col-sm-4">' +
+          '<span class="extra-small fw-bold text-muted d-block">JENIS CUTI</span>' +
+          '<span class="fw-semibold text-dark small">' + escapeHTML(item.jenisCuti) + '</span>' +
+          '</div>' +
+          '<div class="col-sm-4">' +
+          '<span class="extra-small fw-bold text-muted d-block">PERIODE CUTI</span>' +
+          '<span class="fw-semibold text-dark small">' + escapeHTML(item.tanggalMulai) + ' s/d ' + escapeHTML(item.tanggalSelesai) + '</span>' +
+          '</div>' +
+          '<div class="col-sm-4">' +
+          '<span class="extra-small fw-bold text-muted d-block">DURASI</span>' +
+          '<span class="badge bg-primary fw-bold">' + item.jumlahHari + ' Hari Kalender</span>' +
+          '</div>' +
+          '</div>' +
+          '</div>' +
+          '</div>' +
+          '<div class="col-12">' +
+          '<label class="extra-small fw-bold text-muted d-block mb-1">ALASAN CUTI</label>' +
+          '<div class="p-3 bg-white border rounded-3 small text-dark">' + escapeHTML(item.alasan) + '</div>' +
+          '</div>' +
+          '<div class="col-md-6">' +
+          '<label class="extra-small fw-bold text-muted d-block mb-1">ALAMAT SELAMA CUTI</label>' +
+          '<p class="small text-dark mb-0">' + (item.alamat ? escapeHTML(item.alamat) : '<span class="text-muted fst-italic">Tidak dicantumkan</span>') + '</p>' +
+          '</div>' +
+          '<div class="col-md-6">' +
+          '<label class="extra-small fw-bold text-muted d-block mb-1">NOMOR YANG DAPAT DIHUBUNGI</label>' +
+          '<p class="small text-dark mb-0">' + (item.kontak ? escapeHTML(item.kontak) : '<span class="text-muted fst-italic">Tidak dicantumkan</span>') + '</p>' +
+          '</div>' +
+          '<div class="col-12">' +
+          '<label class="extra-small fw-bold text-muted d-block mb-1">CATATAN TAMBAHAN</label>' +
+          '<p class="small text-dark mb-0">' + (item.catatanTambahan ? escapeHTML(item.catatanTambahan) : '<span class="text-muted fst-italic">Tidak ada catatan</span>') + '</p>' +
+          '</div>' +
+          (item.lampiranFileId ?
+            '<div class="col-12">' +
+            '<div class="alert alert-light border d-flex align-items-center justify-content-between p-2 mb-0">' +
+            '<span class="small text-muted"><i class="bi bi-paperclip me-1 text-primary"></i>' + escapeHTML(item.lampiranName || 'Berkas Lampiran') + '</span>' +
+            '<button type="button" class="btn btn-sm btn-outline-primary py-1 px-2" onclick="viewLampiranCuti(\'' + escapeHTML(item.id) + '\')"><i class="bi bi-eye me-1"></i>Buka Lampiran</button>' +
+            '</div>' +
+            '</div>' : '') +
+          '</div>';
+
+        document.getElementById('modalDetailCutiBody').innerHTML = bodyHtml;
+
+        var badgeClass = 'bg-warning text-dark';
+        if (item.status === 'Disetujui') badgeClass = 'bg-success text-white';
+        else if (item.status === 'Ditolak') badgeClass = 'bg-danger text-white';
+        document.getElementById('modalDetailStatusBadge').innerHTML =
+          '<span class="badge ' + badgeClass + '"><i class="bi bi-info-circle me-1"></i>Status: ' + escapeHTML(item.status) + '</span>';
+
+        if (!bsModalDetailCuti) {
+          bsModalDetailCuti = new bootstrap.Modal(document.getElementById('modalDetailCuti'));
+        }
+        bsModalDetailCuti.show();
+      };
+
+      window.viewLampiranCuti = function (cutiId) {
+        var modalEl = document.getElementById('modalViewLampiranCuti');
+        if (!bsModalViewLampiranCuti) {
+          bsModalViewLampiranCuti = new bootstrap.Modal(modalEl);
+        }
+
+        var spinner = document.getElementById('lampiranLoadingSpinner');
+        var imgWrapper = document.getElementById('lampiranImageWrapper');
+        var pdfWrapper = document.getElementById('lampiranPdfWrapper');
+        var imgEl = document.getElementById('lampiranPreviewImg');
+        var pdfCanvas = document.getElementById('lampiranPdfCanvas');
+        var titleEl = document.getElementById('lampiranViewFileName');
+
+        spinner.classList.remove('d-none');
+        imgWrapper.classList.add('d-none');
+        pdfWrapper.classList.add('d-none');
+        currentLampiranBase64 = null;
+        currentLampiranFileName = 'Lampiran_Cuti';
+
+        bsModalViewLampiranCuti.show();
+
+        gasRun('getLampiranCutiBase64', Auth.getToken(), cutiId).then(function (res) {
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            spinner.classList.add('d-none');
+            currentLampiranBase64 = res.base64;
+            currentLampiranFileName = res.fileName || 'Lampiran_Cuti';
+            titleEl.innerText = currentLampiranFileName;
+
+            if (res.mimeType && res.mimeType.indexOf('image/') !== -1) {
+              imgEl.src = res.base64;
+              imgWrapper.classList.remove('d-none');
+            } else if (res.mimeType === 'application/pdf' || (res.fileName && res.fileName.toLowerCase().endsWith('.pdf'))) {
+              pdfWrapper.classList.remove('d-none');
+              renderLampiranPdf(res.base64);
+            } else {
+              imgEl.src = res.base64;
+              imgWrapper.classList.remove('d-none');
+            }
+          } else {
+            spinner.classList.add('d-none');
+            Swal.fire('Gagal Membuka Lampiran', res.message || 'Lampiran tidak dapat dimuat.', 'error');
+            bsModalViewLampiranCuti.hide();
+          }
+        }).catch(function (err) {
+          spinner.classList.add('d-none');
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+          bsModalViewLampiranCuti.hide();
+        });
+      };
+
+      function renderLampiranPdf(base64Data) {
+        try {
+          var rawBase64 = base64Data.replace(/^data:application\/pdf;base64,/, '');
+          var rawBytes = atob(rawBase64);
+          var uint8Array = new Uint8Array(rawBytes.length);
+          for (var i = 0; i < rawBytes.length; i++) {
+            uint8Array[i] = rawBytes.charCodeAt(i);
+          }
+
+          if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            pdfjsLib.getDocument({ data: uint8Array }).promise.then(function (pdfDoc) {
+              pdfDoc.getPage(1).then(function (page) {
+                var canvas = document.getElementById('lampiranPdfCanvas');
+                var ctx = canvas.getContext('2d');
+                var viewport = page.getViewport({ scale: 1.2 });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                page.render({ canvasContext: ctx, viewport: viewport });
+              });
+            }).catch(function (pdfErr) {
+              console.error('PDF render note:', pdfErr);
+            });
+          }
+        } catch (e) {
+          console.error('Error parsing PDF lampiran:', e);
+        }
+      }
+
+      window.downloadCurrentLampiran = function () {
+        if (!currentLampiranBase64) return;
+        var a = document.createElement('a');
+        a.href = currentLampiranBase64;
+        a.download = currentLampiranFileName || 'Lampiran_Cuti';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+
+      window.confirmBatalCuti = function (cutiId) {
+        Swal.fire({
+          title: 'Batalkan Pengajuan Cuti?',
+          text: 'Pengajuan ID ' + cutiId + ' akan dibatalkan dan dihapus.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#ef4444',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: 'Ya, Batalkan',
+          cancelButtonText: 'Tidak'
+        }).then(function (result) {
+          if (!result.isConfirmed) return;
+
+          showFullPageLoading('Membatalkan pengajuan cuti...');
+          gasRun('deletePengajuanCuti', Auth.getToken(), cutiId).then(function (res) {
+            hideFullPageLoading();
+            if (handleSessionExpired(res)) return;
+            if (res.success) {
+              Swal.fire('Dibatalkan', res.message || 'Pengajuan cuti berhasil dibatalkan.', 'success');
+              loadRiwayatCuti();
+            } else {
+              Swal.fire('Gagal', res.message || 'Gagal membatalkan pengajuan cuti.', 'error');
+            }
+          }).catch(function (err) {
+            hideFullPageLoading();
+            Swal.fire('Error Server', err.message || err.toString(), 'error');
+          });
+        });
+      };
 
       // --- CONSOLE SECURITY & ANTI-INSPECT PROTECTION ---
       function initConsoleSecurity() {

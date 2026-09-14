@@ -22,7 +22,14 @@ const ALLOWED_PROTECTED_ACTIONS = [
   'getSlipPdfBase64',
   'getResiFileBase64',
   'sendSlipEmailNotification',
-  'sendSlipEmailNotificationBatch'
+  'sendSlipEmailNotificationBatch',
+  'submitPengajuanCuti',
+  'getCutiKaryawan',
+  'deletePengajuanCuti',
+  'getLampiranCutiBase64',
+  'saveRoster',
+  'deleteRoster',
+  'getRosterList'
 ];
 
 function doGet(e) {
@@ -112,7 +119,18 @@ function setupDatabase() {
     otpSheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#e2e8f0');
   }
 
-  return 'Setup Database Berhasil! Sheet Users, SlipGaji, Departemen, dan OTP_Reset telah siap.';
+  // 5. Sheet PengajuanCuti
+  let cutiSheet = ss.getSheetByName('PengajuanCuti');
+  if (!cutiSheet) {
+    cutiSheet = ss.insertSheet('PengajuanCuti');
+    cutiSheet.appendRow(['ID Pengajuan', 'Tanggal Pengajuan', 'ID Karyawan', 'Nama Karyawan', 'Departemen', 'Jabatan', 'Jenis Cuti', 'Tanggal Mulai', 'Tanggal Selesai', 'Jumlah Hari', 'Alasan Cuti', 'Alamat Selama Cuti', 'Nomor Kontak', 'Nama File Lampiran', 'URL Drive', 'File ID Drive', 'Catatan Tambahan', 'Status']);
+    cutiSheet.getRange(1, 1, 1, 18).setFontWeight('bold').setBackground('#e2e8f0');
+  }
+
+  // 6. Sheet MasterRoster
+  getOrCreateMasterRosterSheet(ss);
+
+  return 'Setup Database Berhasil! Sheet Users, SlipGaji, Departemen, OTP_Reset, PengajuanCuti, dan MasterRoster telah siap.';
 }
 
 // --- HASH & SECURITY HELPERS ---
@@ -567,7 +585,22 @@ function getInitialData(token) {
     });
   }
 
-  return { success: true, karyawan: karyawanList, slips: slipList, departemen: deptList };
+  // Get Master Roster
+  const rosterSheet = getOrCreateMasterRosterSheet(ss);
+  const rosterData = rosterSheet.getDataRange().getValues();
+  const rosterList = [];
+  for (let r = 1; r < rosterData.length; r++) {
+    rosterList.push({
+      id: String(rosterData[r][0] || ''),
+      name: String(rosterData[r][1] || ''),
+      workDays: Number(rosterData[r][2] || 0),
+      leaveDays: Number(rosterData[r][3] || 0),
+      note: String(rosterData[r][4] || ''),
+      createdAt: rosterData[r][5] instanceof Date ? Utilities.formatDate(rosterData[r][5], 'Asia/Jakarta', 'yyyy-MM-dd HH:mm') : '-'
+    });
+  }
+
+  return { success: true, karyawan: karyawanList, slips: slipList, departemen: deptList, roster: rosterList };
 }
 
 function getSlipKaryawan(token, filterBulan, filterTahun) {
@@ -1496,5 +1529,392 @@ function sendSlipEmailNotificationBatch(token, slipIds) {
     errors: errorMsgs
   };
 }
+
+// --- MODUL PENGAJUAN CUTI KARYAWAN ---
+
+function getOrCreatePengajuanCutiSheet(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('PengajuanCuti');
+  if (!sheet) {
+    sheet = ss.insertSheet('PengajuanCuti');
+    sheet.appendRow([
+      'ID Pengajuan', 'Tanggal Pengajuan', 'ID Karyawan', 'Nama Karyawan',
+      'Departemen', 'Jabatan', 'Jenis Cuti', 'Tanggal Mulai',
+      'Tanggal Selesai', 'Jumlah Hari', 'Alasan Cuti', 'Alamat Selama Cuti',
+      'Nomor Kontak', 'Nama File Lampiran', 'URL Drive', 'File ID Drive',
+      'Catatan Tambahan', 'Status'
+    ]);
+    sheet.getRange(1, 1, 1, 18).setFontWeight('bold').setBackground('#e2e8f0');
+  }
+  return sheet;
+}
+
+function getLampiranCutiStorageFolder(tahun, empName) {
+  const rootName = 'Aplikasi_Slip_Gaji_Storage';
+  let root;
+  const roots = DriveApp.getFoldersByName(rootName);
+  if (roots.hasNext()) {
+    root = roots.next();
+  } else {
+    root = DriveApp.createFolder(rootName);
+  }
+
+  const lampiranRoot = getOrCreateFolder(root, 'Lampiran_Cuti');
+  const yearFolder = getOrCreateFolder(lampiranRoot, String(tahun || new Date().getFullYear()));
+  const empFolder = getOrCreateFolder(yearFolder, empName || 'Karyawan');
+  return empFolder;
+}
+
+function submitPengajuanCuti(token, payload) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  payload = payload || {};
+  const jenisCuti = String(payload.jenisCuti || '').trim();
+  const tanggalMulai = String(payload.tanggalMulai || '').trim();
+  const tanggalSelesai = String(payload.tanggalSelesai || '').trim();
+  const alasanCuti = String(payload.alasanCuti || '').trim();
+  const alamatCuti = String(payload.alamatCuti || '').trim();
+  const nomorKontak = String(payload.nomorKontak || '').trim();
+  const catatanTambahan = String(payload.catatanTambahan || '').trim();
+
+  if (!jenisCuti) return { success: false, message: 'Jenis cuti wajib dipilih.' };
+  if (!tanggalMulai || !tanggalSelesai) return { success: false, message: 'Tanggal mulai dan tanggal selesai cuti wajib diisi.' };
+  if (!alasanCuti) return { success: false, message: 'Alasan cuti wajib diisi.' };
+
+  // Hitung jumlah hari kalender
+  const dStart = new Date(tanggalMulai + 'T00:00:00');
+  const dEnd = new Date(tanggalSelesai + 'T00:00:00');
+  if (isNaN(dStart.getTime()) || isNaN(dEnd.getTime())) {
+    return { success: false, message: 'Format tanggal cuti tidak valid.' };
+  }
+  if (dEnd < dStart) {
+    return { success: false, message: 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai.' };
+  }
+  const diffTime = Math.abs(dEnd.getTime() - dStart.getTime());
+  const jumlahHari = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+  // Ambil data profil karyawan secara konsisten dari sheet Users
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const userSheet = ss.getSheetByName('Users');
+  const userData = userSheet ? userSheet.getDataRange().getValues() : [];
+  let userFullname = session.user.fullname || '';
+  let userJabatan = session.user.jabatan || '';
+  let userDept = session.user.dept || '';
+  const empId = String(session.user.username || '').trim();
+
+  for (let i = 1; i < userData.length; i++) {
+    if (String(userData[i][0]).trim().toLowerCase() === empId.toLowerCase()) {
+      userFullname = String(userData[i][1] || userFullname);
+      userJabatan = String(userData[i][2] || userJabatan);
+      userDept = String(userData[i][3] || userDept);
+      break;
+    }
+  }
+
+  // Simpan Lampiran / Bukti ke Google Drive jika ada
+  let lampiranName = '';
+  let lampiranUrl = '';
+  let lampiranFileId = '';
+
+  if (payload.lampiranBase64 && payload.lampiranName) {
+    try {
+      const b64Data = payload.lampiranBase64.replace(/^data:.*?;base64,/, '');
+      const fileSize = getBase64FileSize(b64Data);
+      if (fileSize > 5242880) { // Maksimal 5 MB
+        return { success: false, message: 'Ukuran lampiran bukti maksimal 5 MB.' };
+      }
+      const fileBytes = Utilities.base64Decode(b64Data);
+      const mimeType = payload.lampiranMimeType || 'application/octet-stream';
+      const cleanFileName = String(payload.lampiranName).replace(/[^a-zA-Z0-9._-]/g, '_');
+      const blob = Utilities.newBlob(fileBytes, mimeType, 'Bukti_Cuti_' + cleanFileName);
+
+      const tahun = tanggalMulai.substring(0, 4) || String(new Date().getFullYear());
+      const folder = getLampiranCutiStorageFolder(tahun, userFullname);
+      const savedFile = folder.createFile(blob);
+      lampiranName = savedFile.getName();
+      lampiranUrl = savedFile.getUrl();
+      lampiranFileId = savedFile.getId();
+    } catch (fErr) {
+      return { success: false, message: 'Gagal mengunggah berkas lampiran: ' + fErr.toString() };
+    }
+  }
+
+  const cutiSheet = getOrCreatePengajuanCutiSheet(ss);
+  const now = new Date();
+  const yearMonth = Utilities.formatDate(now, 'Asia/Jakarta', 'yyyyMM');
+  const cutiId = 'CUTI-' + yearMonth + '-' + Math.floor(1000 + Math.random() * 9000);
+  const formattedDate = Utilities.formatDate(now, 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+
+  let jenisCutiFinal = jenisCuti;
+  if (jenisCuti === 'Cuti Roster' && payload.polaRoster) {
+    jenisCutiFinal = 'Cuti Roster (' + payload.polaRoster + ')';
+  }
+
+  cutiSheet.appendRow([
+    cutiId,
+    formattedDate,
+    empId,
+    userFullname,
+    userDept,
+    userJabatan,
+    jenisCutiFinal,
+    tanggalMulai,
+    tanggalSelesai,
+    jumlahHari,
+    alasanCuti,
+    alamatCuti,
+    nomorKontak,
+    lampiranName,
+    lampiranUrl,
+    lampiranFileId,
+    catatanTambahan,
+    'Menunggu Persetujuan'
+  ]);
+
+  return {
+    success: true,
+    message: 'Pengajuan cuti berhasil dikirim! (' + jumlahHari + ' Hari)',
+    cutiId: cutiId,
+    jumlahHari: jumlahHari
+  };
+}
+
+function getCutiKaryawan(token) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const cutiSheet = ss.getSheetByName('PengajuanCuti');
+  if (!cutiSheet) return { success: true, list: [] };
+
+  const data = cutiSheet.getDataRange().getValues();
+  const currentUsername = String(session.user.username || '').trim().toLowerCase();
+  const role = String(session.user.role || '').trim();
+  const isAdmin = (role === 'Admin');
+
+  const list = [];
+  for (let i = 1; i < data.length; i++) {
+    const rowEmpId = String(data[i][2] || '').trim().toLowerCase();
+    if (isAdmin || rowEmpId === currentUsername) {
+      list.push({
+        id: String(data[i][0] || ''),
+        tanggalPengajuan: data[i][1] instanceof Date ? Utilities.formatDate(data[i][1], 'Asia/Jakarta', 'yyyy-MM-dd HH:mm') : String(data[i][1] || ''),
+        empId: String(data[i][2] || ''),
+        namaKaryawan: String(data[i][3] || ''),
+        dept: String(data[i][4] || ''),
+        jabatan: String(data[i][5] || ''),
+        jenisCuti: String(data[i][6] || ''),
+        tanggalMulai: data[i][7] instanceof Date ? Utilities.formatDate(data[i][7], 'Asia/Jakarta', 'yyyy-MM-dd') : String(data[i][7] || ''),
+        tanggalSelesai: data[i][8] instanceof Date ? Utilities.formatDate(data[i][8], 'Asia/Jakarta', 'yyyy-MM-dd') : String(data[i][8] || ''),
+        jumlahHari: Number(data[i][9] || 0),
+        alasan: String(data[i][10] || ''),
+        alamat: String(data[i][11] || ''),
+        kontak: String(data[i][12] || ''),
+        lampiranName: String(data[i][13] || ''),
+        lampiranUrl: String(data[i][14] || ''),
+        lampiranFileId: String(data[i][15] || ''),
+        catatanTambahan: String(data[i][16] || ''),
+        status: String(data[i][17] || 'Menunggu Persetujuan')
+      });
+    }
+  }
+
+  // Urutkan dari pengajuan terbaru ke terlama
+  list.reverse();
+  return { success: true, list: list };
+}
+
+function deletePengajuanCuti(token, cutiId) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  cutiId = String(cutiId || '').trim();
+  if (!cutiId) return { success: false, message: 'ID Cuti tidak valid.' };
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const cutiSheet = ss.getSheetByName('PengajuanCuti');
+  if (!cutiSheet) return { success: false, message: 'Data pengajuan cuti tidak ditemukan.' };
+
+  const data = cutiSheet.getDataRange().getValues();
+  const currentUsername = String(session.user.username || '').trim().toLowerCase();
+  const isAdmin = (session.user.role === 'Admin');
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === cutiId) {
+      const rowEmpId = String(data[i][2]).trim().toLowerCase();
+      const status = String(data[i][17]).trim();
+
+      if (!isAdmin && rowEmpId !== currentUsername) {
+        return { success: false, message: 'Anda tidak memiliki hak untuk membatalkan pengajuan ini.' };
+      }
+      if (!isAdmin && status !== 'Menunggu Persetujuan') {
+        return { success: false, message: 'Pengajuan yang sudah diproses tidak dapat dibatalkan.' };
+      }
+
+      // Hapus file lampiran jika ada
+      const fileId = String(data[i][15] || '').trim();
+      if (fileId) {
+        try {
+          DriveApp.getFileById(fileId).setTrashed(true);
+        } catch (delErr) {
+          console.error('Lampiran cuti delete note:', delErr);
+        }
+      }
+
+      cutiSheet.deleteRow(i + 1);
+      return { success: true, message: 'Pengajuan cuti berhasil dibatalkan.' };
+    }
+  }
+
+  return { success: false, message: 'Data pengajuan cuti tidak ditemukan.' };
+}
+
+function getLampiranCutiBase64(token, cutiId) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  cutiId = String(cutiId || '').trim();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const cutiSheet = ss.getSheetByName('PengajuanCuti');
+  if (!cutiSheet) return { success: false, message: 'Data tidak ditemukan.' };
+
+  const data = cutiSheet.getDataRange().getValues();
+  const currentUsername = String(session.user.username || '').trim().toLowerCase();
+  const isAdmin = (session.user.role === 'Admin');
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === cutiId) {
+      const rowEmpId = String(data[i][2]).trim().toLowerCase();
+      if (!isAdmin && rowEmpId !== currentUsername) {
+        return { success: false, message: 'Akses ditolak.' };
+      }
+      const fileId = String(data[i][15] || '').trim();
+      if (!fileId) return { success: false, message: 'Tidak ada lampiran pada pengajuan ini.' };
+
+      try {
+        const file = DriveApp.getFileById(fileId);
+        const mimeType = file.getMimeType();
+        const base64Data = Utilities.base64Encode(file.getBlob().getBytes());
+        return {
+          success: true,
+          fileName: file.getName(),
+          mimeType: mimeType,
+          base64: 'data:' + mimeType + ';base64,' + base64Data
+        };
+      } catch (err) {
+        return { success: false, message: 'Gagal memuat lampiran: ' + err.toString() };
+      }
+    }
+  }
+
+  return { success: false, message: 'Pengajuan cuti tidak ditemukan.' };
+}
+
+// --- MODUL MASTER ROSTER (POLA KERJA & CUTI) ---
+
+function getOrCreateMasterRosterSheet(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('MasterRoster');
+  if (!sheet) {
+    sheet = ss.insertSheet('MasterRoster');
+    sheet.appendRow(['ID Roster', 'Nama Roster', 'Hari Kerja', 'Hari Cuti', 'Keterangan', 'Tanggal Dibuat']);
+    sheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#e2e8f0');
+    // Pola roster default operasional tambang/site
+    sheet.appendRow(['ROSTER-001', '12 : 2', 90, 14, '12 Minggu Kerja, 2 Minggu Cuti On-Site', new Date()]);
+    sheet.appendRow(['ROSTER-002', '8 : 2', 56, 14, '8 Minggu Kerja, 2 Minggu Cuti On-Site', new Date()]);
+    sheet.appendRow(['ROSTER-003', '6 : 2', 42, 14, '6 Minggu Kerja, 2 Minggu Cuti On-Site', new Date()]);
+    sheet.appendRow(['ROSTER-004', '4 : 2', 28, 14, '4 Minggu Kerja, 2 Minggu Cuti On-Site', new Date()]);
+  }
+  return sheet;
+}
+
+function getRosterList(token) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const rosterSheet = getOrCreateMasterRosterSheet(ss);
+  const data = rosterSheet.getDataRange().getValues();
+  const list = [];
+  for (let i = 1; i < data.length; i++) {
+    list.push({
+      id: String(data[i][0] || ''),
+      name: String(data[i][1] || ''),
+      workDays: Number(data[i][2] || 0),
+      leaveDays: Number(data[i][3] || 0),
+      note: String(data[i][4] || ''),
+      createdAt: data[i][5] instanceof Date ? Utilities.formatDate(data[i][5], 'Asia/Jakarta', 'yyyy-MM-dd HH:mm') : String(data[i][5] || '')
+    });
+  }
+  return { success: true, list: list };
+}
+
+function saveRoster(token, payload) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+  if (session.user.role !== 'Admin') return { success: false, message: 'Akses ditolak. Hanya Admin yang dapat mengelola Master Roster.' };
+
+  payload = payload || {};
+  const name = String(payload.name || '').trim();
+  const workDays = parseInt(payload.workDays, 10) || 0;
+  const leaveDays = parseInt(payload.leaveDays, 10) || 0;
+  const note = String(payload.note || '').trim();
+  const rosterId = String(payload.id || '').trim();
+  const isNew = !rosterId;
+
+  if (!name) return { success: false, message: 'Nama Pola Roster wajib diisi (misal: 12 : 2).' };
+  if (workDays <= 0) return { success: false, message: 'Jumlah hari kerja harus lebih dari 0.' };
+  if (leaveDays <= 0) return { success: false, message: 'Jumlah hari cuti harus lebih dari 0.' };
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const rosterSheet = getOrCreateMasterRosterSheet(ss);
+  const data = rosterSheet.getDataRange().getValues();
+
+  if (isNew) {
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][1]).trim().toLowerCase() === name.toLowerCase()) {
+        return { success: false, message: 'Nama pola roster "' + name + '" sudah terdaftar.' };
+      }
+    }
+    const newId = 'ROSTER-' + Math.floor(100 + Math.random() * 900);
+    rosterSheet.appendRow([newId, name, workDays, leaveDays, note, new Date()]);
+    return { success: true, message: 'Pola Roster baru berhasil ditambahkan.' };
+  } else {
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]).trim() === rosterId) {
+        rosterSheet.getRange(i + 1, 2).setValue(name);
+        rosterSheet.getRange(i + 1, 3).setValue(workDays);
+        rosterSheet.getRange(i + 1, 4).setValue(leaveDays);
+        rosterSheet.getRange(i + 1, 5).setValue(note);
+        return { success: true, message: 'Data Pola Roster berhasil diperbarui.' };
+      }
+    }
+    return { success: false, message: 'Data Pola Roster tidak ditemukan.' };
+  }
+}
+
+function deleteRoster(token, rosterId) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+  if (session.user.role !== 'Admin') return { success: false, message: 'Akses ditolak. Hanya Admin yang dapat menghapus data Master Roster.' };
+
+  rosterId = String(rosterId || '').trim();
+  if (!rosterId) return { success: false, message: 'ID Roster tidak valid.' };
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const rosterSheet = getOrCreateMasterRosterSheet(ss);
+  const data = rosterSheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === rosterId) {
+      rosterSheet.deleteRow(i + 1);
+      return { success: true, message: 'Pola Roster berhasil dihapus.' };
+    }
+  }
+  return { success: false, message: 'Data Pola Roster tidak ditemukan.' };
+}
+
+
 
 
