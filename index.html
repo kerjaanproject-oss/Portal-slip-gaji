@@ -2575,6 +2575,7 @@
           getToken: function () { return _token; },
           getUser: function () { return _user ? JSON.parse(JSON.stringify(_user)) : null; },
           getRole: function () { return _user ? _user.role : null; },
+          setUser: function (user) { _user = user; },
           clear: function () { _verified = false; _token = null; _user = null; }
         };
       })();
@@ -5408,11 +5409,13 @@
         if (!d) return '';
         var s = String(d).trim().toLowerCase();
         s = s.replace(/^(departemen|dept\.?|divisi|division|bagian|seksi|unit)\s+/g, '');
-        s = s.replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
-        if (s === 'hr' || s === 'hrd' || s === 'human resource' || s === 'human resources' || s === 'personalia') return 'hrd';
-        if (s === 'it' || s === 'ti' || s === 'information technology' || s === 'teknologi informasi' || s === 'edp' || s === 'ict') return 'it';
-        if (s === 'finance' || s === 'keuangan' || s === 'fa' || s === 'finance accounting') return 'finance';
-        if (s === 'ga' || s === 'general affair' || s === 'general affairs' || s === 'umum') return 'ga';
+        s = s.replace(/[^a-z0-9]/g, '').trim();
+
+        if (s === 'hr' || s === 'hrd' || s === 'humanresource' || s === 'humanresources' || s === 'personalia') return 'hrd';
+        if (s === 'hrga' || s === 'hrdga' || s === 'hrandga' || s === 'hrdandga' || s === 'humanresourcegeneralaffair' || s === 'humanresourceandgeneralaffair') return 'hrga';
+        if (s === 'it' || s === 'ti' || s === 'informationtechnology' || s === 'teknologiinformasi' || s === 'edp' || s === 'ict') return 'it';
+        if (s === 'finance' || s === 'keuangan' || s === 'fa' || s === 'financeaccounting' || s === 'accounting') return 'finance';
+        if (s === 'ga' || s === 'generalaffair' || s === 'generalaffairs' || s === 'umum') return 'ga';
         return s;
       }
 
@@ -5421,6 +5424,10 @@
         var c2 = cleanDept(dept2);
         if (!c1 || !c2) return false;
         if (c1 === c2) return true;
+        if ((c1 === 'hrga' && (c2 === 'hrd' || c2 === 'ga' || c2.indexOf('hr') === 0 || c2.slice(-2) === 'ga')) ||
+            (c2 === 'hrga' && (c1 === 'hrd' || c1 === 'ga' || c1.indexOf('hr') === 0 || c1.slice(-2) === 'ga'))) return true;
+        if (c1 === 'it' && (c2.indexOf('it') === 0 || c2.slice(-2) === 'it')) return true;
+        if (c2 === 'it' && (c1.indexOf('it') === 0 || c1.slice(-2) === 'it')) return true;
         if (c1.length >= 3 && c2.length >= 3) {
           if (c1.indexOf(c2) !== -1 || c2.indexOf(c1) !== -1) return true;
         }
@@ -5428,18 +5435,19 @@
       }
 
       function normalizeDept(d) {
-        return String(d || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        return cleanDept(d);
       }
 
       window.openPersetujuanCutiMenu = function (navEl) {
-        isFilterApprovalOnly = true;
+        // Tampilkan seluruh pengajuan departemen secara default agar Atasan langsung melihat data
+        isFilterApprovalOnly = false;
         var btnQuick = document.getElementById('btnQuickPerluApproval');
         if (btnQuick) {
-          btnQuick.classList.add('btn-primary', 'text-white');
-          btnQuick.classList.remove('btn-outline-primary');
+          btnQuick.classList.remove('btn-primary', 'text-white');
+          btnQuick.classList.add('btn-outline-primary');
           var badgePerlu = document.getElementById('badgePerluApproval');
           var count = badgePerlu ? badgePerlu.innerText : '0';
-          btnQuick.innerHTML = '<i class="bi bi-funnel-fill me-1"></i>Filter Aktif: Perlu Persetujuan Saya (<span id="badgePerluApproval">' + count + '</span>)';
+          btnQuick.innerHTML = '<i class="bi bi-funnel me-1"></i>Hanya Yang Perlu Persetujuan Saya (<span id="badgePerluApproval">' + count + '</span>)';
         }
         showPage('riwayat-cuti', navEl || document.getElementById('navItemPersetujuanCuti'));
       };
@@ -5471,12 +5479,12 @@
         var uJab = String(user.jabatan || '').toLowerCase();
         var uName = String(user.username || '').toLowerCase();
 
-        var isHRD = (uRole === 'admin' || uRole === 'hrd' || cleanDept(uDept) === 'hrd');
+        var isHRD = (uRole === 'admin' || uRole === 'hrd' || uName === 'admin');
         var isSupervisor = (uRole === 'supervisor' || uRole === 'atasan' || isJobAtasan(uJab, uRole));
 
         var rowEmp = String(item.empId || '').toLowerCase();
         var rowDept = String(item.dept || '');
-        var status = String(item.status || '');
+        var status = String(item.status || '').trim();
 
         // 1. Cegah approval diri sendiri kecuali akun Admin Master
         if (rowEmp === uName && uRole !== 'admin') return false;
@@ -5490,16 +5498,21 @@
         var applicantDept = applicantObj ? applicantObj.dept : rowDept;
         var isApplicantAtasan = isJobAtasan(applicantJabatan, applicantRole);
 
+        // Fleksibilitas status persetujuan
+        var statusLower = status.toLowerCase();
+        var isPendingAtasan = (statusLower.indexOf('atasan') !== -1 || status === 'Menunggu Persetujuan' || status === 'Menunggu' || status === 'Pending');
+        var isPendingHRD = (statusLower.indexOf('hrd') !== -1);
+
         // ATURAN 1: Jika pemohon adalah Atasan / Supervisor
         // Sesuai instruksi: "dan untuk atasan yang bisa approv untuk sementara saat ini hanya HRD"
         if (isApplicantAtasan) {
           if (!isHRD) return false; // Atasan lain tidak boleh meng-approve cuti sesama atasan
-          return (status === 'Menunggu Persetujuan Atasan' || status === 'Menunggu Persetujuan' || status === 'Menunggu Persetujuan HRD');
+          return (isPendingAtasan || isPendingHRD);
         }
 
         // ATURAN 2: Pemohon adalah Karyawan Biasa
         // TAHAP 1: Menunggu Persetujuan Atasan
-        if (status === 'Menunggu Persetujuan Atasan' || status === 'Menunggu Persetujuan') {
+        if (isPendingAtasan) {
           if (isHRD) return true; // HRD bisa approv semua departemen
           if (isSupervisor) {
             // Atasan HANYA bisa approv untuk karyawan yang SAMA departemennya
@@ -5509,7 +5522,7 @@
         }
 
         // TAHAP 2: Menunggu Persetujuan HRD
-        if (status === 'Menunggu Persetujuan HRD') {
+        if (isPendingHRD) {
           if (isHRD) return true; // Hanya HRD / Admin
           return false;
         }
@@ -5542,7 +5555,8 @@
         var uRole = String(user.role || '').toLowerCase();
         var uDept = String(user.dept || '').trim();
         var uJab = String(user.jabatan || '').toLowerCase();
-        var isHRD = (uRole === 'admin' || uRole === 'hrd' || uDept.toLowerCase().indexOf('hr') !== -1);
+        var uName = String(user.username || '').toLowerCase();
+        var isHRD = (uRole === 'admin' || uRole === 'hrd' || uName === 'admin');
         var isSupervisor = (uRole === 'supervisor' || uRole === 'atasan' || isJobAtasan(uJab, uRole));
 
         // Hitung pengajuan yang butuh approval user saat ini
@@ -6022,7 +6036,7 @@
         var guide = document.getElementById('apprGuideText');
 
         // Cek status pemohon
-        var applicantObj = (typeof dbKaryawanList !== 'undefined' && dbKaryawanList) ? dbKaryawanList.find(function (k) {
+        var applicantObj = (typeof dbKaryawan !== 'undefined' && dbKaryawan) ? dbKaryawan.find(function (k) {
           return String(k.id || '').toLowerCase() === String(item.empId || '').toLowerCase();
         }) : null;
         var applicantRole = applicantObj ? applicantObj.role : '';

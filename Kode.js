@@ -1646,11 +1646,14 @@ function cleanDept(d) {
   if (!d) return '';
   let s = String(d).trim().toLowerCase();
   s = s.replace(/^(departemen|dept\.?|divisi|division|bagian|seksi|unit)\s+/g, '');
-  s = s.replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
-  if (s === 'hr' || s === 'hrd' || s === 'human resource' || s === 'human resources' || s === 'personalia') return 'hrd';
-  if (s === 'it' || s === 'ti' || s === 'information technology' || s === 'teknologi informasi' || s === 'edp' || s === 'ict') return 'it';
-  if (s === 'finance' || s === 'keuangan' || s === 'fa' || s === 'finance accounting') return 'finance';
-  if (s === 'ga' || s === 'general affair' || s === 'general affairs' || s === 'umum') return 'ga';
+  s = s.replace(/[^a-z0-9]/g, '').trim();
+
+  if (s === 'hr' || s === 'hrd' || s === 'humanresource' || s === 'humanresources' || s === 'personalia') return 'hrd';
+  if (s === 'hrga' || s === 'hrdga' || s === 'hrandga' || s === 'hrdandga' || s === 'humanresourcegeneralaffair' || s === 'humanresourceandgeneralaffair') return 'hrga';
+  if (s === 'it' || s === 'ti' || s === 'informationtechnology' || s === 'teknologiinformasi' || s === 'edp' || s === 'ict') return 'it';
+  if (s === 'finance' || s === 'keuangan' || s === 'fa' || s === 'financeaccounting' || s === 'accounting') return 'finance';
+  if (s === 'ga' || s === 'generalaffair' || s === 'generalaffairs' || s === 'umum') return 'ga';
+
   return s;
 }
 
@@ -1659,6 +1662,10 @@ function isSameDept(dept1, dept2) {
   const c2 = cleanDept(dept2);
   if (!c1 || !c2) return false;
   if (c1 === c2) return true;
+  if ((c1 === 'hrga' && (c2 === 'hrd' || c2 === 'ga' || c2.startsWith('hr') || c2.endsWith('ga'))) ||
+    (c2 === 'hrga' && (c1 === 'hrd' || c1 === 'ga' || c1.startsWith('hr') || c1.endsWith('ga')))) return true;
+  if (c1 === 'it' && (c2.startsWith('it') || c2.endsWith('it'))) return true;
+  if (c2 === 'it' && (c1.startsWith('it') || c1.endsWith('it'))) return true;
   if (c1.length >= 3 && c2.length >= 3) {
     if (c1.includes(c2) || c2.includes(c1)) return true;
   }
@@ -1666,7 +1673,7 @@ function isSameDept(dept1, dept2) {
 }
 
 function normalizeDept(d) {
-  return String(d || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return cleanDept(d);
 }
 
 function isJobAtasan(role, jabatan) {
@@ -1719,7 +1726,7 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
 
   const userDeptNorm = normalizeDept(userDept);
   const userRoleLower = userRole.toLowerCase();
-  const isHRD = (userRoleLower === 'admin' || userRoleLower === 'hrd' || userDeptNorm.includes('hr') || userDeptNorm.includes('human resource'));
+  const isHRD = (userRoleLower === 'admin' || userRoleLower === 'hrd' || currentUsername === 'admin');
   const isSupervisor = isJobAtasan(userRole, userJab);
 
   const headers = data[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
@@ -2148,23 +2155,12 @@ function processApprovalCuti(token, cutiId, action, catatan) {
   const user = session.user;
   const userRole = String(user.role || '').trim().toLowerCase();
   const userDept = String(user.dept || '').trim().toLowerCase();
+  const userDeptNorm = normalizeDept(user.dept);
   const userJab = String(user.jabatan || '').trim().toLowerCase();
   const currentUsername = String(user.username || '').trim().toLowerCase();
 
   const isHRD = (userRole === 'admin' || userRole === 'hrd' || userDept.includes('hr') || userDept.includes('human resource'));
-  const isSupervisor = (
-    userRole === 'supervisor' ||
-    userRole === 'atasan' ||
-    userJab.includes('supervisor') ||
-    userJab.includes('manager') ||
-    userJab.includes('lead') ||
-    userJab.includes('head') ||
-    userJab.includes('kabag') ||
-    userJab.includes('koordinator') ||
-    userJab.includes('direktur') ||
-    userJab.includes('superintendent') ||
-    userJab.includes('kepala')
-  );
+  const isSupervisor = isJobAtasan(userRole, userJab);
 
   if (!isHRD && !isSupervisor) {
     return { success: false, message: 'Akses ditolak: Anda tidak memiliki wewenang untuk melakukan approval cuti.' };
@@ -2298,11 +2294,11 @@ function processApprovalCuti(token, cutiId, action, catatan) {
         // Atasan hanya bisa approve untuk karyawan yang sama departemen dengannya
         // HRD bisa approve semua departemen
         if (!isHRD) {
-          const matchDept = isSameDept(userDept, applicantDept) || isSameDept(userDept, rowDept) || (userDeptNorm !== '' && (userDeptNorm === normalizeDept(applicantDept) || userDeptNorm === normalizeDept(rowDept)));
+          const matchDept = isSameDept(userDept, applicantDept) || isSameDept(userDept, rawRowDept) || (userDeptNorm !== '' && (userDeptNorm === normalizeDept(applicantDept) || userDeptNorm === normalizeDept(rawRowDept)));
           if (!matchDept) {
             return {
               success: false,
-              message: 'Akses ditolak: Anda hanya dapat memproses permohonan karyawan di departemen Anda (' + (user.dept || '-') + '). Departemen pemohon adalah ' + (applicantDept || rowDept || '-') + '.'
+              message: 'Akses ditolak: Anda hanya dapat memproses permohonan karyawan di departemen Anda (' + (user.dept || '-') + '). Departemen pemohon adalah ' + (applicantDept || rawRowDept || '-') + '.'
             };
           }
         }
