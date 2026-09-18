@@ -6513,7 +6513,10 @@
       };
 
       window.viewDetailCuti = function (cutiId) {
-        var item = dbCutiList.find(function (c) { return c.id === cutiId; });
+        var cleanId = String(cutiId || '').trim();
+        var item = dbCutiList.find(function (c) {
+          return String(c.id || '').trim() === cleanId;
+        });
         if (!item) return;
 
         var statusInfo = getCutiStatusBadge(item.status);
@@ -7269,12 +7272,12 @@
             var approveBtnHtml = '';
             if (canApprove) {
               approveBtnHtml =
-                '<button type="button" class="btn btn-sm btn-success fw-semibold" onclick="if(bsModalDetailKalenderHarian) bsModalDetailKalenderHarian.hide(); openModalApprovalCuti(\'' + escapeHTML(item.id) + '\');">' +
+                '<button type="button" class="btn btn-sm btn-success fw-semibold" onclick="openApprovalCutiFromKalender(\'' + escapeHTML(item.id) + '\')">' +
                 '<i class="bi bi-shield-check me-1"></i>Proses Approval</button>';
             }
 
             var detailBtnHtml =
-              '<button type="button" class="btn btn-sm btn-outline-primary fw-semibold" onclick="if(bsModalDetailKalenderHarian) bsModalDetailKalenderHarian.hide(); viewDetailCuti(\'' + escapeHTML(item.id) + '\');">' +
+              '<button type="button" class="btn btn-sm btn-outline-primary fw-semibold" onclick="openDetailCutiFromKalender(\'' + escapeHTML(item.id) + '\')">' +
               '<i class="bi bi-eye me-1"></i>Lihat Detail</button>';
 
             html +=
@@ -7318,6 +7321,58 @@
           bsModalDetailKalenderHarian = new bootstrap.Modal(document.getElementById('modalDetailKalenderHarian'));
         }
         bsModalDetailKalenderHarian.show();
+      };
+
+      window.openDetailCutiFromKalender = function (cutiId) {
+        var elModalKalender = document.getElementById('modalDetailKalenderHarian');
+        var bsModalKalender = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
+          ? (bootstrap.Modal.getInstance(elModalKalender) || bsModalDetailKalenderHarian)
+          : bsModalDetailKalenderHarian;
+
+        if (bsModalKalender && elModalKalender && elModalKalender.classList.contains('show')) {
+          var fired = false;
+          var onHidden = function () {
+            if (fired) return;
+            fired = true;
+            elModalKalender.removeEventListener('hidden.bs.modal', onHidden);
+            viewDetailCuti(cutiId);
+          };
+          elModalKalender.addEventListener('hidden.bs.modal', onHidden);
+          bsModalKalender.hide();
+          setTimeout(function () {
+            if (!fired) {
+              onHidden();
+            }
+          }, 350);
+        } else {
+          viewDetailCuti(cutiId);
+        }
+      };
+
+      window.openApprovalCutiFromKalender = function (cutiId) {
+        var elModalKalender = document.getElementById('modalDetailKalenderHarian');
+        var bsModalKalender = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
+          ? (bootstrap.Modal.getInstance(elModalKalender) || bsModalDetailKalenderHarian)
+          : bsModalDetailKalenderHarian;
+
+        if (bsModalKalender && elModalKalender && elModalKalender.classList.contains('show')) {
+          var fired = false;
+          var onHidden = function () {
+            if (fired) return;
+            fired = true;
+            elModalKalender.removeEventListener('hidden.bs.modal', onHidden);
+            openModalApprovalCuti(cutiId);
+          };
+          elModalKalender.addEventListener('hidden.bs.modal', onHidden);
+          bsModalKalender.hide();
+          setTimeout(function () {
+            if (!fired) {
+              onHidden();
+            }
+          }, 350);
+        } else {
+          openModalApprovalCuti(cutiId);
+        }
       };
 
       // --- CONSOLE SECURITY & ANTI-INSPECT PROTECTION ---
