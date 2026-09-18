@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbzAdhHA5YWm0nN6p21rnLccI48LMfBsPmTEcmsM_n26sEcKYJ5eWl5OMWrH7bWMBiul/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwLtqfvUGwuDq2YBxfK_dBa-SyXz_8-Ge6zQ5Oo2nH1TQ-WXfG_Hy3it4L8m3e4aTwv/exec";
   </script>
   <!-- Favicon & Ikon Pintasan Layar Depan -->
   <link rel="icon" type="image/png"
@@ -644,6 +644,12 @@
       font-size: 0.78rem;
       line-height: 1;
       box-shadow: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: all 0.15s ease-in-out;
     }
 
     .btn-action i {
@@ -657,6 +663,12 @@
     }
 
     .btn-action-email {
+      color: #15803d !important;
+      background-color: #dcfce7;
+      border-color: #bbf7d0 !important;
+    }
+
+    .btn-action-approve {
       color: #15803d !important;
       background-color: #dcfce7;
       border-color: #bbf7d0 !important;
@@ -680,12 +692,23 @@
       border-color: #fed7aa !important;
     }
 
+    .btn-action-lampiran {
+      color: #0369a1 !important;
+      background-color: #f0f9ff;
+      border-color: #e0f2fe !important;
+    }
+
     .btn-action-view:hover {
       color: #ffffff !important;
       background-color: #0284c7;
     }
 
     .btn-action-email:hover {
+      color: #ffffff !important;
+      background-color: #16a34a;
+    }
+
+    .btn-action-approve:hover {
       color: #ffffff !important;
       background-color: #16a34a;
     }
@@ -703,6 +726,11 @@
     .btn-action-resi:hover {
       color: #ffffff !important;
       background-color: #ea580c;
+    }
+
+    .btn-action-lampiran:hover {
+      color: #ffffff !important;
+      background-color: #0284c7;
     }
 
     .pagination {
@@ -939,6 +967,159 @@
         border-radius: 0.65rem;
       }
     }
+
+    /* Team Leave Calendar Styling */
+    .calendar-card {
+      border-radius: 1rem;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .calendar-grid-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background-color: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: #64748b;
+      text-align: center;
+    }
+
+    .calendar-grid-header-col {
+      padding: 0.75rem 0.25rem;
+    }
+
+    .calendar-grid-header-col.weekend {
+      color: #ef4444;
+    }
+
+    .calendar-grid-body {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background-color: #e2e8f0;
+      gap: 1px;
+    }
+
+    .calendar-day-cell {
+      background-color: #ffffff;
+      min-height: 110px;
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      cursor: pointer;
+      transition: background-color 0.15s ease-in-out;
+    }
+
+    .calendar-day-cell:hover {
+      background-color: #f8fafc;
+    }
+
+    .calendar-day-cell.other-month {
+      background-color: #f8fafc;
+      color: #94a3b8;
+    }
+
+    .calendar-day-cell.today {
+      background-color: #eff6ff !important;
+    }
+
+    .calendar-day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.35rem;
+    }
+
+    .calendar-day-num {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #334155;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .calendar-day-cell.today .calendar-day-num {
+      background-color: #2563eb;
+      color: #ffffff;
+    }
+
+    .calendar-day-cell.weekend .calendar-day-num {
+      color: #ef4444;
+    }
+
+    .calendar-day-cell.today.weekend .calendar-day-num {
+      color: #ffffff;
+    }
+
+    .calendar-leave-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      flex-grow: 1;
+      overflow: hidden;
+    }
+
+    .calendar-leave-chip {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.35rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      line-height: 1.2;
+    }
+
+    .calendar-leave-chip.status-disetujui {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+
+    .calendar-leave-chip.status-menunggu {
+      background-color: #fef9c3;
+      color: #a16207;
+      border: 1px solid #fef08a;
+    }
+
+    .calendar-leave-more {
+      font-size: 0.68rem;
+      color: #475569;
+      font-weight: 700;
+      background: #f1f5f9;
+      border-radius: 0.35rem;
+      padding: 0.15rem 0.35rem;
+      text-align: center;
+      margin-top: 0.15rem;
+    }
+
+    @media (max-width: 768px) {
+      .calendar-day-cell {
+        min-height: 80px;
+        padding: 0.3rem 0.2rem;
+      }
+
+      .calendar-day-num {
+        font-size: 0.75rem;
+        width: 20px;
+        height: 20px;
+      }
+
+      .calendar-leave-chip {
+        font-size: 0.62rem;
+        padding: 0.15rem 0.25rem;
+      }
+    }
   </style>
 </head>
 
@@ -1047,16 +1228,7 @@
           </a>
         </li>
 
-        <!-- ATASAN & HRD MENU: PERSETUJUAN CUTI -->
-        <li class="atasan-hrd-only d-none" id="menuItemPersetujuanCuti">
-          <a class="nav-item-custom d-flex align-items-center" id="navItemPersetujuanCuti"
-            onclick="openPersetujuanCutiMenu(this)">
-            <i class="bi bi-shield-check w-20px text-primary"></i>
-            <span class="flex-grow-1">Persetujuan Cuti</span>
-            <span class="badge bg-danger rounded-pill extra-small ms-auto d-none" id="badgeNavApprovalDirect"
-              style="font-size: 0.7rem;">0</span>
-          </a>
-        </li>
+
 
         <!-- KARYAWAN MENU -->
         <li class="karyawan-only">
@@ -1082,12 +1254,25 @@
               </a>
             </li>
             <li>
-              <a class="nav-subitem-custom d-flex align-items-center" id="subitem-riwayat-cuti"
-                onclick="showPage('riwayat-cuti', this)">
+              <a class="nav-subitem-custom" id="subitem-riwayat-cuti" onclick="showPage('riwayat-cuti', this)">
                 <i class="bi bi-clock-history"></i>
-                <span class="flex-grow-1">Riwayat Cuti</span>
+                <span>Riwayat Cuti</span>
+              </a>
+            </li>
+            <li class="atasan-hrd-only d-none">
+              <a class="nav-subitem-custom d-flex align-items-center" id="subitem-persetujuan-cuti"
+                onclick="showPage('persetujuan-cuti', this)">
+                <i class="bi bi-shield-check"></i>
+                <span class="flex-grow-1">Persetujuan Cuti</span>
                 <span class="badge bg-danger rounded-pill extra-small ms-auto d-none" id="badgeNavApproval"
                   style="font-size: 0.7rem;">0</span>
+              </a>
+            </li>
+            <li class="atasan-hrd-only d-none">
+              <a class="nav-subitem-custom d-flex align-items-center" id="subitem-kalender-cuti"
+                onclick="showPage('kalender-cuti', this)">
+                <i class="bi bi-calendar3"></i>
+                <span class="flex-grow-1">Kalender Cuti Tim</span>
               </a>
             </li>
             <li class="hrd-only">
@@ -1392,16 +1577,10 @@
           <div class="card border-0 shadow-sm mb-4"
             style="background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%); color: white; border-radius: 1rem;">
             <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
-              <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center justify-content-center bg-white bg-opacity-20 rounded-3"
-                  style="width: 52px; height: 52px;">
-                  <i class="bi bi-pencil-square fs-2 text-white"></i>
-                </div>
-                <div>
-                  <h4 class="fw-bold mb-1 text-white">Pengajuan Cuti Karyawan</h4>
-                  <p class="mb-0 text-white-50 small">Ajukan permohonan cuti Anda secara mandiri dengan cepat dan mudah.
-                  </p>
-                </div>
+              <div>
+                <h4 class="fw-bold mb-1 text-white">Pengajuan Cuti Karyawan</h4>
+                <p class="mb-0 text-white-50 small">Ajukan permohonan cuti Anda secara mandiri dengan cepat dan mudah.
+                </p>
               </div>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <button type="button" class="btn btn-warning btn-sm fw-bold px-3 py-2 text-dark shadow-sm"
@@ -1481,21 +1660,16 @@
         </div>
 
         <!-- PAGE 5: RIWAYAT CUTI KARYAWAN -->
+        <!-- PAGE 5: RIWAYAT CUTI SAYA -->
         <div id="page-riwayat-cuti" class="app-page d-none">
           <!-- Banner Header -->
           <div class="card border-0 shadow-sm mb-4"
             style="background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: white; border-radius: 1rem;">
             <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
-              <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center justify-content-center bg-white bg-opacity-20 rounded-3"
-                  style="width: 52px; height: 52px;">
-                  <i class="bi bi-clock-history fs-2 text-white"></i>
-                </div>
-                <div>
-                  <h4 class="fw-bold mb-1 text-white">Riwayat Pengajuan Cuti</h4>
-                  <p class="mb-0 text-white-50 small">Pantau status persetujuan dan riwayat seluruh permohonan cuti
-                    Anda.</p>
-                </div>
+              <div>
+                <h4 class="fw-bold mb-1 text-white">Riwayat Pengajuan Cuti Saya</h4>
+                <p class="mb-0 text-white-50 small">Pantau status persetujuan dan riwayat seluruh permohonan cuti
+                  pribadi Anda.</p>
               </div>
               <div class="d-flex align-items-center gap-2">
                 <button type="button" class="btn btn-light btn-sm fw-semibold px-3 py-2 text-primary shadow-sm"
@@ -1506,35 +1680,71 @@
             </div>
           </div>
 
-          <div id="containerAtasanBanner" class="mb-3 d-none"></div>
-
           <div class="card border-0 shadow-sm" style="border-radius: 1rem;">
-            <div
-              class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
-              <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-journal-check text-primary fs-5"></i>
-                <h6 class="fw-bold m-0 text-dark">Daftar Riwayat Permohonan Cuti</h6>
-                <span class="badge bg-primary-subtle text-primary fw-bold ms-1" id="badgeCutiCount">0</span>
-              </div>
-              <div class="d-flex align-items-center gap-2 flex-wrap">
-                <button type="button" class="btn btn-sm btn-outline-warning text-dark fw-semibold d-none shadow-xs"
-                  id="btnQuickPerluApproval" onclick="toggleFilterPerluApproval()">
-                  <i class="bi bi-bell-fill text-warning me-1"></i>Perlu Approval Saya <span
-                    class="badge bg-danger ms-1" id="badgePerluApproval">0</span>
-                </button>
-                <input type="text" id="searchCuti" class="form-control form-control-sm"
-                  placeholder="Cari cuti / alasan..." style="max-width: 200px;" oninput="renderRiwayatCutiTable()">
-                <select id="filterStatusCuti" class="form-select form-select-sm" style="max-width: 210px;"
-                  onchange="renderRiwayatCutiTable()">
-                  <option value="SEMUA">Semua Status</option>
-                  <option value="Menunggu Persetujuan Atasan">Menunggu Atasan</option>
-                  <option value="Menunggu Persetujuan HRD">Menunggu HRD</option>
-                  <option value="Disetujui">Disetujui</option>
-                  <option value="Ditolak">Ditolak</option>
-                </select>
-                <button class="btn btn-light btn-sm border" title="Refresh Riwayat" onclick="loadRiwayatCuti()">
-                  <i class="bi bi-arrow-clockwise"></i>
-                </button>
+            <!-- Header Card & Toolbar Filter Status -->
+            <div class="card-header bg-white border-bottom p-3 p-md-4">
+              <div class="row g-3 align-items-center justify-content-between">
+                <!-- Judul & Badge Jumlah Data -->
+                <div class="col-12 col-xl-auto">
+                  <div class="d-flex align-items-center gap-2">
+                    <div
+                      class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0"
+                      style="width: 38px; height: 38px;">
+                      <i class="bi bi-journal-check fs-5"></i>
+                    </div>
+                    <div>
+                      <h6 class="fw-bold m-0 text-dark">Daftar Permohonan Cuti Saya</h6>
+                      <small class="text-muted">Total: <span class="badge bg-primary-subtle text-primary fw-bold"
+                          id="badgeCutiCount">0</span> Pengajuan</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Kontrol Filter, Pencarian, dan Tombol Aksi -->
+                <div class="col-12 col-xl-auto">
+                  <div class="row g-2 align-items-center">
+                    <!-- Pencarian -->
+                    <div class="col-12 col-sm-6 col-md-auto">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white text-muted border-end-0"><i
+                            class="bi bi-search"></i></span>
+                        <input type="text" id="searchCuti" class="form-control border-start-0 ps-0"
+                          placeholder="Cari jenis cuti / alasan..." style="min-width: 190px;"
+                          oninput="currentPageMyCuti=1; renderRiwayatCutiTable()">
+                      </div>
+                    </div>
+
+                    <!-- Filter Status -->
+                    <div class="col-12 col-sm-6 col-md-auto">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white text-muted border-end-0"><i
+                            class="bi bi-funnel"></i></span>
+                        <select id="filterStatusCuti" class="form-select border-start-0 ps-0" style="min-width: 170px;"
+                          onchange="currentPageMyCuti=1; renderRiwayatCutiTable()">
+                          <option value="SEMUA">Semua Status</option>
+                          <option value="Menunggu Persetujuan Atasan">Menunggu Atasan</option>
+                          <option value="Menunggu Persetujuan HRD">Menunggu HRD</option>
+                          <option value="Disetujui">Disetujui</option>
+                          <option value="Ditolak">Ditolak</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Tombol Reset & Refresh -->
+                    <div class="col-12 col-sm-auto d-flex gap-2">
+                      <button type="button"
+                        class="btn btn-outline-secondary btn-sm fw-semibold flex-fill flex-sm-grow-0 d-inline-flex align-items-center justify-content-center"
+                        onclick="resetFilterCuti()" title="Reset Filter">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                      </button>
+                      <button type="button"
+                        class="btn btn-light btn-sm border flex-fill flex-sm-grow-0 d-inline-flex align-items-center justify-content-center"
+                        onclick="loadRiwayatCuti()" title="Refresh Riwayat Cuti Saya">
+                        <i class="bi bi-arrow-clockwise"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="card-body p-0">
@@ -1542,24 +1752,23 @@
                 <table class="table table-hover align-middle mb-0" id="tableRiwayatCuti">
                   <thead class="table-light extra-small text-muted fw-bold">
                     <tr>
-                      <th class="ps-3 py-3" style="width: 50px;">NO</th>
+                      <th class="ps-3 py-3 text-center" style="width: 50px;">NO</th>
                       <th class="py-3">ID PENGAJUAN</th>
-                      <th class="py-3">PEMOHON</th>
                       <th class="py-3">TGL AJUAN</th>
                       <th class="py-3">JENIS CUTI</th>
                       <th class="py-3">PERIODE CUTI</th>
                       <th class="py-3 text-center">HARI</th>
                       <th class="py-3">ALASAN</th>
-                      <th class="py-3 text-center">LAMPIRAN</th>
-                      <th class="py-3 text-center">STATUS</th>
-                      <th class="pe-3 py-3 text-center" style="width: 110px;">AKSI</th>
+                      <th class="py-3 text-center text-nowrap" style="min-width: 100px;">LAMPIRAN</th>
+                      <th class="py-3 text-center text-nowrap" style="min-width: 120px;">STATUS</th>
+                      <th class="pe-3 py-3 text-center text-nowrap" style="min-width: 140px;">AKSI</th>
                     </tr>
                   </thead>
                   <tbody id="tbodyRiwayatCuti" class="small">
                     <tr>
-                      <td colspan="11" class="text-center py-5 text-muted">
+                      <td colspan="10" class="text-center py-5 text-muted">
                         <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
-                        <p class="mb-0">Memuat riwayat pengajuan cuti...</p>
+                        <p class="mb-0">Memuat riwayat pengajuan cuti Anda...</p>
                       </td>
                     </tr>
                   </tbody>
@@ -1570,6 +1779,330 @@
               class="card-footer bg-white border-top py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
               <span class="extra-small text-muted" id="infoCountCuti">Menampilkan 0 data</span>
               <ul class="pagination pagination-sm mb-0" id="paginationCuti"></ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 5B: PERSETUJUAN CUTI (ATASAN & HRD) -->
+        <div id="page-persetujuan-cuti" class="app-page d-none atasan-hrd-only">
+          <!-- Banner Header -->
+          <div class="card border-0 shadow-sm mb-4"
+            style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; border-radius: 1rem;">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div>
+                <h4 class="fw-bold mb-1 text-white">Persetujuan Cuti Karyawan</h4>
+                <p class="mb-0 text-white-50 small">Persetujuan cuti berjenjang untuk Atasan Departemen & HRD.</p>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-light btn-sm fw-semibold px-3 py-2 text-primary shadow-sm"
+                  onclick="loadRiwayatCuti()">
+                  <i class="bi bi-arrow-clockwise me-1"></i>Refresh Permohonan
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="containerAtasanBanner" class="mb-3 d-none"></div>
+
+          <div class="card border-0 shadow-sm" style="border-radius: 1rem;">
+            <!-- Header Card & Toolbar Filter Persetujuan -->
+            <div class="card-header bg-white border-bottom p-3 p-md-4">
+              <div class="row g-3 align-items-center justify-content-between">
+                <!-- Judul & Badge Jumlah Data -->
+                <div class="col-12 col-xl-auto">
+                  <div class="d-flex align-items-center gap-2">
+                    <div
+                      class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0"
+                      style="width: 38px; height: 38px;">
+                      <i class="bi bi-person-check-fill fs-5"></i>
+                    </div>
+                    <div>
+                      <h6 class="fw-bold m-0 text-dark">Daftar Permohonan Cuti Karyawan</h6>
+                      <small class="text-muted">Total: <span class="badge bg-primary-subtle text-primary fw-bold"
+                          id="badgePersetujuanCutiCount">0</span> Permohonan</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Kontrol Filter, Tombol Approval Saya, Pencarian, dan Aksi -->
+                <div class="col-12 col-xl-auto">
+                  <div class="row g-2 align-items-center">
+                    <!-- Tombol Cepat: Perlu Persetujuan Saya -->
+                    <div class="col-12 col-sm-auto">
+                      <button type="button"
+                        class="btn btn-sm btn-outline-warning text-dark fw-semibold shadow-xs w-100 d-inline-flex align-items-center justify-content-center"
+                        id="btnQuickPerluApproval" onclick="toggleFilterPerluApproval()">
+                        <i class="bi bi-bell-fill text-warning me-1"></i>Perlu Persetujuan Saya
+                        <span class="badge bg-danger ms-1" id="badgePerluApproval">0</span>
+                      </button>
+                    </div>
+
+                    <!-- Pencarian -->
+                    <div class="col-12 col-sm-6 col-md-auto">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white text-muted border-end-0"><i
+                            class="bi bi-search"></i></span>
+                        <input type="text" id="searchPersetujuanCuti" class="form-control border-start-0 ps-0"
+                          placeholder="Cari pemohon / ID / dept..." style="min-width: 190px;"
+                          oninput="currentPagePersetujuanCuti=1; renderPersetujuanCutiTable()">
+                      </div>
+                    </div>
+
+                    <!-- Filter Status -->
+                    <div class="col-12 col-sm-6 col-md-auto">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white text-muted border-end-0"><i
+                            class="bi bi-funnel"></i></span>
+                        <select id="filterStatusPersetujuanCuti" class="form-select border-start-0 ps-0"
+                          style="min-width: 170px;"
+                          onchange="currentPagePersetujuanCuti=1; renderPersetujuanCutiTable()">
+                          <option value="SEMUA">Semua Status</option>
+                          <option value="Menunggu Persetujuan Atasan">Menunggu Atasan</option>
+                          <option value="Menunggu Persetujuan HRD">Menunggu HRD</option>
+                          <option value="Disetujui">Disetujui</option>
+                          <option value="Ditolak">Ditolak</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Tombol Reset & Refresh -->
+                    <div class="col-12 col-sm-auto d-flex gap-2">
+                      <button type="button"
+                        class="btn btn-outline-secondary btn-sm fw-semibold flex-fill flex-sm-grow-0 d-inline-flex align-items-center justify-content-center"
+                        onclick="resetFilterPersetujuanCuti()" title="Reset Filter">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                      </button>
+                      <button type="button"
+                        class="btn btn-light btn-sm border flex-fill flex-sm-grow-0 d-inline-flex align-items-center justify-content-center"
+                        onclick="loadRiwayatCuti()" title="Refresh Daftar Persetujuan">
+                        <i class="bi bi-arrow-clockwise"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="tablePersetujuanCuti">
+                  <thead class="table-light extra-small text-muted fw-bold">
+                    <tr>
+                      <th class="ps-3 py-3 text-center" style="width: 50px;">NO</th>
+                      <th class="py-3">ID PENGAJUAN</th>
+                      <th class="py-3">PEMOHON</th>
+                      <th class="py-3">TGL AJUAN</th>
+                      <th class="py-3">JENIS CUTI</th>
+                      <th class="py-3">PERIODE CUTI</th>
+                      <th class="py-3 text-center">HARI</th>
+                      <th class="py-3">ALASAN</th>
+                      <th class="py-3 text-center text-nowrap" style="min-width: 100px;">LAMPIRAN</th>
+                      <th class="py-3 text-center text-nowrap" style="min-width: 120px;">STATUS</th>
+                      <th class="pe-3 py-3 text-center text-nowrap" style="min-width: 160px;">AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyPersetujuanCuti" class="small">
+                    <tr>
+                      <td colspan="11" class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                        <p class="mb-0">Memuat daftar persetujuan cuti...</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div
+              class="card-footer bg-white border-top py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <span class="extra-small text-muted" id="infoCountPersetujuanCuti">Menampilkan 0 data</span>
+              <ul class="pagination pagination-sm mb-0" id="paginationPersetujuanCuti"></ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 5C: KALENDER CUTI TIM & DEPARTEMEN -->
+        <div id="page-kalender-cuti" class="app-page d-none atasan-hrd-only">
+          <!-- Banner Header -->
+          <div class="card border-0 shadow-sm mb-4"
+            style="background: linear-gradient(135deg, #4338ca 0%, #0284c7 100%); color: white; border-radius: 1rem;">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div>
+                <h4 class="fw-bold mb-1 text-white">Kalender Cuti Tim &amp; Departemen</h4>
+                <p class="mb-0 text-white-50 small">Pantau visual jadwal cuti seluruh anggota tim secara bulanan untuk
+                  mengantisipasi kekosongan operasional.</p>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-light btn-sm fw-semibold px-3 py-2 text-primary shadow-sm"
+                  onclick="showPage('persetujuan-cuti', document.getElementById('subitem-persetujuan-cuti'))">
+                  <i class="bi bi-shield-check me-1"></i>Persetujuan Cuti
+                </button>
+                <button type="button" class="btn btn-outline-light btn-sm fw-semibold px-3 py-2 shadow-sm"
+                  onclick="loadKalenderCuti()">
+                  <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metrik Ringkasan Kalender -->
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-sm-6 col-xl-4">
+              <div class="card border-0 shadow-sm p-3 h-100"
+                style="border-radius: 1rem; border-left: 4px solid #2563eb !important;">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <div class="text-muted extra-small fw-bold text-uppercase">Karyawan Cuti Bulan Ini</div>
+                    <h4 class="fw-bold text-dark mt-1 mb-0" id="metricCalTotalKaryawan">0 Karyawan</h4>
+                  </div>
+                  <div
+                    class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+                    style="width: 44px; height: 44px;">
+                    <i class="bi bi-people-fill fs-5"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-4">
+              <div class="card border-0 shadow-sm p-3 h-100"
+                style="border-radius: 1rem; border-left: 4px solid #16a34a !important;">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <div class="text-muted extra-small fw-bold text-uppercase">Total Hari Cuti Terjadwal</div>
+                    <h4 class="fw-bold text-dark mt-1 mb-0" id="metricCalTotalHari">0 Hari</h4>
+                  </div>
+                  <div
+                    class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center"
+                    style="width: 44px; height: 44px;">
+                    <i class="bi bi-calendar-check-fill fs-5"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-4">
+              <div class="card border-0 shadow-sm p-3 h-100"
+                style="border-radius: 1rem; border-left: 4px solid #ca8a04 !important;">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <div class="text-muted extra-small fw-bold text-uppercase">Menunggu Persetujuan</div>
+                    <h4 class="fw-bold text-dark mt-1 mb-0" id="metricCalMenunggu">0 Permohonan</h4>
+                  </div>
+                  <div
+                    class="rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center"
+                    style="width: 44px; height: 44px;">
+                    <i class="bi bi-hourglass-split fs-5"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Calendar Card -->
+          <div class="card border-0 shadow-sm mb-4" style="border-radius: 1rem;">
+            <!-- Header Toolbar -->
+            <div class="card-header bg-white border-bottom p-3 p-md-4">
+              <div class="row g-3 align-items-center justify-content-between">
+                <!-- Month & Year Navigation -->
+                <div class="col-12 col-lg-auto d-flex align-items-center gap-2 flex-wrap">
+                  <div class="btn-group shadow-xs">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="navKalenderMonth(-1)"
+                      title="Bulan Sebelumnya">
+                      <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 fw-bold"
+                      onclick="navKalenderToday()" title="Bulan Sekarang">
+                      Hari Ini
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="navKalenderMonth(1)"
+                      title="Bulan Berikutnya">
+                      <i class="bi bi-chevron-right"></i>
+                    </button>
+                  </div>
+                  <h5 class="fw-bold text-dark m-0 ps-2" id="calMonthYearTitle">September 2026</h5>
+                </div>
+
+                <!-- Filters & Controls -->
+                <div class="col-12 col-lg-auto">
+                  <div class="row g-2 align-items-center">
+                    <!-- Filter Departemen -->
+                    <div class="col-12 col-sm-auto" id="colFilterCalDept">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white text-muted border-end-0"><i
+                            class="bi bi-building"></i></span>
+                        <select id="filterKalenderDept" class="form-select border-start-0 ps-0"
+                          style="min-width: 170px;" onchange="renderKalenderCuti()">
+                          <option value="SEMUA">Semua Departemen</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Filter Status Cuti -->
+                    <div class="col-12 col-sm-auto">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white text-muted border-end-0"><i
+                            class="bi bi-funnel"></i></span>
+                        <select id="filterKalenderStatus" class="form-select border-start-0 ps-0"
+                          style="min-width: 150px;" onchange="renderKalenderCuti()">
+                          <option value="SEMUA">Semua Status</option>
+                          <option value="Disetujui">Hanya Disetujui</option>
+                          <option value="Menunggu">Menunggu Approval</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Search Karyawan -->
+                    <div class="col-12 col-sm-auto">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white text-muted border-end-0"><i
+                            class="bi bi-search"></i></span>
+                        <input type="text" id="searchKalenderNama" class="form-control border-start-0 ps-0"
+                          placeholder="Cari nama karyawan..." style="min-width: 160px;" oninput="renderKalenderCuti()">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Legenda Warna Status -->
+              <div class="d-flex align-items-center gap-3 flex-wrap mt-3 pt-3 border-top extra-small text-muted">
+                <span class="fw-bold text-dark me-1"><i
+                    class="bi bi-info-circle me-1 text-primary"></i>Keterangan:</span>
+                <span class="d-inline-flex align-items-center gap-1">
+                  <span class="rounded-circle d-inline-block"
+                    style="width: 10px; height: 10px; background-color: #16a34a;"></span>
+                  <strong>Disetujui (Approved)</strong>
+                </span>
+                <span class="d-inline-flex align-items-center gap-1">
+                  <span class="rounded-circle d-inline-block"
+                    style="width: 10px; height: 10px; background-color: #ca8a04;"></span>
+                  <strong>Menunggu Approval</strong>
+                </span>
+                <span class="d-inline-flex align-items-center gap-1">
+                  <span class="rounded-circle d-inline-block"
+                    style="width: 10px; height: 10px; background-color: #2563eb;"></span>
+                  <strong>Hari Ini</strong>
+                </span>
+                <span class="ms-auto text-muted fst-italic">*Klik pada kotak tanggal untuk melihat detail karyawan yang
+                  cuti.</span>
+              </div>
+            </div>
+
+            <!-- Calendar Container View -->
+            <div class="card-body p-0">
+              <div class="calendar-card border-0">
+                <!-- Day of Week Headers -->
+                <div class="calendar-grid-header">
+                  <div class="calendar-grid-header-col">Senin</div>
+                  <div class="calendar-grid-header-col">Selasa</div>
+                  <div class="calendar-grid-header-col">Rabu</div>
+                  <div class="calendar-grid-header-col">Kamis</div>
+                  <div class="calendar-grid-header-col">Jumat</div>
+                  <div class="calendar-grid-header-col weekend">Sabtu</div>
+                  <div class="calendar-grid-header-col weekend">Minggu</div>
+                </div>
+                <!-- 7x5 or 7x6 Day Cells Body -->
+                <div class="calendar-grid-body" id="calendarGridBody">
+                  <!-- Populated dynamically via JavaScript -->
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2373,6 +2906,34 @@
     </div>
   </div>
 
+  <!-- MODAL: DETAIL CUTI HARIAN DARI KALENDER -->
+  <div class="modal fade" id="modalDetailKalenderHarian" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem;">
+        <div class="modal-header bg-light py-3 px-4 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+              style="width: 38px; height: 38px;">
+              <i class="bi bi-calendar-day fs-5"></i>
+            </div>
+            <div>
+              <h6 class="modal-title fw-bold text-dark mb-0" id="modalDetailKalenderTitle">Jadwal Cuti Karyawan</h6>
+              <small class="text-muted extra-small" id="modalDetailKalenderSubtitle">Tanggal Terpilih</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4 bg-light" id="modalDetailKalenderBody">
+          <!-- Populated dynamically via JS -->
+        </div>
+        <div class="modal-footer bg-white py-2 px-4 justify-content-between">
+          <span class="extra-small text-muted" id="modalDetailKalenderCount">0 Karyawan</span>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- MODAL: KONFIRMASI LOGOUT -->
   <div class="modal fade" id="modalLogout" tabindex="-1">
@@ -2994,8 +3555,8 @@
             hrdElements.forEach(function (el) { el.classList.add('d-none'); });
             karyawanElements.forEach(function (el) { el.classList.remove('d-none'); });
             atasanElements.forEach(function (el) { el.classList.remove('d-none'); });
-            // Atasan langsung diarahkan ke menu Persetujuan Cuti
-            openPersetujuanCutiMenu(document.getElementById('navItemPersetujuanCuti'));
+            // Atasan langsung diarahkan ke submenu Persetujuan Cuti
+            showPage('persetujuan-cuti', document.getElementById('subitem-persetujuan-cuti'), isFirstLogin);
           } else {
             hrdElements.forEach(function (el) { el.classList.add('d-none'); });
             karyawanElements.forEach(function (el) { el.classList.remove('d-none'); });
@@ -3031,7 +3592,7 @@
         });
         if (navEl) navEl.classList.add('active');
 
-        if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'master-roster') {
+        if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'kalender-cuti' || pageName === 'master-roster') {
           var subm = document.getElementById('submenuCuti');
           if (subm) subm.classList.remove('d-none');
           var dropEl = document.getElementById('dropdownMenuCuti');
@@ -3046,7 +3607,9 @@
           'upload-slip': 'Upload PDF Slip Gaji Karyawan',
           'slip-saya': 'Daftar Slip Gaji Saya',
           'pengajuan-cuti': 'Formulir Pengajuan Cuti',
-          'riwayat-cuti': 'Riwayat Pengajuan Cuti',
+          'riwayat-cuti': 'Riwayat Cuti Saya',
+          'persetujuan-cuti': 'Persetujuan Cuti Karyawan',
+          'kalender-cuti': 'Kalender Cuti Tim & Departemen',
           'master-roster': 'Master Pola Roster Perusahaan'
         };
         document.getElementById('pageTitle').innerText = titles[pageName] || 'Portal Slip Gaji';
@@ -3111,6 +3674,12 @@
         } else if (pageName === 'riwayat-cuti') {
           hideFullPageLoading();
           loadRiwayatCuti();
+        } else if (pageName === 'persetujuan-cuti') {
+          hideFullPageLoading();
+          loadRiwayatCuti();
+        } else if (pageName === 'kalender-cuti') {
+          hideFullPageLoading();
+          loadKalenderCuti();
         } else if (pageName === 'master-roster') {
           hideFullPageLoading();
           loadRosterData();
@@ -5322,6 +5891,8 @@
 
       var currentPageCuti = 1;
       var isFilterApprovalOnly = false;
+      var currentPageMyCuti = 1;
+      var currentPagePersetujuanCuti = 1;
 
       window.toggleFilterPerluApproval = function () {
         isFilterApprovalOnly = !isFilterApprovalOnly;
@@ -5333,60 +5904,40 @@
             btn.className = 'btn btn-sm btn-outline-warning text-dark fw-semibold shadow-xs';
           }
         }
-        currentPageCuti = 1;
+        currentPagePersetujuanCuti = 1;
+        renderPersetujuanCutiTable();
+      };
+
+      window.openPersetujuanCutiMenu = function (navEl) {
+        isFilterApprovalOnly = false;
+        var btnQuick = document.getElementById('btnQuickPerluApproval');
+        if (btnQuick) {
+          btnQuick.className = 'btn btn-sm btn-outline-warning text-dark fw-semibold shadow-xs';
+        }
+        showPage('persetujuan-cuti', navEl || document.getElementById('subitem-persetujuan-cuti'));
+      };
+
+      window.resetFilterCuti = function () {
+        var sInput = document.getElementById('searchCuti');
+        if (sInput) sInput.value = '';
+        var fStatus = document.getElementById('filterStatusCuti');
+        if (fStatus) fStatus.value = 'SEMUA';
+        currentPageMyCuti = 1;
         renderRiwayatCutiTable();
       };
 
-      window.loadRiwayatCuti = function () {
-        var token = Auth.getToken();
-        if (!token) return;
-
-        var tbody = document.getElementById('tbodyRiwayatCuti');
-        if (tbody) {
-          tbody.innerHTML =
-            '<tr><td colspan="11" class="text-center py-5 text-muted">' +
-            '<div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>' +
-            '<p class="mb-0">Memuat riwayat pengajuan cuti...</p></td></tr>';
+      window.resetFilterPersetujuanCuti = function () {
+        var sInput = document.getElementById('searchPersetujuanCuti');
+        if (sInput) sInput.value = '';
+        var fStatus = document.getElementById('filterStatusPersetujuanCuti');
+        if (fStatus) fStatus.value = 'SEMUA';
+        isFilterApprovalOnly = false;
+        var btnQuick = document.getElementById('btnQuickPerluApproval');
+        if (btnQuick) {
+          btnQuick.className = 'btn btn-sm btn-outline-warning text-dark fw-semibold shadow-xs';
         }
-
-        gasRun('getCutiKaryawan', token).then(function (res) {
-          if (handleSessionExpired(res)) return;
-          if (res.success) {
-            if (res.debugInfo) {
-              lastCutiDebugInfo = res.debugInfo;
-            }
-            if (res.currentUserProfile) {
-              Auth.setUser(res.currentUserProfile);
-              var u = res.currentUserProfile;
-              var nameEl = document.getElementById('userDisplayName');
-              if (nameEl) {
-                nameEl.innerText = u.username + ' - ' + u.fullname + ' (' + u.role + (u.dept ? ' • ' + u.dept : '') + ')';
-              }
-            }
-
-            dbCutiList = res.list || res.cuti || [];
-            var badgeCount = document.getElementById('badgeCutiCount');
-            if (badgeCount) badgeCount.innerText = dbCutiList.length;
-            currentPageCuti = 1;
-            renderRiwayatCutiTable();
-          } else {
-            if (tbody) {
-              tbody.innerHTML =
-                '<tr><td colspan="11" class="text-center py-4 text-muted">' +
-                '<p class="mb-2">' + (res.message || 'Gagal memuat riwayat cuti.') + '</p>' +
-                '<button type="button" class="btn btn-sm btn-outline-primary" onclick="loadRiwayatCuti()"><i class="bi bi-arrow-clockwise me-1"></i>Muat Ulang</button>' +
-                '</td></tr>';
-            }
-          }
-        }).catch(function (err) {
-          if (tbody) {
-            tbody.innerHTML =
-              '<tr><td colspan="11" class="text-center py-4 text-danger">' +
-              '<p class="mb-2">Gagal menghubungi server: ' + err.toString() + '</p>' +
-              '<button type="button" class="btn btn-sm btn-outline-danger" onclick="loadRiwayatCuti()"><i class="bi bi-arrow-clockwise me-1"></i>Coba Lagi</button>' +
-              '</td></tr>';
-          }
-        });
+        currentPagePersetujuanCuti = 1;
+        renderPersetujuanCutiTable();
       };
 
       // Helper periksa apakah role atau jabatan termasuk level Atasan/Supervisor
@@ -5407,8 +5958,7 @@
 
       function cleanDept(d) {
         if (!d) return '';
-        var s = String(d).trim().toLowerCase();
-        s = s.replace(/^(departemen|dept\.?|divisi|division|bagian|seksi|unit)\s+/g, '');
+        var s = String(d).toLowerCase().trim();
         s = s.replace(/[^a-z0-9]/g, '').trim();
 
         if (s === 'hr' || s === 'hrd' || s === 'humanresource' || s === 'humanresources' || s === 'personalia') return 'hrd';
@@ -5437,38 +5987,6 @@
       function normalizeDept(d) {
         return cleanDept(d);
       }
-
-      window.openPersetujuanCutiMenu = function (navEl) {
-        // Tampilkan seluruh pengajuan departemen secara default agar Atasan langsung melihat data
-        isFilterApprovalOnly = false;
-        var btnQuick = document.getElementById('btnQuickPerluApproval');
-        if (btnQuick) {
-          btnQuick.classList.remove('btn-primary', 'text-white');
-          btnQuick.classList.add('btn-outline-primary');
-          var badgePerlu = document.getElementById('badgePerluApproval');
-          var count = badgePerlu ? badgePerlu.innerText : '0';
-          btnQuick.innerHTML = '<i class="bi bi-funnel me-1"></i>Hanya Yang Perlu Persetujuan Saya (<span id="badgePerluApproval">' + count + '</span>)';
-        }
-        showPage('riwayat-cuti', navEl || document.getElementById('navItemPersetujuanCuti'));
-      };
-
-      window.resetFilterCuti = function () {
-        var sInput = document.getElementById('searchCuti');
-        if (sInput) sInput.value = '';
-        var fStatus = document.getElementById('filterStatusCuti');
-        if (fStatus) fStatus.value = 'SEMUA';
-        isFilterApprovalOnly = false;
-        var btnQuick = document.getElementById('btnQuickPerluApproval');
-        if (btnQuick) {
-          btnQuick.classList.remove('btn-primary', 'text-white');
-          btnQuick.classList.add('btn-outline-primary');
-          var badgePerlu = document.getElementById('badgePerluApproval');
-          var count = badgePerlu ? badgePerlu.innerText : '0';
-          btnQuick.innerHTML = '<i class="bi bi-funnel me-1"></i>Hanya Yang Perlu Persetujuan Saya (<span id="badgePerluApproval">' + count + '</span>)';
-        }
-        currentPageCuti = 1;
-        renderRiwayatCutiTable();
-      };
 
       // Helper hak akses approval cuti sesuai aturan departemen & level
       function canUserApproveCuti(item) {
@@ -5504,9 +6022,9 @@
         var isPendingHRD = (statusLower.indexOf('hrd') !== -1);
 
         // ATURAN 1: Jika pemohon adalah Atasan / Supervisor
-        // Sesuai instruksi: "dan untuk atasan yang bisa approv untuk sementara saat ini hanya HRD"
+        // "dan untuk atasan yang bisa approv untuk sementara saat ini hanya HRD"
         if (isApplicantAtasan) {
-          if (!isHRD) return false; // Atasan lain tidak boleh meng-approve cuti sesama atasan
+          if (!isHRD) return false;
           return (isPendingAtasan || isPendingHRD);
         }
 
@@ -5547,80 +6065,288 @@
         }
       }
 
+      window.loadRiwayatCuti = function (isBackground) {
+        var token = Auth.getToken();
+        if (!token) return;
+
+        var tbodyRiwayat = document.getElementById('tbodyRiwayatCuti');
+        var tbodyPersetujuan = document.getElementById('tbodyPersetujuanCuti');
+
+        if (!isBackground) {
+          if (tbodyRiwayat) {
+            tbodyRiwayat.innerHTML =
+              '<tr><td colspan="10" class="text-center py-5 text-muted">' +
+              '<div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>' +
+              '<p class="mb-0">Memuat riwayat pengajuan cuti Anda...</p></td></tr>';
+          }
+          if (tbodyPersetujuan) {
+            tbodyPersetujuan.innerHTML =
+              '<tr><td colspan="11" class="text-center py-5 text-muted">' +
+              '<div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>' +
+              '<p class="mb-0">Memuat daftar persetujuan cuti...</p></td></tr>';
+          }
+        }
+
+        gasRun('getCutiKaryawan', token).then(function (res) {
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            if (res.debugInfo) {
+              lastCutiDebugInfo = res.debugInfo;
+            }
+            if (res.currentUserProfile) {
+              Auth.setUser(res.currentUserProfile);
+              var u = res.currentUserProfile;
+              var nameEl = document.getElementById('userDisplayName');
+              if (nameEl) {
+                nameEl.innerText = u.username + ' - ' + u.fullname + ' (' + u.role + (u.dept ? ' • ' + u.dept : '') + ')';
+              }
+            }
+
+            dbCutiList = res.list || res.cuti || [];
+
+            // Hitung badge approval yang memerlukan aksi pengguna login
+            var needApprovalCount = 0;
+            dbCutiList.forEach(function (c) {
+              if (canUserApproveCuti(c)) needApprovalCount++;
+            });
+
+            // Update badge sidebar & badge tombol filter persetujuan
+            var badgeNav = document.getElementById('badgeNavApproval');
+            if (badgeNav) {
+              badgeNav.innerText = needApprovalCount;
+              if (needApprovalCount > 0) {
+                badgeNav.classList.remove('d-none');
+              } else {
+                badgeNav.classList.add('d-none');
+              }
+            }
+
+            var badgePerlu = document.getElementById('badgePerluApproval');
+            if (badgePerlu) {
+              badgePerlu.innerText = needApprovalCount;
+            }
+
+            // Render ketiga halaman (Riwayat, Persetujuan, dan Kalender)
+            currentPageMyCuti = 1;
+            renderRiwayatCutiTable();
+            currentPagePersetujuanCuti = 1;
+            renderPersetujuanCutiTable();
+            renderKalenderCuti();
+          } else {
+            if (tbodyRiwayat) {
+              tbodyRiwayat.innerHTML =
+                '<tr><td colspan="10" class="text-center py-4 text-muted">' +
+                '<p class="mb-2">' + (res.message || 'Gagal memuat riwayat cuti.') + '</p>' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" onclick="loadRiwayatCuti()"><i class="bi bi-arrow-clockwise me-1"></i>Muat Ulang</button>' +
+                '</td></tr>';
+            }
+            if (tbodyPersetujuan) {
+              tbodyPersetujuan.innerHTML =
+                '<tr><td colspan="11" class="text-center py-4 text-muted">' +
+                '<p class="mb-2">' + (res.message || 'Gagal memuat daftar persetujuan.') + '</p>' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" onclick="loadRiwayatCuti()"><i class="bi bi-arrow-clockwise me-1"></i>Muat Ulang</button>' +
+                '</td></tr>';
+            }
+          }
+        }).catch(function (err) {
+          if (tbodyRiwayat) {
+            tbodyRiwayat.innerHTML =
+              '<tr><td colspan="10" class="text-center py-4 text-danger">' +
+              '<p class="mb-2">Gagal menghubungi server: ' + err.toString() + '</p>' +
+              '<button type="button" class="btn btn-sm btn-outline-danger" onclick="loadRiwayatCuti()"><i class="bi bi-arrow-clockwise me-1"></i>Coba Lagi</button>' +
+              '</td></tr>';
+          }
+          if (tbodyPersetujuan) {
+            tbodyPersetujuan.innerHTML =
+              '<tr><td colspan="11" class="text-center py-4 text-danger">' +
+              '<p class="mb-2">Gagal menghubungi server: ' + err.toString() + '</p>' +
+              '<button type="button" class="btn btn-sm btn-outline-danger" onclick="loadRiwayatCuti()"><i class="bi bi-arrow-clockwise me-1"></i>Coba Lagi</button>' +
+              '</td></tr>';
+          }
+        });
+      };
+
+      window.loadPersetujuanCuti = function (isBackground) {
+        window.loadRiwayatCuti(isBackground);
+      };
+
+      // ==========================================
+      // TABEL 1: RIWAYAT CUTI SAYA (PERSONAL LEAVE)
+      // ==========================================
       window.renderRiwayatCutiTable = function () {
         var tbody = document.getElementById('tbodyRiwayatCuti');
         if (!tbody) return;
 
-        var user = Auth.getUser() || {};
+        var user = Auth.getUser();
+        var currentUsername = String((user && user.username) || '').toLowerCase();
+
+        // Filter ketat: HANYA pengajuan cuti milik user yang sedang login
+        var myLeaves = dbCutiList.filter(function (item) {
+          return String(item.empId || '').toLowerCase() === currentUsername;
+        });
+
+        var keyword = (document.getElementById('searchCuti') ? document.getElementById('searchCuti').value : '').toLowerCase().trim();
+        var filterStatus = document.getElementById('filterStatusCuti') ? document.getElementById('filterStatusCuti').value : 'SEMUA';
+
+        var filtered = myLeaves.filter(function (item) {
+          var matchSearch = !keyword ||
+            (item.id && item.id.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.jenisCuti && item.jenisCuti.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.alasan && item.alasan.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.tanggalMulai && item.tanggalMulai.indexOf(keyword) !== -1) ||
+            (item.tanggalSelesai && item.tanggalSelesai.indexOf(keyword) !== -1);
+
+          var matchStatus = true;
+          if (filterStatus === 'SEMUA') {
+            matchStatus = true;
+          } else if (filterStatus === 'Ditolak') {
+            matchStatus = (item.status === 'Ditolak' || item.status === 'Ditolak Atasan' || item.status === 'Ditolak HRD');
+          } else if (filterStatus === 'Menunggu Persetujuan Atasan') {
+            matchStatus = (item.status === 'Menunggu Persetujuan Atasan' || item.status === 'Menunggu Persetujuan');
+          } else {
+            matchStatus = (item.status === filterStatus);
+          }
+
+          return matchSearch && matchStatus;
+        });
+
+        var badgeCount = document.getElementById('badgeCutiCount');
+        if (badgeCount) badgeCount.innerText = filtered.length;
+
+        var infoCount = document.getElementById('infoCountCuti');
+        if (infoCount) infoCount.innerText = 'Menampilkan ' + filtered.length + ' permohonan cuti Anda';
+
+        if (filtered.length === 0) {
+          if (myLeaves.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center py-5">' +
+              '<div class="py-4">' +
+              '<i class="bi bi-calendar2-x fs-1 text-muted d-block mb-3"></i>' +
+              '<h6 class="fw-bold text-dark mb-1">Belum Ada Pengajuan Cuti</h6>' +
+              '<p class="text-muted small mb-3">Anda belum memiliki riwayat pengajuan cuti pribadi.</p>' +
+              '<button type="button" class="btn btn-primary btn-sm fw-semibold px-3 shadow-sm" onclick="showPage(\'pengajuan-cuti\', document.getElementById(\'subitem-pengajuan-cuti\'))">' +
+              '<i class="bi bi-pencil-square me-1"></i>Ajukan Cuti Baru</button>' +
+              '</div></td></tr>';
+          } else {
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center py-5 text-muted">' +
+              '<div class="py-4">' +
+              '<i class="bi bi-funnel fs-1 text-muted d-block mb-3"></i>' +
+              '<h6 class="fw-bold text-dark mb-1">Tidak Ada Data Yang Sesuai Filter</h6>' +
+              '<p class="small mb-3">Semua permohonan cuti Anda (' + myLeaves.length + ' data) tidak cocok dengan pencarian / status yang dipilih.</p>' +
+              '<button type="button" class="btn btn-sm btn-primary" onclick="resetFilterCuti()"><i class="bi bi-arrow-counterclockwise me-1"></i>Tampilkan Semua Cuti Saya (' + myLeaves.length + ' Data)</button>' +
+              '</div></td></tr>';
+          }
+          renderPaginationControls('paginationCuti', 0, 1, function () { });
+          return;
+        }
+
+        var pSize = 10;
+        var startIdx = (currentPageMyCuti - 1) * pSize;
+        var pageData = filtered.slice(startIdx, startIdx + pSize);
+
+        var html = '';
+        pageData.forEach(function (item, idx) {
+          var rowNum = startIdx + idx + 1;
+          var statusInfo = getCutiStatusBadge(item.status);
+
+          var lampiranBtn = '<span class="text-muted extra-small">-</span>';
+          if (item.lampiranFileId || item.lampiranName) {
+            lampiranBtn = '<button type="button" class="btn btn-sm btn-action btn-action-lampiran" title="Lihat Berkas Lampiran" onclick="viewLampiranCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-paperclip"></i>Lampiran</button>';
+          }
+
+          var cancelBtn = '';
+          if (item.status === 'Menunggu Persetujuan Atasan' || item.status === 'Menunggu Persetujuan' || item.status === 'Menunggu') {
+            cancelBtn = '<button type="button" class="btn btn-sm btn-action btn-action-delete" title="Batalkan Pengajuan Cuti" onclick="confirmBatalCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-trash3"></i>Batal</button>';
+          }
+
+          var detailBtn = '<button type="button" class="btn btn-sm btn-action btn-action-view" title="Lihat Detail Pengajuan" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
+            '<i class="bi bi-eye"></i>Detail</button>';
+
+          html += '<tr>' +
+            '<td class="ps-3 py-3 fw-bold text-muted text-center">' + rowNum + '</td>' +
+            '<td class="py-3 text-nowrap"><span class="badge bg-light text-primary border font-monospace">' + escapeHTML(item.id) + '</span></td>' +
+            '<td class="py-3 fw-semibold text-dark text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</td>' +
+            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + '</td>' +
+            '<td class="py-3 small text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</td>' +
+            '<td class="py-3 text-center text-nowrap"><span class="badge bg-primary-subtle text-primary fw-bold">' + item.jumlahHari + ' Hari</span></td>' +
+            '<td class="py-3 text-truncate" style="max-width: 170px;" title="' + escapeHTML(item.alasan) + '">' + escapeHTML(item.alasan) + '</td>' +
+            '<td class="py-3 text-center text-nowrap">' + lampiranBtn + '</td>' +
+            '<td class="py-3 text-center text-nowrap"><span class="badge ' + statusInfo.cls + ' extra-small"><i class="bi ' + statusInfo.icon + ' me-1"></i>' + escapeHTML(statusInfo.label) + '</span></td>' +
+            '<td class="pe-3 py-3 text-center text-nowrap">' +
+            '<div class="action-group">' +
+            detailBtn +
+            cancelBtn +
+            '</div>' +
+            '</td>' +
+            '</tr>';
+        });
+
+        tbody.innerHTML = html;
+
+        renderPaginationControls('paginationCuti', filtered.length, currentPageMyCuti, function (newPage) {
+          currentPageMyCuti = newPage;
+          renderRiwayatCutiTable();
+        });
+      };
+
+      // ========================================================
+      // TABEL 2: PERSETUJUAN CUTI KARYAWAN (ATASAN & HRD APPROVAL)
+      // ========================================================
+      window.renderPersetujuanCutiTable = function () {
+        var tbody = document.getElementById('tbodyPersetujuanCuti');
+        if (!tbody) return;
+
+        var user = Auth.getUser();
+        if (!user) return;
+
         var uRole = String(user.role || '').toLowerCase();
-        var uDept = String(user.dept || '').trim();
+        var uDept = String(user.dept || '');
         var uJab = String(user.jabatan || '').toLowerCase();
         var uName = String(user.username || '').toLowerCase();
+
         var isHRD = (uRole === 'admin' || uRole === 'hrd' || uName === 'admin');
         var isSupervisor = (uRole === 'supervisor' || uRole === 'atasan' || isJobAtasan(uJab, uRole));
 
-        // Hitung pengajuan yang butuh approval user saat ini
+        // Filter bawahan / karyawan untuk halaman Persetujuan
+        var subordinateLeaves = dbCutiList.filter(function (item) {
+          var rowEmp = String(item.empId || '').toLowerCase();
+          if (isHRD) {
+            return true; // HRD dapat melihat permohonan semua karyawan
+          }
+          if (isSupervisor) {
+            if (rowEmp === uName) return false; // Jangan tampilkan cuti diri sendiri di tabel approval
+            return isSameDept(uDept, item.dept);
+          }
+          return false;
+        });
+
+        // Hitung yang memerlukan approval
         var needApprovalCount = 0;
-        dbCutiList.forEach(function (c) {
+        subordinateLeaves.forEach(function (c) {
           if (canUserApproveCuti(c)) needApprovalCount++;
         });
 
-        // Update Quick Filter Button & Sidebar Badge
-        var btnQuick = document.getElementById('btnQuickPerluApproval');
-        var badgePerlu = document.getElementById('badgePerluApproval');
-        var badgeNav = document.getElementById('badgeNavApproval');
-        var badgeNavDirect = document.getElementById('badgeNavApprovalDirect');
-
-        if (isSupervisor || isHRD) {
-          if (btnQuick) btnQuick.classList.remove('d-none');
-          if (badgePerlu) badgePerlu.innerText = needApprovalCount;
-          if (badgeNav) {
-            badgeNav.innerText = needApprovalCount;
-            if (needApprovalCount > 0) badgeNav.classList.remove('d-none');
-            else badgeNav.classList.add('d-none');
-          }
-          if (badgeNavDirect) {
-            badgeNavDirect.innerText = needApprovalCount;
-            if (needApprovalCount > 0) badgeNavDirect.classList.remove('d-none');
-            else badgeNavDirect.classList.add('d-none');
-          }
-        } else {
-          if (btnQuick) btnQuick.classList.add('d-none');
-          if (badgeNav) badgeNav.classList.add('d-none');
-          if (badgeNavDirect) badgeNavDirect.classList.add('d-none');
-        }
-
-        // Render Banner Informasi Role & Departemen
+        // Tampilkan info banner departemen
         var containerBanner = document.getElementById('containerAtasanBanner');
         if (containerBanner) {
           if (isSupervisor && !isHRD) {
             containerBanner.classList.remove('d-none');
-            if (!uDept) {
-              containerBanner.innerHTML =
-                '<div class="alert alert-warning border-warning-subtle d-flex align-items-start gap-3 p-3 shadow-xs mb-0">' +
-                '<i class="bi bi-exclamation-triangle-fill text-warning fs-4 mt-1"></i>' +
-                '<div>' +
-                '<h6 class="fw-bold text-dark mb-1">Perhatian: Departemen Akun Anda Belum Diatur</h6>' +
-                '<p class="small text-muted mb-0">Akun Anda berstatus <strong>Atasan / Supervisor</strong>, tetapi data Departemen Anda masih kosong di Data Karyawan. Sistem memerlukan kesamaan departemen agar dapat menampilkan cuti bawahan Anda. Silakan hubungi <strong>Admin HRD</strong> untuk mengatur Departemen akun Anda.</p>' +
-                '</div>' +
-                '</div>';
-            } else {
-              containerBanner.innerHTML =
-                '<div class="alert alert-light border border-primary-subtle d-flex align-items-center justify-content-between flex-wrap gap-2 p-3 shadow-xs mb-0">' +
-                '<div class="d-flex align-items-center gap-2">' +
-                '<div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">' +
-                '<i class="bi bi-person-badge fs-5"></i>' +
-                '</div>' +
-                '<div>' +
-                '<h6 class="fw-bold text-dark mb-0">Login sebagai Atasan / Supervisor</h6>' +
-                '<small class="text-muted">Departemen: <strong class="text-primary">' + escapeHTML(uDept) + '</strong> • Menampilkan pengajuan cuti anggota departemen Anda.</small>' +
-                '</div>' +
-                '</div>' +
-                (needApprovalCount > 0
-                  ? '<span class="badge bg-danger px-3 py-2 fw-semibold"><i class="bi bi-bell-fill me-1"></i>' + needApprovalCount + ' Permohonan Memerlukan Persetujuan Anda</span>'
-                  : '<span class="badge bg-success-subtle text-success px-3 py-2 fw-semibold"><i class="bi bi-check-circle me-1"></i>Tidak Ada Permohonan Tertunda</span>') +
-                '</div>';
-            }
+            containerBanner.innerHTML =
+              '<div class="alert alert-light border border-primary-subtle d-flex align-items-center justify-content-between flex-wrap gap-2 p-3 shadow-xs mb-0">' +
+              '<div class="d-flex align-items-center gap-2">' +
+              '<div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">' +
+              '<i class="bi bi-person-badge fs-5"></i>' +
+              '</div>' +
+              '<div>' +
+              '<h6 class="fw-bold text-dark mb-0">Login sebagai Atasan / Supervisor</h6>' +
+              '<small class="text-muted">Departemen: <strong class="text-primary">' + escapeHTML(user.dept || 'Umum') + '</strong> &bull; Akun: ' + escapeHTML(user.username) + '</small>' +
+              '</div>' +
+              '</div>' +
+              (needApprovalCount > 0
+                ? '<span class="badge bg-danger px-3 py-2 fw-semibold"><i class="bi bi-bell-fill me-1"></i>' + needApprovalCount + ' Permohonan Memerlukan Persetujuan Anda</span>'
+                : '<span class="badge bg-success-subtle text-success px-3 py-2 fw-semibold"><i class="bi bi-check-circle me-1"></i>Tidak Ada Permohonan Tertunda</span>') +
+              '</div>';
           } else if (isHRD) {
             containerBanner.classList.remove('d-none');
             containerBanner.innerHTML =
@@ -5630,8 +6356,8 @@
               '<i class="bi bi-shield-check fs-5"></i>' +
               '</div>' +
               '<div>' +
-              '<h6 class="fw-bold text-dark mb-0">Login sebagai HRD / Admin</h6>' +
-              '<small class="text-muted">Hak akses persetujuan penuh untuk seluruh departemen dan cuti Atasan.</small>' +
+              '<h6 class="fw-bold text-dark mb-0">Login sebagai HRD / Admin Master</h6>' +
+              '<small class="text-muted">Wewenang persetujuan penuh seluruh departemen &amp; persetujuan cuti Atasan.</small>' +
               '</div>' +
               '</div>' +
               (needApprovalCount > 0
@@ -5643,17 +6369,17 @@
           }
         }
 
-        var keyword = (document.getElementById('searchCuti') ? document.getElementById('searchCuti').value : '').toLowerCase().trim();
-        var filterStatus = document.getElementById('filterStatusCuti') ? document.getElementById('filterStatusCuti').value : 'SEMUA';
+        var keyword = (document.getElementById('searchPersetujuanCuti') ? document.getElementById('searchPersetujuanCuti').value : '').toLowerCase().trim();
+        var filterStatus = document.getElementById('filterStatusPersetujuanCuti') ? document.getElementById('filterStatusPersetujuanCuti').value : 'SEMUA';
 
-        var filtered = dbCutiList.filter(function (item) {
+        var filtered = subordinateLeaves.filter(function (item) {
           var matchSearch = !keyword ||
             (item.id && item.id.toLowerCase().indexOf(keyword) !== -1) ||
-            (item.jenisCuti && item.jenisCuti.toLowerCase().indexOf(keyword) !== -1) ||
-            (item.alasan && item.alasan.toLowerCase().indexOf(keyword) !== -1) ||
             (item.namaKaryawan && item.namaKaryawan.toLowerCase().indexOf(keyword) !== -1) ||
             (item.empId && item.empId.toLowerCase().indexOf(keyword) !== -1) ||
-            (item.dept && item.dept.toLowerCase().indexOf(keyword) !== -1);
+            (item.dept && item.dept.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.jenisCuti && item.jenisCuti.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.alasan && item.alasan.toLowerCase().indexOf(keyword) !== -1);
 
           var matchStatus = true;
           if (filterStatus === 'SEMUA') {
@@ -5674,14 +6400,14 @@
           return matchSearch && matchStatus && matchApprovalOnly;
         });
 
-        var badgeCount = document.getElementById('badgeCutiCount');
+        var badgeCount = document.getElementById('badgePersetujuanCutiCount');
         if (badgeCount) badgeCount.innerText = filtered.length;
 
-        var infoCount = document.getElementById('infoCountCuti');
-        if (infoCount) infoCount.innerText = 'Menampilkan ' + filtered.length + ' permohonan cuti';
+        var infoCount = document.getElementById('infoCountPersetujuanCuti');
+        if (infoCount) infoCount.innerText = 'Menampilkan ' + filtered.length + ' permohonan karyawan';
 
         if (filtered.length === 0) {
-          if (dbCutiList.length === 0) {
+          if (subordinateLeaves.length === 0) {
             if (isSupervisor && !isHRD) {
               tbody.innerHTML = '<tr><td colspan="11" class="p-4">' +
                 '<div class="card border-0 shadow-sm mx-auto my-2" style="max-width: 680px; border-radius: 12px; background: #fff;">' +
@@ -5691,8 +6417,8 @@
                 '<i class="bi bi-info-circle-fill fs-4"></i>' +
                 '</div>' +
                 '<div>' +
-                '<h6 class="fw-bold text-dark mb-0">Belum Ada Pengajuan Cuti Karyawan</h6>' +
-                '<small class="text-muted">Data pengajuan cuti anggota departemen Anda akan otomatis tampil di tabel ini.</small>' +
+                '<h6 class="fw-bold text-dark mb-0">Belum Ada Pengajuan Cuti Karyawan Departemen</h6>' +
+                '<small class="text-muted">Data permohonan cuti dari anggota departemen Anda akan otomatis tampil di sini.</small>' +
                 '</div>' +
                 '</div>' +
                 '<div class="p-3 rounded-3 mb-3" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">' +
@@ -5700,16 +6426,11 @@
                 '<div class="col-sm-6"><strong>Akun Login:</strong> ' + escapeHTML(user.fullname || user.username) + ' (' + escapeHTML(user.username) + ')</div>' +
                 '<div class="col-sm-6"><strong>Role Terdeteksi:</strong> <span class="badge bg-primary-subtle text-primary">Atasan / Supervisor</span></div>' +
                 '<div class="col-sm-6"><strong>Departemen Anda:</strong> <span class="badge bg-info-subtle text-info fw-bold">' + escapeHTML(user.dept || 'BELUM DIATUR') + '</span></div>' +
-                '<div class="col-sm-6"><strong>Status Database:</strong> ' + (lastCutiDebugInfo ? ('Total cuti di spreadsheet: ' + lastCutiDebugInfo.totalRowsInSheet) : 'Terhubung') + '</div>' +
+                '<div class="col-sm-6"><strong>Status Database:</strong> ' + (lastCutiDebugInfo ? ('Total cuti di sheet: ' + lastCutiDebugInfo.totalRowsInSheet) : 'Terhubung') + '</div>' +
                 '</div>' +
-                '</div>' +
-                '<div class="alert alert-light border small text-muted mb-3 py-2 px-3">' +
-                '<strong class="text-dark d-block mb-1"><i class="bi bi-lightbulb text-warning me-1"></i>Penting - Jika data di Google Sheet sudah ada namun di sini masih kosong:</strong>' +
-                'Pastikan file <code>Kode.js</code> dan <code>index.html</code> terbaru sudah di-<strong>Deploy</strong> ulang di Google Apps Script (Deploy &gt; New deployment), karena server Google Apps Script hanya menjalankan kode yang telah di-deploy.' +
                 '</div>' +
                 '<div class="d-flex gap-2 flex-wrap">' +
                 '<button type="button" class="btn btn-sm btn-primary fw-semibold" onclick="loadRiwayatCuti()"><i class="bi bi-arrow-clockwise me-1"></i>Muat Ulang Data Cuti</button>' +
-                '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="showPage(\'pengajuan-cuti\')"><i class="bi bi-file-earmark-plus me-1"></i>Buat Pengajuan Cuti</button>' +
                 '</div>' +
                 '</div>' +
                 '</div>' +
@@ -5718,11 +6439,9 @@
               tbody.innerHTML = '<tr><td colspan="11" class="text-center py-5">' +
                 '<div class="py-4">' +
                 '<i class="bi bi-calendar2-x fs-1 text-muted d-block mb-3"></i>' +
-                '<h6 class="fw-bold text-dark mb-1">Belum Ada Pengajuan Cuti</h6>' +
-                '<p class="text-muted small mb-3">Data pengajuan cuti yang sesuai dengan wewenang akun Anda akan muncul di sini.</p>' +
-                '<button type="button" class="btn btn-primary btn-sm fw-semibold px-3 shadow-sm" onclick="showPage(\'pengajuan-cuti\', document.getElementById(\'subitem-pengajuan-cuti\'))">' +
-                '<i class="bi bi-pencil-square me-1"></i>Ajukan Cuti Baru Sekarang' +
-                '</button>' +
+                '<h6 class="fw-bold text-dark mb-1">Belum Ada Pengajuan Cuti Karyawan</h6>' +
+                '<p class="text-muted small mb-3">Permohonan cuti karyawan yang sesuai wewenang akun Anda akan muncul di sini.</p>' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" onclick="loadRiwayatCuti()"><i class="bi bi-arrow-clockwise me-1"></i>Muat Ulang</button>' +
                 '</div></td></tr>';
             }
           } else {
@@ -5730,16 +6449,16 @@
               '<div class="py-4">' +
               '<i class="bi bi-funnel fs-1 text-muted d-block mb-3"></i>' +
               '<h6 class="fw-bold text-dark mb-1">Tidak Ada Data Yang Sesuai Filter</h6>' +
-              '<p class="small mb-3">Semua pengajuan yang ada (' + dbCutiList.length + ' data) tidak cocok dengan filter status/approval saat ini.</p>' +
-              '<button type="button" class="btn btn-sm btn-primary" onclick="resetFilterCuti()"><i class="bi bi-arrow-counterclockwise me-1"></i>Tampilkan Semua Pengajuan (' + dbCutiList.length + ' Data)</button>' +
+              '<p class="small mb-3">Semua pengajuan karyawan (' + subordinateLeaves.length + ' data) tidak cocok dengan filter status/approval saat ini.</p>' +
+              '<button type="button" class="btn btn-sm btn-primary" onclick="resetFilterPersetujuanCuti()"><i class="bi bi-arrow-counterclockwise me-1"></i>Tampilkan Semua Pengajuan (' + subordinateLeaves.length + ' Data)</button>' +
               '</div></td></tr>';
           }
-          renderPaginationControls('paginationCuti', 0, 1, function () { });
+          renderPaginationControls('paginationPersetujuanCuti', 0, 1, function () { });
           return;
         }
 
         var pSize = 10;
-        var startIdx = (currentPageCuti - 1) * pSize;
+        var startIdx = (currentPagePersetujuanCuti - 1) * pSize;
         var pageData = filtered.slice(startIdx, startIdx + pSize);
 
         var html = '';
@@ -5749,42 +6468,37 @@
 
           var lampiranBtn = '<span class="text-muted extra-small">-</span>';
           if (item.lampiranFileId || item.lampiranName) {
-            lampiranBtn = '<button type="button" class="btn btn-xs btn-outline-primary fw-semibold py-1 px-2" style="font-size: 0.75rem;" onclick="viewLampiranCuti(\'' + escapeHTML(item.id) + '\')">' +
-              '<i class="bi bi-paperclip me-1"></i>Lampiran</button>';
+            lampiranBtn = '<button type="button" class="btn btn-sm btn-action btn-action-lampiran" title="Lihat Berkas Lampiran" onclick="viewLampiranCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-paperclip"></i>Lampiran</button>';
           }
 
           var canApprove = canUserApproveCuti(item);
           var approveBtn = '';
           if (canApprove) {
-            approveBtn = '<button type="button" class="btn btn-xs btn-success fw-semibold p-1 px-2 shadow-xs" style="font-size: 0.75rem;" title="Proses Approval" onclick="openModalApprovalCuti(\'' + escapeHTML(item.id) + '\')">' +
-              '<i class="bi bi-shield-check me-1"></i>Approval</button>';
+            approveBtn = '<button type="button" class="btn btn-sm btn-action btn-action-approve" title="Proses Persetujuan Cuti" onclick="openModalApprovalCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-shield-check"></i>Approval</button>';
           }
 
-          var cancelBtn = '';
-          if (item.status === 'Menunggu Persetujuan Atasan' || item.status === 'Menunggu Persetujuan') {
-            cancelBtn = '<button type="button" class="btn btn-xs btn-outline-danger p-1" style="font-size: 0.75rem;" title="Batalkan Pengajuan" onclick="confirmBatalCuti(\'' + escapeHTML(item.id) + '\')">' +
-              '<i class="bi bi-trash3"></i></button>';
-          }
+          var detailBtn = '<button type="button" class="btn btn-sm btn-action btn-action-view" title="Lihat Detail Pengajuan" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
+            '<i class="bi bi-eye"></i>Detail</button>';
 
           var rowHighlight = canApprove ? 'style="background-color: #f0fdf4;"' : '';
 
           html += '<tr ' + rowHighlight + '>' +
-            '<td class="ps-3 py-3 fw-bold text-muted">' + rowNum + '</td>' +
-            '<td class="py-3"><span class="badge bg-light text-primary border font-monospace">' + escapeHTML(item.id) + '</span></td>' +
+            '<td class="ps-3 py-3 fw-bold text-muted text-center">' + rowNum + '</td>' +
+            '<td class="py-3 text-nowrap"><span class="badge bg-light text-primary border font-monospace">' + escapeHTML(item.id) + '</span></td>' +
             '<td class="py-3"><span class="fw-bold text-dark d-block">' + escapeHTML(item.namaKaryawan || item.empId) + '</span><small class="text-muted">' + escapeHTML(item.dept || '-') + (item.empId ? ' (' + escapeHTML(item.empId) + ')' : '') + '</small></td>' +
-            '<td class="py-3 extra-small text-muted">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</td>' +
+            '<td class="py-3 fw-semibold text-dark text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</td>' +
             '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + '</td>' +
-            '<td class="py-3 small">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</td>' +
-            '<td class="py-3 text-center"><span class="badge bg-primary-subtle text-primary fw-bold">' + item.jumlahHari + ' Hari</span></td>' +
+            '<td class="py-3 small text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</td>' +
+            '<td class="py-3 text-center text-nowrap"><span class="badge bg-primary-subtle text-primary fw-bold">' + item.jumlahHari + ' Hari</span></td>' +
             '<td class="py-3 text-truncate" style="max-width: 150px;" title="' + escapeHTML(item.alasan) + '">' + escapeHTML(item.alasan) + '</td>' +
-            '<td class="py-3 text-center">' + lampiranBtn + '</td>' +
-            '<td class="py-3 text-center"><span class="badge ' + statusInfo.cls + ' extra-small"><i class="bi ' + statusInfo.icon + ' me-1"></i>' + escapeHTML(statusInfo.label) + '</span></td>' +
-            '<td class="pe-3 py-3 text-center">' +
-            '<div class="d-flex align-items-center justify-content-center gap-1">' +
+            '<td class="py-3 text-center text-nowrap">' + lampiranBtn + '</td>' +
+            '<td class="py-3 text-center text-nowrap"><span class="badge ' + statusInfo.cls + ' extra-small"><i class="bi ' + statusInfo.icon + ' me-1"></i>' + escapeHTML(statusInfo.label) + '</span></td>' +
+            '<td class="pe-3 py-3 text-center text-nowrap">' +
+            '<div class="action-group">' +
             approveBtn +
-            '<button type="button" class="btn btn-xs btn-light border p-1" style="font-size: 0.75rem;" title="Lihat Detail" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
-            '<i class="bi bi-eye text-primary"></i></button>' +
-            cancelBtn +
+            detailBtn +
             '</div>' +
             '</td>' +
             '</tr>';
@@ -5792,9 +6506,9 @@
 
         tbody.innerHTML = html;
 
-        renderPaginationControls('paginationCuti', filtered.length, currentPageCuti, function (newPage) {
-          currentPageCuti = newPage;
-          renderRiwayatCutiTable();
+        renderPaginationControls('paginationPersetujuanCuti', filtered.length, currentPagePersetujuanCuti, function (newPage) {
+          currentPagePersetujuanCuti = newPage;
+          renderPersetujuanCutiTable();
         });
       };
 
@@ -6166,6 +6880,444 @@
             Swal.fire('Error Server', err.message || err.toString(), 'error');
           });
         });
+      };
+
+      // ==========================================
+      // MODUL KALENDER CUTI TIM & DEPARTEMEN
+      // ==========================================
+      var currentCalDate = new Date();
+      var currentCalYear = currentCalDate.getFullYear();
+      var currentCalMonth = currentCalDate.getMonth(); // 0-indexed: 0 = Jan, 8 = Sep
+      var bsModalDetailKalenderHarian = null;
+
+      var NAMA_BULAN_ID = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+
+      var NAMA_HARI_ID = [
+        'Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'
+      ];
+
+      function parseDateToYMD(dateStr) {
+        if (!dateStr || dateStr === '-') return null;
+        if (dateStr instanceof Date) {
+          var y = dateStr.getFullYear();
+          var m = String(dateStr.getMonth() + 1).padStart(2, '0');
+          var d = String(dateStr.getDate()).padStart(2, '0');
+          return y + '-' + m + '-' + d;
+        }
+        var s = String(dateStr).trim();
+        var datePart = s.split('T')[0].split(' ')[0];
+        var d = '', m = '', y = '';
+        if (datePart.indexOf('-') !== -1) {
+          var p = datePart.split('-');
+          if (p.length === 3) {
+            if (p[0].length === 4) {
+              y = p[0];
+              m = String(parseInt(p[1], 10)).padStart(2, '0');
+              d = String(parseInt(p[2], 10)).padStart(2, '0');
+            } else {
+              d = String(parseInt(p[0], 10)).padStart(2, '0');
+              m = String(parseInt(p[1], 10)).padStart(2, '0');
+              y = p[2];
+            }
+          }
+        } else if (datePart.indexOf('/') !== -1) {
+          var p = datePart.split('/');
+          if (p.length === 3) {
+            if (p[0].length === 4) {
+              y = p[0];
+              m = String(parseInt(p[1], 10)).padStart(2, '0');
+              d = String(parseInt(p[2], 10)).padStart(2, '0');
+            } else {
+              d = String(parseInt(p[0], 10)).padStart(2, '0');
+              m = String(parseInt(p[1], 10)).padStart(2, '0');
+              y = p[2];
+            }
+          }
+        }
+        if (d && m && y) {
+          return y + '-' + m + '-' + d;
+        }
+        return null;
+      }
+
+      function populateKalenderDeptFilter() {
+        var user = Auth.getUser();
+        var sel = document.getElementById('filterKalenderDept');
+        if (!sel) return;
+
+        var uRole = String((user && user.role) || '').toLowerCase();
+        var uDept = String((user && user.dept) || '');
+        var uJab = String((user && user.jabatan) || '').toLowerCase();
+        var isHRD = (uRole === 'admin' || uRole === 'hrd');
+        var isSupervisor = (uRole === 'supervisor' || (typeof isJobAtasan === 'function' && isJobAtasan(uJab, uRole)));
+
+        var currentVal = sel.value;
+        sel.innerHTML = '';
+
+        if (isHRD) {
+          sel.innerHTML = '<option value="SEMUA">Semua Departemen</option>';
+          var depts = getDeptNames();
+          depts.forEach(function (deptName) {
+            sel.innerHTML += '<option value="' + escapeHTML(deptName) + '">' + escapeHTML(deptName) + '</option>';
+          });
+        } else if (isSupervisor) {
+          sel.innerHTML = '<option value="' + escapeHTML(uDept || 'Umum') + '">Departemen ' + escapeHTML(uDept || 'Umum') + '</option>';
+        } else {
+          sel.innerHTML = '<option value="SEMUA">Semua Departemen</option>';
+        }
+
+        if (currentVal && Array.from(sel.options).some(function (o) { return o.value === currentVal; })) {
+          sel.value = currentVal;
+        }
+      }
+
+      window.loadKalenderCuti = function () {
+        populateKalenderDeptFilter();
+        if (!dbCutiList || dbCutiList.length === 0) {
+          loadRiwayatCuti(true);
+        }
+        renderKalenderCuti();
+      };
+
+      window.navKalenderMonth = function (offset) {
+        currentCalMonth += offset;
+        if (currentCalMonth < 0) {
+          currentCalMonth = 11;
+          currentCalYear--;
+        } else if (currentCalMonth > 11) {
+          currentCalMonth = 0;
+          currentCalYear++;
+        }
+        renderKalenderCuti();
+      };
+
+      window.navKalenderToday = function () {
+        var now = new Date();
+        currentCalYear = now.getFullYear();
+        currentCalMonth = now.getMonth();
+        renderKalenderCuti();
+      };
+
+      window.renderKalenderCuti = function () {
+        var gridBody = document.getElementById('calendarGridBody');
+        var titleEl = document.getElementById('calMonthYearTitle');
+        if (!gridBody) return;
+
+        if (titleEl) {
+          titleEl.innerText = NAMA_BULAN_ID[currentCalMonth] + ' ' + currentCalYear;
+        }
+
+        var user = Auth.getUser();
+        var uRole = String((user && user.role) || '').toLowerCase();
+        var uDept = String((user && user.dept) || '');
+        var uJab = String((user && user.jabatan) || '').toLowerCase();
+        var isHRD = (uRole === 'admin' || uRole === 'hrd');
+        var isSupervisor = (uRole === 'supervisor' || (typeof isJobAtasan === 'function' && isJobAtasan(uJab, uRole)));
+
+        var filterDept = document.getElementById('filterKalenderDept') ? document.getElementById('filterKalenderDept').value : 'SEMUA';
+        var filterStatus = document.getElementById('filterKalenderStatus') ? document.getElementById('filterKalenderStatus').value : 'SEMUA';
+        var searchKeyword = (document.getElementById('searchKalenderNama') ? document.getElementById('searchKalenderNama').value : '').toLowerCase().trim();
+
+        // 1. Filter dasar berdasarkan wewenang pengguna (HRD vs Supervisor)
+        var allowedLeaves = dbCutiList.filter(function (item) {
+          if (isHRD) return true;
+          if (isSupervisor) {
+            return isSameDept(uDept, item.dept);
+          }
+          return true;
+        });
+
+        // 2. Filter status, departemen, dan pencarian
+        var activeLeaves = [];
+        allowedLeaves.forEach(function (item) {
+          // Abaikan pengajuan yang ditolak dari kalender kerja aktif
+          if (item.status === 'Ditolak' || item.status === 'Ditolak Atasan' || item.status === 'Ditolak HRD') {
+            return;
+          }
+
+          // Filter status
+          if (filterStatus === 'Disetujui' && item.status !== 'Disetujui') return;
+          if (filterStatus === 'Menunggu' && item.status === 'Disetujui') return;
+
+          // Filter departemen
+          if (filterDept !== 'SEMUA' && !isSameDept(filterDept, item.dept)) return;
+
+          // Filter pencarian nama / NIP / alasan / jenis cuti
+          if (searchKeyword) {
+            var match = (item.namaKaryawan && item.namaKaryawan.toLowerCase().indexOf(searchKeyword) !== -1) ||
+              (item.empId && item.empId.toLowerCase().indexOf(searchKeyword) !== -1) ||
+              (item.jenisCuti && item.jenisCuti.toLowerCase().indexOf(searchKeyword) !== -1) ||
+              (item.alasan && item.alasan.toLowerCase().indexOf(searchKeyword) !== -1);
+            if (!match) return;
+          }
+
+          var startYMD = parseDateToYMD(item.tanggalMulai);
+          var endYMD = parseDateToYMD(item.tanggalSelesai);
+
+          if (startYMD && endYMD) {
+            activeLeaves.push({
+              raw: item,
+              start: startYMD,
+              end: endYMD,
+              id: item.id,
+              name: item.namaKaryawan || item.empId,
+              empId: item.empId,
+              dept: item.dept,
+              jabatan: item.jabatan,
+              jenisCuti: item.jenisCuti,
+              status: item.status,
+              alasan: item.alasan,
+              jumlahHari: item.jumlahHari
+            });
+          }
+        });
+
+        // 3. Hitung tanggal-tanggal dalam bulan kalender saat ini
+        var firstDayOfMonth = new Date(currentCalYear, currentCalMonth, 1);
+        var startDayOfWeek = firstDayOfMonth.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+        var startOffset = (startDayOfWeek === 0 ? 6 : startDayOfWeek - 1); // 0 jika Senin, 6 jika Minggu
+
+        var daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+        var daysInPrevMonth = new Date(currentCalYear, currentCalMonth, 0).getDate();
+
+        var totalCells = (startOffset + daysInMonth <= 35) ? 35 : 42;
+
+        var today = new Date();
+        var todayYMD = parseDateToYMD(today);
+
+        var monthPrefix = currentCalYear + '-' + String(currentCalMonth + 1).padStart(2, '0');
+
+        // Hitung metrik bulanan
+        var monthEmployeesSet = new Set();
+        var monthTotalDays = 0;
+        var monthPendingCount = 0;
+
+        activeLeaves.forEach(function (leave) {
+          var inThisMonth = false;
+          for (var d = 1; d <= daysInMonth; d++) {
+            var checkYMD = monthPrefix + '-' + String(d).padStart(2, '0');
+            if (leave.start <= checkYMD && checkYMD <= leave.end) {
+              inThisMonth = true;
+              monthTotalDays++;
+            }
+          }
+          if (inThisMonth) {
+            monthEmployeesSet.add(leave.empId || leave.name);
+            if (leave.status !== 'Disetujui') {
+              monthPendingCount++;
+            }
+          }
+        });
+
+        var metricKaryawanEl = document.getElementById('metricCalTotalKaryawan');
+        if (metricKaryawanEl) metricKaryawanEl.innerText = monthEmployeesSet.size + ' Karyawan';
+
+        var metricHariEl = document.getElementById('metricCalTotalHari');
+        if (metricHariEl) metricHariEl.innerText = monthTotalDays + ' Hari';
+
+        var metricMenungguEl = document.getElementById('metricCalMenunggu');
+        if (metricMenungguEl) metricMenungguEl.innerText = monthPendingCount + ' Permohonan';
+
+        // 4. Bangun grid sel kalender
+        var html = '';
+        for (var i = 0; i < totalCells; i++) {
+          var cellYear, cellMonth, cellDay, isOtherMonth;
+
+          if (i < startOffset) {
+            // Hari dari bulan sebelumnya
+            isOtherMonth = true;
+            cellDay = daysInPrevMonth - startOffset + i + 1;
+            if (currentCalMonth === 0) {
+              cellMonth = 11;
+              cellYear = currentCalYear - 1;
+            } else {
+              cellMonth = currentCalMonth - 1;
+              cellYear = currentCalYear;
+            }
+          } else if (i < startOffset + daysInMonth) {
+            // Hari dari bulan saat ini
+            isOtherMonth = false;
+            cellDay = i - startOffset + 1;
+            cellMonth = currentCalMonth;
+            cellYear = currentCalYear;
+          } else {
+            // Hari dari bulan berikutnya
+            isOtherMonth = true;
+            cellDay = i - (startOffset + daysInMonth) + 1;
+            if (currentCalMonth === 11) {
+              cellMonth = 0;
+              cellYear = currentCalYear + 1;
+            } else {
+              cellMonth = currentCalMonth + 1;
+              cellYear = currentCalYear;
+            }
+          }
+
+          var cellYMD = cellYear + '-' + String(cellMonth + 1).padStart(2, '0') + '-' + String(cellDay).padStart(2, '0');
+          var isToday = (cellYMD === todayYMD);
+          var dayCol = (i % 7); // 0=Senin, 5=Sabtu, 6=Minggu
+          var isWeekend = (dayCol === 5 || dayCol === 6);
+
+          // Cari karyawan yang cuti pada tanggal ini
+          var leavesOnDate = activeLeaves.filter(function (leave) {
+            return leave.start <= cellYMD && cellYMD <= leave.end;
+          });
+
+          var cellCls = 'calendar-day-cell';
+          if (isOtherMonth) cellCls += ' other-month';
+          if (isToday) cellCls += ' today';
+          if (isWeekend) cellCls += ' weekend';
+
+          html += '<div class="' + cellCls + '" onclick="openDetailKalenderHarian(\'' + cellYMD + '\')">' +
+            '<div class="calendar-day-header">' +
+            '<span class="calendar-day-num">' + cellDay + '</span>' +
+            (leavesOnDate.length > 0 ? '<span class="badge bg-primary-subtle text-primary extra-small fw-bold" style="font-size:0.65rem;">' + leavesOnDate.length + ' Cuti</span>' : '') +
+            '</div>';
+
+          // Tampilkan chip karyawan cuti (maksimal 2 agar tidak sesak, sisanya +N)
+          if (leavesOnDate.length > 0) {
+            html += '<div class="calendar-leave-items">';
+            var maxShow = 2;
+            for (var k = 0; k < Math.min(leavesOnDate.length, maxShow); k++) {
+              var item = leavesOnDate[k];
+              var chipStatusCls = (item.status === 'Disetujui') ? 'status-disetujui' : 'status-menunggu';
+              var statusIcon = (item.status === 'Disetujui') ? 'bi-check-circle-fill' : 'bi-hourglass-split';
+              html += '<div class="calendar-leave-chip ' + chipStatusCls + '" title="' + escapeHTML(item.name) + ' (' + escapeHTML(item.jenisCuti) + ') - ' + escapeHTML(item.status) + '">' +
+                '<i class="bi ' + statusIcon + '"></i>' +
+                '<span class="text-truncate">' + escapeHTML(item.name) + '</span>' +
+                '</div>';
+            }
+            if (leavesOnDate.length > maxShow) {
+              var moreCount = leavesOnDate.length - maxShow;
+              html += '<div class="calendar-leave-more">+' + moreCount + ' lainnya</div>';
+            }
+            html += '</div>';
+          }
+
+          html += '</div>';
+        }
+
+        gridBody.innerHTML = html;
+      };
+
+      window.openDetailKalenderHarian = function (dateStr) {
+        var user = Auth.getUser();
+        var uRole = String((user && user.role) || '').toLowerCase();
+        var uDept = String((user && user.dept) || '');
+        var uJab = String((user && user.jabatan) || '').toLowerCase();
+        var isHRD = (uRole === 'admin' || uRole === 'hrd');
+        var isSupervisor = (uRole === 'supervisor' || (typeof isJobAtasan === 'function' && isJobAtasan(uJab, uRole)));
+
+        var filterDept = document.getElementById('filterKalenderDept') ? document.getElementById('filterKalenderDept').value : 'SEMUA';
+        var filterStatus = document.getElementById('filterKalenderStatus') ? document.getElementById('filterKalenderStatus').value : 'SEMUA';
+
+        // Parse date ke format yang ramah
+        var dateParts = dateStr.split('-');
+        var y = parseInt(dateParts[0], 10);
+        var m = parseInt(dateParts[1], 10) - 1;
+        var d = parseInt(dateParts[2], 10);
+        var dateObj = new Date(y, m, d);
+        var dayName = NAMA_HARI_ID[dateObj.getDay()];
+        var formattedDateStr = dayName + ', ' + d + ' ' + NAMA_BULAN_ID[m] + ' ' + y;
+
+        document.getElementById('modalDetailKalenderTitle').innerText = 'Jadwal Cuti Karyawan';
+        document.getElementById('modalDetailKalenderSubtitle').innerText = formattedDateStr;
+
+        // Cari semua karyawan cuti pada tanggal ini
+        var leavesOnDate = [];
+        dbCutiList.forEach(function (item) {
+          if (item.status === 'Ditolak' || item.status === 'Ditolak Atasan' || item.status === 'Ditolak HRD') {
+            return;
+          }
+          if (filterStatus === 'Disetujui' && item.status !== 'Disetujui') return;
+          if (filterStatus === 'Menunggu' && item.status === 'Disetujui') return;
+          if (!isHRD && isSupervisor && !isSameDept(uDept, item.dept)) return;
+          if (isHRD && filterDept !== 'SEMUA' && !isSameDept(filterDept, item.dept)) return;
+
+          var startYMD = parseDateToYMD(item.tanggalMulai);
+          var endYMD = parseDateToYMD(item.tanggalSelesai);
+
+          if (startYMD && endYMD && startYMD <= dateStr && dateStr <= endYMD) {
+            leavesOnDate.push(item);
+          }
+        });
+
+        var countEl = document.getElementById('modalDetailKalenderCount');
+        if (countEl) countEl.innerText = leavesOnDate.length + ' Karyawan Sedang Cuti';
+
+        var bodyEl = document.getElementById('modalDetailKalenderBody');
+        if (!bodyEl) return;
+
+        if (leavesOnDate.length === 0) {
+          bodyEl.innerHTML =
+            '<div class="text-center py-5">' +
+            '<div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mb-3" style="width: 56px; height: 56px;">' +
+            '<i class="bi bi-calendar-check fs-2"></i>' +
+            '</div>' +
+            '<h6 class="fw-bold text-dark mb-1">Tidak Ada Karyawan Cuti</h6>' +
+            '<p class="text-muted small mb-0">Seluruh anggota tim dijadwalkan hadir dan aktif bekerja pada tanggal ini.</p>' +
+            '</div>';
+        } else {
+          var html = '<div class="d-flex flex-column gap-3">';
+          leavesOnDate.forEach(function (item) {
+            var statusInfo = getCutiStatusBadge(item.status);
+            var canApprove = canUserApproveCuti(item);
+
+            var approveBtnHtml = '';
+            if (canApprove) {
+              approveBtnHtml =
+                '<button type="button" class="btn btn-sm btn-success fw-semibold" onclick="if(bsModalDetailKalenderHarian) bsModalDetailKalenderHarian.hide(); openModalApprovalCuti(\'' + escapeHTML(item.id) + '\');">' +
+                '<i class="bi bi-shield-check me-1"></i>Proses Approval</button>';
+            }
+
+            var detailBtnHtml =
+              '<button type="button" class="btn btn-sm btn-outline-primary fw-semibold" onclick="if(bsModalDetailKalenderHarian) bsModalDetailKalenderHarian.hide(); viewDetailCuti(\'' + escapeHTML(item.id) + '\');">' +
+              '<i class="bi bi-eye me-1"></i>Lihat Detail</button>';
+
+            html +=
+              '<div class="card border shadow-xs" style="border-radius: 0.85rem; overflow: hidden;">' +
+              '<div class="card-body p-3">' +
+              '<div class="d-flex justify-content-between align-items-start gap-2 mb-2">' +
+              '<div class="d-flex align-items-center gap-2">' +
+              '<div class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; font-size: 0.9rem;">' +
+              escapeHTML((item.namaKaryawan || item.empId || 'K').charAt(0).toUpperCase()) +
+              '</div>' +
+              '<div>' +
+              '<h6 class="fw-bold text-dark mb-0">' + escapeHTML(item.namaKaryawan || item.empId) + '</h6>' +
+              '<small class="text-muted">' + escapeHTML(item.dept || '-') + ' • ' + escapeHTML(item.jabatan || 'Karyawan') + ' (' + escapeHTML(item.empId || '-') + ')</small>' +
+              '</div>' +
+              '</div>' +
+              '<span class="badge ' + statusInfo.cls + ' extra-small"><i class="bi ' + statusInfo.icon + ' me-1"></i>' + escapeHTML(statusInfo.label) + '</span>' +
+              '</div>' +
+
+              '<div class="p-2 bg-light rounded-3 mb-2 small">' +
+              '<div class="row g-2">' +
+              '<div class="col-sm-6"><strong>Jenis Cuti:</strong> <span class="badge bg-primary-subtle text-primary fw-bold">' + escapeHTML(item.jenisCuti) + '</span></div>' +
+              '<div class="col-sm-6"><strong>Durasi Total:</strong> ' + item.jumlahHari + ' Hari Kalender</div>' +
+              '<div class="col-12"><strong>Periode:</strong> ' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</div>' +
+              (item.alasan ? '<div class="col-12"><strong>Alasan:</strong> <span class="text-dark">' + escapeHTML(item.alasan) + '</span></div>' : '') +
+              '</div>' +
+              '</div>' +
+
+              '<div class="d-flex justify-content-end gap-2">' +
+              approveBtnHtml +
+              detailBtnHtml +
+              '</div>' +
+
+              '</div>' +
+              '</div>';
+          });
+          html += '</div>';
+          bodyEl.innerHTML = html;
+        }
+
+        if (!bsModalDetailKalenderHarian) {
+          bsModalDetailKalenderHarian = new bootstrap.Modal(document.getElementById('modalDetailKalenderHarian'));
+        }
+        bsModalDetailKalenderHarian.show();
       };
 
       // --- CONSOLE SECURITY & ANTI-INSPECT PROTECTION ---
