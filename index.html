@@ -698,6 +698,12 @@
       border-color: #e0f2fe !important;
     }
 
+    .btn-action-print {
+      color: #1e40af !important;
+      background-color: #dbeafe;
+      border-color: #bfdbfe !important;
+    }
+
     .btn-action-view:hover {
       color: #ffffff !important;
       background-color: #0284c7;
@@ -731,6 +737,11 @@
     .btn-action-lampiran:hover {
       color: #ffffff !important;
       background-color: #0284c7;
+    }
+
+    .btn-action-print:hover {
+      color: #ffffff !important;
+      background-color: #2563eb;
     }
 
     .pagination {
@@ -1118,6 +1129,275 @@
       .calendar-leave-chip {
         font-size: 0.62rem;
         padding: 0.15rem 0.25rem;
+      }
+    }
+
+    /* --- SURAT IZIN CUTI RESMI STYLES --- */
+    .surat-cuti-paper-container {
+      background-color: #475569;
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+    }
+
+    .surat-cuti-paper {
+      background: #ffffff;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 16mm 20mm 15mm 20mm;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      color: #0f172a;
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif;
+      font-size: 10pt;
+      line-height: 1.5;
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    .surat-kop {
+      border-bottom: 3px double #0f172a;
+      padding-bottom: 10px;
+      margin-bottom: 18px;
+    }
+
+    .surat-kop-logo {
+      width: 68px;
+      height: 68px;
+      object-fit: contain;
+    }
+
+    .surat-kop-company {
+      font-size: 15pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+
+    .surat-kop-division {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #2563eb;
+      margin-bottom: 2px;
+    }
+
+    .surat-kop-address {
+      font-size: 8pt;
+      color: #475569;
+      line-height: 1.35;
+    }
+
+    .surat-title {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .surat-title h4 {
+      font-size: 12.5pt;
+      font-weight: 800;
+      text-decoration: underline;
+      color: #0f172a;
+      margin-bottom: 3px;
+      letter-spacing: 0.5px;
+    }
+
+    .surat-nomor {
+      font-size: 9pt;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .surat-table-data {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+      font-size: 9.5pt;
+    }
+
+    .surat-table-data td {
+      padding: 3.5px 6px;
+      vertical-align: top;
+    }
+
+    .surat-table-data .label-col {
+      width: 30%;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .surat-table-data .colon-col {
+      width: 2%;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .surat-table-data .value-col {
+      width: 68%;
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    .surat-section-title {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-left: 3px solid #2563eb;
+      padding-left: 8px;
+      margin: 12px 0 6px 0;
+      background: #f8fafc;
+      padding-top: 2px;
+      padding-bottom: 2px;
+    }
+
+    .surat-ketentuan {
+      font-size: 8pt;
+      color: #475569;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin: 12px 0;
+      line-height: 1.4;
+    }
+
+    .surat-ketentuan ol {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .surat-ketentuan li {
+      margin-bottom: 2px;
+    }
+
+    .surat-signatures-container {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      gap: 10px;
+    }
+
+    .surat-sig-box {
+      flex: 1;
+      text-align: center;
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 6px 8px 6px;
+      background: #fafafa;
+      position: relative;
+    }
+
+    .surat-sig-title {
+      font-size: 8pt;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .surat-sig-stamp {
+      height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 3px 0;
+    }
+
+    .stamp-badge {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 7pt;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+
+    .stamp-badge.verified {
+      border: 1.5px solid #16a34a;
+      color: #16a34a;
+      background-color: #f0fdf4;
+    }
+
+    .stamp-badge.approved-mgr {
+      border: 1.5px solid #0284c7;
+      color: #0284c7;
+      background-color: #f0f9ff;
+    }
+
+    .stamp-badge.approved-hrd {
+      border: 1.5px solid #2563eb;
+      color: #2563eb;
+      background-color: #eff6ff;
+    }
+
+    .surat-sig-name {
+      font-size: 8.5pt;
+      font-weight: 800;
+      color: #0f172a;
+      text-decoration: underline;
+      margin-bottom: 1px;
+    }
+
+    .surat-sig-role {
+      font-size: 7.5pt;
+      color: #64748b;
+    }
+
+    .surat-sig-date {
+      font-size: 7pt;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .surat-watermark-footer {
+      margin-top: 20px;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 7pt;
+      color: #94a3b8;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+
+      #printSuratCutiArea,
+      #printSuratCutiArea * {
+        visibility: visible !important;
+      }
+
+      #printSuratCutiArea {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+      }
+
+      .surat-cuti-paper {
+        box-shadow: none !important;
+        width: 100% !important;
+        padding: 8mm 12mm !important;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
       }
     }
   </style>
@@ -2934,6 +3214,50 @@
     </div>
   </div>
 
+  <!-- MODAL: CETAK / UNDUH SURAT IZIN CUTI RESMI -->
+  <div class="modal fade" id="modalCetakSuratCuti" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem;">
+        <div class="modal-header bg-light py-3 px-4 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+              style="width: 38px; height: 38px;">
+              <i class="bi bi-file-earmark-pdf fs-5"></i>
+            </div>
+            <div>
+              <h6 class="modal-title fw-bold text-dark mb-0">Surat Izin Cuti Resmi</h6>
+              <small class="text-muted extra-small" id="modalCetakSuratSubtitle">Pratinjau Dokumen Siap Cetak &
+                PDF</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0 bg-secondary-subtle">
+          <div class="surat-cuti-paper-container py-4">
+            <div id="printSuratCutiArea">
+              <div class="surat-cuti-paper" id="suratCutiPaperContent">
+                <!-- Populated dynamically via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-white py-2 px-4 justify-content-between">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 extra-small">
+              <i class="bi bi-patch-check-fill me-1"></i>Dokumen Sah & Terverifikasi
+            </span>
+            <small class="text-muted extra-small d-none d-md-inline" id="modalCetakSuratNoDoc">No: -</small>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+            <button type="button" class="btn btn-primary btn-sm fw-semibold shadow-sm" onclick="printSuratCutiDoc()">
+              <i class="bi bi-printer me-1"></i>Cetak / Simpan PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL: KONFIRMASI LOGOUT -->
   <div class="modal fade" id="modalLogout" tabindex="-1">
@@ -6260,6 +6584,12 @@
               '<i class="bi bi-trash3"></i>Batal</button>';
           }
 
+          var printBtn = '';
+          if (item.status === 'Disetujui') {
+            printBtn = '<button type="button" class="btn btn-sm btn-action btn-action-print" title="Cetak Surat Izin Cuti Resmi" onclick="openModalCetakSuratCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-printer"></i>Surat Cuti</button>';
+          }
+
           var detailBtn = '<button type="button" class="btn btn-sm btn-action btn-action-view" title="Lihat Detail Pengajuan" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
             '<i class="bi bi-eye"></i>Detail</button>';
 
@@ -6276,6 +6606,7 @@
             '<td class="pe-3 py-3 text-center text-nowrap">' +
             '<div class="action-group">' +
             detailBtn +
+            printBtn +
             cancelBtn +
             '</div>' +
             '</td>' +
@@ -6479,6 +6810,12 @@
               '<i class="bi bi-shield-check"></i>Approval</button>';
           }
 
+          var printBtn = '';
+          if (item.status === 'Disetujui') {
+            printBtn = '<button type="button" class="btn btn-sm btn-action btn-action-print" title="Cetak Surat Izin Cuti Resmi" onclick="openModalCetakSuratCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-printer"></i>Surat Cuti</button>';
+          }
+
           var detailBtn = '<button type="button" class="btn btn-sm btn-action btn-action-view" title="Lihat Detail Pengajuan" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
             '<i class="bi bi-eye"></i>Detail</button>';
 
@@ -6499,6 +6836,7 @@
             '<div class="action-group">' +
             approveBtn +
             detailBtn +
+            printBtn +
             '</div>' +
             '</td>' +
             '</tr>';
@@ -6713,6 +7051,13 @@
         if (footerActionsEl) {
           var canApprove = canUserApproveCuti(item);
           var actionBtnHtml = '<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>';
+          if (item.status === 'Disetujui') {
+            actionBtnHtml =
+              '<button type="button" class="btn btn-primary btn-sm fw-semibold shadow-sm" onclick="openCetakSuratFromModal(\'' + escapeHTML(item.id) + '\', document.getElementById(\'modalDetailCuti\'))">' +
+              '<i class="bi bi-printer me-1"></i>Cetak Surat Cuti' +
+              '</button>' +
+              actionBtnHtml;
+          }
           if (canApprove) {
             actionBtnHtml =
               '<button type="button" class="btn btn-success btn-sm fw-semibold shadow-sm" onclick="if(bsModalDetailCuti) bsModalDetailCuti.hide(); openModalApprovalCuti(\'' + escapeHTML(item.id) + '\');">' +
@@ -7276,6 +7621,13 @@
                 '<i class="bi bi-shield-check me-1"></i>Proses Approval</button>';
             }
 
+            var printBtnHtml = '';
+            if (item.status === 'Disetujui') {
+              printBtnHtml =
+                '<button type="button" class="btn btn-sm btn-outline-success fw-semibold" onclick="openCetakSuratFromModal(\'' + escapeHTML(item.id) + '\', document.getElementById(\'modalDetailKalenderHarian\'))">' +
+                '<i class="bi bi-printer me-1"></i>Surat Cuti</button>';
+            }
+
             var detailBtnHtml =
               '<button type="button" class="btn btn-sm btn-outline-primary fw-semibold" onclick="openDetailCutiFromKalender(\'' + escapeHTML(item.id) + '\')">' +
               '<i class="bi bi-eye me-1"></i>Lihat Detail</button>';
@@ -7307,6 +7659,7 @@
 
               '<div class="d-flex justify-content-end gap-2">' +
               approveBtnHtml +
+              printBtnHtml +
               detailBtnHtml +
               '</div>' +
 
@@ -7373,6 +7726,344 @@
         } else {
           openModalApprovalCuti(cutiId);
         }
+      };
+
+      // --- SURAT IZIN CUTI RESMI (PDF / PRINT) HELPERS & HANDLERS ---
+      function getRomanMonth(monthNum) {
+        var roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+        var idx = parseInt(monthNum, 10);
+        if (isNaN(idx) || idx < 1) idx = 1;
+        return roman[(idx - 1) % 12] || 'I';
+      }
+
+      function formatDateIndo(dateVal, withTime) {
+        if (!dateVal || dateVal === '-') return '-';
+        var bulanIndo = [
+          'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+        var d = 1, m = 1, y = 2026, hh = '', mm = '';
+        if (dateVal instanceof Date) {
+          d = dateVal.getDate();
+          m = dateVal.getMonth() + 1;
+          y = dateVal.getFullYear();
+          if (withTime) {
+            hh = String(dateVal.getHours()).padStart(2, '0');
+            mm = String(dateVal.getMinutes()).padStart(2, '0');
+          }
+        } else {
+          var s = String(dateVal).trim();
+          var dtPart = s.split('T')[0].split(' ')[0];
+          var tmPart = s.indexOf(' ') !== -1 ? s.split(' ')[1] : (s.indexOf('T') !== -1 ? s.split('T')[1] : '');
+          if (dtPart.indexOf('-') !== -1) {
+            var parts = dtPart.split('-');
+            if (parts[0].length === 4) {
+              y = parseInt(parts[0], 10);
+              m = parseInt(parts[1], 10);
+              d = parseInt(parts[2], 10);
+            } else {
+              d = parseInt(parts[0], 10);
+              m = parseInt(parts[1], 10);
+              y = parseInt(parts[2], 10);
+            }
+          } else if (dtPart.indexOf('/') !== -1) {
+            var parts = dtPart.split('/');
+            d = parseInt(parts[0], 10);
+            m = parseInt(parts[1], 10);
+            y = parseInt(parts[2], 10);
+          }
+          if (withTime && tmPart) {
+            var tBits = tmPart.split(':');
+            if (tBits.length >= 2) {
+              hh = tBits[0].padStart(2, '0');
+              mm = tBits[1].padStart(2, '0');
+            }
+          }
+        }
+        var res = d + ' ' + (bulanIndo[m - 1] || '') + ' ' + y;
+        if (withTime && hh) {
+          res += ' pukul ' + hh + ':' + mm + ' WIB';
+        }
+        return res;
+      }
+
+      function getTanggalMasukKerja(tanggalSelesai) {
+        if (!tanggalSelesai || tanggalSelesai === '-') return '-';
+        var endYMD = parseDateToYMD(tanggalSelesai);
+        if (!endYMD) return '-';
+        var p = endYMD.split('-');
+        var dt = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        dt.setDate(dt.getDate() + 1);
+        return formatDateIndo(dt, false);
+      }
+
+      var bsModalCetakSuratCuti = null;
+
+      window.openCetakSuratFromModal = function (cutiId, currentModalEl) {
+        if (!currentModalEl) {
+          openModalCetakSuratCuti(cutiId);
+          return;
+        }
+
+        var bsCurrentModal = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
+          ? bootstrap.Modal.getInstance(currentModalEl)
+          : null;
+
+        if (bsCurrentModal && currentModalEl.classList.contains('show')) {
+          var fired = false;
+          var onHidden = function () {
+            if (fired) return;
+            fired = true;
+            currentModalEl.removeEventListener('hidden.bs.modal', onHidden);
+            openModalCetakSuratCuti(cutiId);
+          };
+          currentModalEl.addEventListener('hidden.bs.modal', onHidden);
+          bsCurrentModal.hide();
+          setTimeout(function () {
+            if (!fired) {
+              onHidden();
+            }
+          }, 350);
+        } else {
+          openModalCetakSuratCuti(cutiId);
+        }
+      };
+
+      window.openModalCetakSuratCuti = function (cutiId) {
+        var cleanId = String(cutiId || '').trim();
+        var item = dbCutiList.find(function (c) {
+          return String(c.id || '').trim() === cleanId;
+        });
+
+        if (!item) {
+          Swal.fire('Informasi', 'Data cuti tidak ditemukan.', 'info');
+          return;
+        }
+
+        // Generate nomor surat
+        var parseTgl = parseDateToYMD(item.tanggalPengajuan) || parseDateToYMD(item.tanggalMulai) || '';
+        var tglObj = new Date();
+        if (parseTgl) {
+          var pBits = parseTgl.split('-');
+          tglObj = new Date(parseInt(pBits[0], 10), parseInt(pBits[1], 10) - 1, parseInt(pBits[2], 10));
+        }
+        var mIndex = tglObj.getMonth() + 1;
+        var yVal = tglObj.getFullYear();
+        var romMonth = getRomanMonth(mIndex);
+        var nomorSurat = item.id + '/HRD-CUTI/' + romMonth + '/' + yVal;
+
+        // Lookup employee
+        var empId = item.empId || '-';
+        var namaKaryawan = item.namaKaryawan || empId;
+        var dept = item.dept || '-';
+        var jabatan = item.jabatan || 'Karyawan';
+        var kontak = item.kontak || item.nomorKontak || '-';
+        if (kontak === '-' && typeof dbKaryawanList !== 'undefined' && dbKaryawanList) {
+          var kMatch = dbKaryawanList.find(function (k) {
+            return String(k.username || k.empId || k.nik || '').toLowerCase() === String(empId).toLowerCase();
+          });
+          if (kMatch && (kMatch.noHp || kMatch.telepon || kMatch.kontak)) {
+            kontak = kMatch.noHp || kMatch.telepon || kMatch.kontak;
+          }
+        }
+
+        var jenisCutiLabel = item.jenisCuti + (item.polaRoster ? ' (Pola ' + escapeHTML(item.polaRoster) + ')' : '');
+        var periodeStr = formatDateIndo(item.tanggalMulai) + ' s/d ' + formatDateIndo(item.tanggalSelesai);
+        var durasiStr = item.jumlahHari + ' Hari Kalender';
+        var tglMasukKembali = getTanggalMasukKerja(item.tanggalSelesai);
+        var alasanStr = item.alasan || item.alasanCuti || '-';
+        var alamatStr = item.alamat || item.alamatCuti || '-';
+        var catatanStr = item.catatan || item.catatanTambahan || '-';
+
+        // Update modal header info
+        var noDocEl = document.getElementById('modalCetakSuratNoDoc');
+        if (noDocEl) noDocEl.innerText = 'No: ' + nomorSurat;
+
+        var subtitleEl = document.getElementById('modalCetakSuratSubtitle');
+        if (subtitleEl) subtitleEl.innerText = 'Pratinjau Dokumen Siap Cetak • ' + namaKaryawan + ' (' + item.id + ')';
+
+        // Render Paper HTML
+        var paperHtml =
+          '<div class="surat-kop">' +
+          '<table style="width: 100%; border-collapse: collapse;">' +
+          '<tr>' +
+          '<td style="width: 70px; vertical-align: middle; text-align: center;">' +
+          '<div style="width: 58px; height: 58px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; margin: 0 auto;">' +
+          '<i class="bi bi-building"></i>' +
+          '</div>' +
+          '</td>' +
+          '<td style="text-align: center; vertical-align: middle; padding-left: 10px;">' +
+          '<div class="surat-kop-company">PT. MINERAL NUSANTARA ABADI</div>' +
+          '<div class="surat-kop-division">HUMAN RESOURCES &amp; GENERAL AFFAIRS DEPARTMENT</div>' +
+          '<div class="surat-kop-address">Gedung Menara Palma Lt. 12, Jl. H.R. Rasuna Said Kav. 6, Jakarta Selatan 12950<br>Telp: (021) 5290-8888 | Email: hrd@perusahaan.co.id | Website: www.perusahaan.co.id</div>' +
+          '</td>' +
+          '</tr>' +
+          '</table>' +
+          '</div>' +
+
+          '<div class="surat-title">' +
+          '<h4>SURAT IZIN CUTI KERJA KARYAWAN</h4>' +
+          '<div class="surat-nomor">Nomor: ' + escapeHTML(nomorSurat) + '</div>' +
+          '</div>' +
+
+          '<p style="margin-bottom: 12px; font-size: 9.5pt; text-align: justify; line-height: 1.5;">' +
+          'Berdasarkan permohonan izin cuti yang telah diajukan dan melalui tahapan verifikasi serta persetujuan berjenjang sesuai dengan peraturan ketenagakerjaan perusahaan yang berlaku, Manajemen <strong>PT. MINERAL NUSANTARA ABADI</strong> dengan ini menerbitkan Surat Izin Cuti Resmi kepada:' +
+          '</p>' +
+
+          '<div class="surat-section-title">I. DATA KARYAWAN PEMOHON</div>' +
+          '<table class="surat-table-data">' +
+          '<tr><td class="label-col">Nama Lengkap</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(namaKaryawan) + '</td></tr>' +
+          '<tr><td class="label-col">NIP / ID Karyawan</td><td class="colon-col">:</td><td class="value-col font-monospace">' + escapeHTML(empId) + '</td></tr>' +
+          '<tr><td class="label-col">Departemen / Divisi</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(dept) + '</td></tr>' +
+          '<tr><td class="label-col">Jabatan</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(jabatan) + '</td></tr>' +
+          '<tr><td class="label-col">Nomor Kontak / Telepon</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(kontak) + '</td></tr>' +
+          '</table>' +
+
+          '<div class="surat-section-title">II. RINCIAN PERMOHONAN CUTI</div>' +
+          '<table class="surat-table-data">' +
+          '<tr><td class="label-col">Jenis Cuti</td><td class="colon-col">:</td><td class="value-col"><strong>' + escapeHTML(jenisCutiLabel) + '</strong></td></tr>' +
+          '<tr><td class="label-col">Periode Pelaksanaan Cuti</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(periodeStr) + '</td></tr>' +
+          '<tr><td class="label-col">Durasi / Jumlah Hari</td><td class="colon-col">:</td><td class="value-col"><strong>' + escapeHTML(durasiStr) + '</strong></td></tr>' +
+          '<tr><td class="label-col">Tanggal Masuk Kembali Bekerja</td><td class="colon-col">:</td><td class="value-col"><strong>' + escapeHTML(tglMasukKembali) + '</strong></td></tr>' +
+          '<tr><td class="label-col">Keperluan / Alasan Cuti</td><td class="colon-col">:</td><td class="value-col"><em>' + escapeHTML(alasanStr) + '</em></td></tr>' +
+          '<tr><td class="label-col">Alamat Selama Cuti</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(alamatStr) + '</td></tr>' +
+          (catatanStr !== '-' ? '<tr><td class="label-col">Catatan Tambahan</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(catatanStr) + '</td></tr>' : '') +
+          '</table>' +
+
+          '<div class="surat-ketentuan">' +
+          '<strong>Ketentuan &amp; Kewajiban Selama Menjalankan Cuti:</strong>' +
+          '<ol>' +
+          '<li>Karyawan wajib mendelegasikan tugas penting dan tanggung jawab mendesak kepada rekan kerja yang ditunjuk sebelum masa cuti berlangsung.</li>' +
+          '<li>Karyawan wajib dapat dihubungi melalui nomor kontak yang tertera apabila terdapat kondisi darurat operasional.</li>' +
+          '<li>Karyawan wajib hadir kembali dan mulai aktif bekerja tepat waktu sesuai tanggal masuk kembali yang telah ditentukan.</li>' +
+          '</ol>' +
+          '</div>' +
+
+          '<div class="surat-signatures-container">' +
+
+          // 1. Pemohon
+          '<div class="surat-sig-box">' +
+          '<div class="surat-sig-title">Pemohon Cuti</div>' +
+          '<div class="surat-sig-stamp">' +
+          '<div class="stamp-badge verified">' +
+          '<span><i class="bi bi-check-circle-fill"></i> E-SIGNED SYSTEM</span>' +
+          '<small style="font-size: 5.5pt; opacity: 0.85;">ID: ' + escapeHTML(item.id) + '</small>' +
+          '</div>' +
+          '</div>' +
+          '<div class="surat-sig-name">' + escapeHTML(namaKaryawan) + '</div>' +
+          '<div class="surat-sig-role">NIP: ' + escapeHTML(empId) + '</div>' +
+          '<div class="surat-sig-date">' + escapeHTML(formatDateIndo(item.tanggalPengajuan, true)) + '</div>' +
+          '</div>' +
+
+          // 2. Atasan Langsung
+          '<div class="surat-sig-box">' +
+          '<div class="surat-sig-title">Disetujui Oleh (Atasan)</div>' +
+          '<div class="surat-sig-stamp">' +
+          '<div class="stamp-badge approved-mgr">' +
+          '<span><i class="bi bi-shield-fill-check"></i> APPROVED TAHAP 1</span>' +
+          '<small style="font-size: 5.5pt; opacity: 0.85;">DIGITALLY VERIFIED</small>' +
+          '</div>' +
+          '</div>' +
+          '<div class="surat-sig-name">' + escapeHTML(item.approver1Nama || 'Atasan Langsung') + '</div>' +
+          '<div class="surat-sig-role">' + escapeHTML(item.approver1Jabatan || 'Supervisor / Dept Head') + '</div>' +
+          '<div class="surat-sig-date">' + (item.approver1Tanggal ? escapeHTML(formatDateIndo(item.approver1Tanggal, true)) : '-') + '</div>' +
+          '</div>' +
+
+          // 3. HRD
+          '<div class="surat-sig-box">' +
+          '<div class="surat-sig-title">Disahkan Oleh (HRD)</div>' +
+          '<div class="surat-sig-stamp">' +
+          '<div class="stamp-badge approved-hrd">' +
+          '<span><i class="bi bi-award-fill"></i> VERIFIED &amp; RECORDED</span>' +
+          '<small style="font-size: 5.5pt; opacity: 0.85;">HRD OFFICIAL STAMP</small>' +
+          '</div>' +
+          '</div>' +
+          '<div class="surat-sig-name">' + escapeHTML(item.approver2Nama || 'Human Resources Dept') + '</div>' +
+          '<div class="surat-sig-role">' + escapeHTML(item.approver2Jabatan || 'HR Manager / Superintendent') + '</div>' +
+          '<div class="surat-sig-date">' + (item.approver2Tanggal ? escapeHTML(formatDateIndo(item.approver2Tanggal, true)) : '-') + '</div>' +
+          '</div>' +
+
+          '</div>' +
+
+          '<div class="surat-watermark-footer">' +
+          '<div><i class="bi bi-shield-lock-fill me-1"></i>Dokumen ini sah dan diterbitkan secara elektronik melalui Portal E-Slip &amp; Cuti. Tidak memerlukan tanda tangan basah.</div>' +
+          '<div>Status: <strong style="color: #16a34a;">DISETUJUI RESMI</strong></div>' +
+          '</div>';
+
+        document.getElementById('suratCutiPaperContent').innerHTML = paperHtml;
+
+        if (!bsModalCetakSuratCuti) {
+          bsModalCetakSuratCuti = new bootstrap.Modal(document.getElementById('modalCetakSuratCuti'));
+        }
+        bsModalCetakSuratCuti.show();
+      };
+
+      window.printSuratCutiDoc = function () {
+        var printArea = document.getElementById('printSuratCutiArea');
+        if (!printArea) return;
+
+        var iframe = document.getElementById('printCutiHiddenIframe');
+        if (!iframe) {
+          iframe = document.createElement('iframe');
+          iframe.id = 'printCutiHiddenIframe';
+          iframe.style.position = 'fixed';
+          iframe.style.right = '0';
+          iframe.style.bottom = '0';
+          iframe.style.width = '0';
+          iframe.style.height = '0';
+          iframe.style.border = '0';
+          document.body.appendChild(iframe);
+        }
+
+        var doc = iframe.contentWindow || iframe.contentDocument;
+        if (doc.document) doc = doc.document;
+
+        var contentHtml = printArea.innerHTML;
+        var styleHtml =
+          '<style>' +
+          '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");' +
+          '@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");' +
+          '* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }' +
+          'body { font-family: "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #0f172a; }' +
+          '.surat-cuti-paper { width: 100%; max-width: 210mm; min-height: 297mm; padding: 12mm 16mm; margin: 0 auto; box-sizing: border-box; }' +
+          '.surat-kop { border-bottom: 3px double #0f172a; padding-bottom: 10px; margin-bottom: 18px; }' +
+          '.surat-kop-company { font-size: 15pt; font-weight: 800; color: #0f172a; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase; line-height: 1.2; }' +
+          '.surat-kop-division { font-size: 10.5pt; font-weight: 700; color: #2563eb; margin-bottom: 2px; }' +
+          '.surat-kop-address { font-size: 8pt; color: #475569; line-height: 1.35; }' +
+          '.surat-title { text-align: center; margin-bottom: 16px; }' +
+          '.surat-title h4 { font-size: 12.5pt; font-weight: 800; text-decoration: underline; color: #0f172a; margin-bottom: 3px; letter-spacing: 0.5px; }' +
+          '.surat-nomor { font-size: 9pt; color: #334155; font-weight: 600; }' +
+          '.surat-table-data { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 9.5pt; }' +
+          '.surat-table-data td { padding: 3.5px 6px; vertical-align: top; }' +
+          '.surat-table-data .label-col { width: 30%; color: #475569; font-weight: 600; }' +
+          '.surat-table-data .colon-col { width: 2%; text-align: center; font-weight: bold; }' +
+          '.surat-table-data .value-col { width: 68%; color: #0f172a; font-weight: 600; }' +
+          '.surat-section-title { font-size: 9.5pt; font-weight: 700; color: #0f172a; border-left: 3px solid #2563eb; padding-left: 8px; margin: 12px 0 6px 0; background: #f8fafc; padding-top: 2px; padding-bottom: 2px; }' +
+          '.surat-ketentuan { font-size: 8pt; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin: 12px 0; line-height: 1.4; }' +
+          '.surat-ketentuan ol { margin: 0; padding-left: 18px; }' +
+          '.surat-signatures-container { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; }' +
+          '.surat-sig-box { flex: 1; text-align: center; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 10px 6px 8px 6px; background: #fafafa; position: relative; }' +
+          '.surat-sig-title { font-size: 8pt; font-weight: 700; color: #334155; margin-bottom: 4px; text-transform: uppercase; }' +
+          '.surat-sig-stamp { height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 3px 0; }' +
+          '.stamp-badge { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 8px; border-radius: 4px; font-size: 7pt; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.2; }' +
+          '.stamp-badge.verified { border: 1.5px solid #16a34a; color: #16a34a; background-color: #f0fdf4; }' +
+          '.stamp-badge.approved-mgr { border: 1.5px solid #0284c7; color: #0284c7; background-color: #f0f9ff; }' +
+          '.stamp-badge.approved-hrd { border: 1.5px solid #2563eb; color: #2563eb; background-color: #eff6ff; }' +
+          '.surat-sig-name { font-size: 8.5pt; font-weight: 800; color: #0f172a; text-decoration: underline; margin-bottom: 1px; }' +
+          '.surat-sig-role { font-size: 7.5pt; color: #64748b; }' +
+          '.surat-sig-date { font-size: 7pt; color: #94a3b8; margin-top: 2px; }' +
+          '.surat-watermark-footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 7pt; color: #94a3b8; }' +
+          '@page { size: A4 portrait; margin: 10mm; }' +
+          '</style>';
+
+        doc.open();
+        doc.write('<!DOCTYPE html><html><head><title>Surat Izin Cuti - ' + (document.getElementById('modalCetakSuratNoDoc') ? document.getElementById('modalCetakSuratNoDoc').innerText : 'Resmi') + '</title>' + styleHtml + '</head><body>' + contentHtml + '</body></html>');
+        doc.close();
+
+        setTimeout(function () {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        }, 400);
       };
 
       // --- CONSOLE SECURITY & ANTI-INSPECT PROTECTION ---
