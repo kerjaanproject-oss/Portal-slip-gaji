@@ -7893,8 +7893,8 @@
           '</div>' +
           '</td>' +
           '<td style="text-align: center; vertical-align: middle; padding-left: 10px;">' +
-          '<div class="surat-kop-company">PT. MINERAL NUSANTARA ABADI</div>' +
-          '<div class="surat-kop-division">HUMAN RESOURCES &amp; GENERAL AFFAIRS DEPARTMENT</div>' +
+          '<div class="surat-kop-company">PT. BERKAH BATU BARA</div>' +
+          '<div class="surat-kop-division">GENERAL SUPPLIER TRANSPORT &amp;MINING CONTRACTOR</div>' +
           '<div class="surat-kop-address">Gedung Menara Palma Lt. 12, Jl. H.R. Rasuna Said Kav. 6, Jakarta Selatan 12950<br>Telp: (021) 5290-8888 | Email: hrd@perusahaan.co.id | Website: www.perusahaan.co.id</div>' +
           '</td>' +
           '</tr>' +
@@ -7907,7 +7907,7 @@
           '</div>' +
 
           '<p style="margin-bottom: 12px; font-size: 9.5pt; text-align: justify; line-height: 1.5;">' +
-          'Berdasarkan permohonan izin cuti yang telah diajukan dan melalui tahapan verifikasi serta persetujuan berjenjang sesuai dengan peraturan ketenagakerjaan perusahaan yang berlaku, Manajemen <strong>PT. MINERAL NUSANTARA ABADI</strong> dengan ini menerbitkan Surat Izin Cuti Resmi kepada:' +
+          'Berdasarkan permohonan izin cuti yang telah diajukan dan melalui tahapan verifikasi serta persetujuan berjenjang sesuai dengan peraturan ketenagakerjaan perusahaan yang berlaku, Manajemen <strong>PT. BERKAH BATU BARA</strong> dengan ini menerbitkan Surat Izin Cuti Resmi kepada:' +
           '</p>' +
 
           '<div class="surat-section-title">I. DATA KARYAWAN PEMOHON</div>' +
@@ -8019,8 +8019,7 @@
         if (doc.document) doc = doc.document;
 
         var contentHtml = printArea.innerHTML;
-        var styleHtml =
-          '<style>' +
+        var cssContent =
           '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");' +
           '@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");' +
           '* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }' +
@@ -8053,11 +8052,10 @@
           '.surat-sig-role { font-size: 7.5pt; color: #64748b; }' +
           '.surat-sig-date { font-size: 7pt; color: #94a3b8; margin-top: 2px; }' +
           '.surat-watermark-footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 7pt; color: #94a3b8; }' +
-          '@page { size: A4 portrait; margin: 10mm; }' +
-          '</style>';
+          '@page { size: A4 portrait; margin: 10mm; }';
 
         doc.open();
-        doc.write('<!DOCTYPE html><html><head><title>Surat Izin Cuti - ' + (document.getElementById('modalCetakSuratNoDoc') ? document.getElementById('modalCetakSuratNoDoc').innerText : 'Resmi') + '</title>' + styleHtml + '</head><body>' + contentHtml + '</body></html>');
+        doc.write('<!DOCTYPE html><html><head><title>Surat Izin Cuti Resmi<\/title><style>' + cssContent + '<\/style><\/head><body>' + contentHtml + '<\/body><\/html>');
         doc.close();
 
         setTimeout(function () {
