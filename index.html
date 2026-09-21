@@ -8084,6 +8084,12 @@
         var alamatStr = item.alamat || item.alamatCuti || '-';
         var catatanStr = item.catatan || item.catatanTambahan || '-';
 
+        var onsiteSuratRow = '';
+        if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
+          var tglAwalOnsiteIndo = item.tglAwalOnsite ? formatDateIndo(item.tglAwalOnsite) : '-';
+          onsiteSuratRow = '<tr><td class="label-col">Masa Kerja Onsite</td><td class="colon-col">:</td><td class="value-col"><strong>' + item.totalHariKerjaOnsite + ' Hari Kalender</strong> (Tanggal Masuk Site: ' + tglAwalOnsiteIndo + ')</td></tr>';
+        }
+
         // Update modal header info
         var noDocEl = document.getElementById('modalCetakSuratNoDoc');
         if (noDocEl) noDocEl.innerText = 'No: ' + nomorSurat;
@@ -8126,12 +8132,6 @@
           '<tr><td class="label-col">Jabatan</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(jabatan) + '</td></tr>' +
           '<tr><td class="label-col">Nomor Kontak / Telepon</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(kontak) + '</td></tr>' +
           '</table>' +
-
-          var onsiteSuratRow = '';
-          if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
-            var tglAwalOnsiteIndo = item.tglAwalOnsite ? formatDateIndo(item.tglAwalOnsite) : '-';
-            onsiteSuratRow = '<tr><td class="label-col">Masa Kerja Onsite</td><td class="colon-col">:</td><td class="value-col"><strong>' + item.totalHariKerjaOnsite + ' Hari Kalender</strong> (Tanggal Masuk Site: ' + tglAwalOnsiteIndo + ')</td></tr>';
-          }
 
           '<div class="surat-section-title">II. RINCIAN PERMOHONAN CUTI</div>' +
           '<table class="surat-table-data">' +
