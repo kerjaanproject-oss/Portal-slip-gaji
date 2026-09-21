@@ -1158,37 +1158,39 @@
 
     .surat-kop {
       border-bottom: 3px double #0f172a;
-      padding-bottom: 10px;
+      padding-bottom: 12px;
       margin-bottom: 18px;
     }
 
     .surat-kop-logo {
-      width: 68px;
-      height: 68px;
+      width: 78px;
+      height: 78px;
       object-fit: contain;
+      display: block;
     }
 
     .surat-kop-company {
-      font-size: 15pt;
+      font-size: 15.5pt;
       font-weight: 800;
       color: #0f172a;
       letter-spacing: 0.5px;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
       text-transform: uppercase;
       line-height: 1.2;
     }
 
     .surat-kop-division {
-      font-size: 10.5pt;
+      font-size: 10pt;
       font-weight: 700;
-      color: #2563eb;
-      margin-bottom: 2px;
+      color: #1e40af;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
     }
 
     .surat-kop-address {
-      font-size: 8pt;
+      font-size: 8.5pt;
       color: #475569;
-      line-height: 1.35;
+      line-height: 1.4;
     }
 
     .surat-title {
@@ -7887,16 +7889,15 @@
           '<div class="surat-kop">' +
           '<table style="width: 100%; border-collapse: collapse;">' +
           '<tr>' +
-          '<td style="width: 70px; vertical-align: middle; text-align: center;">' +
-          '<div style="width: 58px; height: 58px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; margin: 0 auto;">' +
-          '<i class="bi bi-building"></i>' +
-          '</div>' +
+          '<td style="width: 90px; vertical-align: middle; text-align: left;">' +
+          '<img src="image/BBB.png" alt="Logo PT. Berkah Batu Bara" class="surat-kop-logo" style="width: 78px; height: 78px; object-fit: contain; display: block;">' +
           '</td>' +
-          '<td style="text-align: center; vertical-align: middle; padding-left: 10px;">' +
+          '<td style="text-align: center; vertical-align: middle; padding: 0 10px;">' +
           '<div class="surat-kop-company">PT. BERKAH BATU BARA</div>' +
           '<div class="surat-kop-division">GENERAL SUPPLIER TRANSPORT &amp; MINING CONTRACTOR</div>' +
-          '<div class="surat-kop-address">JL. KH. Wahid Hasyim 1 Karya Baru No 56 RT 11 Kel. Sempaja Utara, Kota Samarinda<br>Telp: 0822 777 505  | Email: berkahbatubara2112@gmail.com' +
+          '<div class="surat-kop-address">JL. KH. Wahid Hasyim 1 Karya Baru No 56 RT 11 Kel. Sempaja Utara, Kota Samarinda<br>Telp: 0822 777 505 &nbsp;|&nbsp; Email: berkahbatubara2112@gmail.com</div>' +
           '</td>' +
+          '<td style="width: 90px; vertical-align: middle;"></td>' +
           '</tr>' +
           '</table>' +
           '</div>' +
@@ -8025,10 +8026,11 @@
           '* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }' +
           'body { font-family: "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #0f172a; }' +
           '.surat-cuti-paper { width: 100%; max-width: 210mm; min-height: 297mm; padding: 12mm 16mm; margin: 0 auto; box-sizing: border-box; }' +
-          '.surat-kop { border-bottom: 3px double #0f172a; padding-bottom: 10px; margin-bottom: 18px; }' +
-          '.surat-kop-company { font-size: 15pt; font-weight: 800; color: #0f172a; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase; line-height: 1.2; }' +
-          '.surat-kop-division { font-size: 10.5pt; font-weight: 700; color: #2563eb; margin-bottom: 2px; }' +
-          '.surat-kop-address { font-size: 8pt; color: #475569; line-height: 1.35; }' +
+          '.surat-kop { border-bottom: 3px double #0f172a; padding-bottom: 12px; margin-bottom: 18px; }' +
+          '.surat-kop-logo { width: 78px; height: 78px; object-fit: contain; display: block; }' +
+          '.surat-kop-company { font-size: 15.5pt; font-weight: 800; color: #0f172a; letter-spacing: 0.5px; margin-bottom: 3px; text-transform: uppercase; line-height: 1.2; }' +
+          '.surat-kop-division { font-size: 10pt; font-weight: 700; color: #1e40af; letter-spacing: 0.5px; margin-bottom: 3px; }' +
+          '.surat-kop-address { font-size: 8.5pt; color: #475569; line-height: 1.4; }' +
           '.surat-title { text-align: center; margin-bottom: 16px; }' +
           '.surat-title h4 { font-size: 12.5pt; font-weight: 800; text-decoration: underline; color: #0f172a; margin-bottom: 3px; letter-spacing: 0.5px; }' +
           '.surat-nomor { font-size: 9pt; color: #334155; font-weight: 600; }' +
@@ -8055,13 +8057,48 @@
           '@page { size: A4 portrait; margin: 10mm; }';
 
         doc.open();
-        doc.write('<!DOCTYPE html><html><head><title>Surat Izin Cuti Resmi<\/title><style>' + cssContent + '<\/style><\/head><body>' + contentHtml + '<\/body><\/html>');
+        doc.write('<!DOCTYPE html><html><head><base href="' + window.location.href + '"><title>Surat Izin Cuti Resmi<\/title><style>' + cssContent + '<\/style><\/head><body>' + contentHtml + '<\/body><\/html>');
         doc.close();
 
-        setTimeout(function () {
-          iframe.contentWindow.focus();
-          iframe.contentWindow.print();
-        }, 400);
+        var triggerPrint = function () {
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+          } catch (e) {
+            window.print();
+          }
+        };
+
+        var imgs = doc.images || [];
+        if (imgs.length > 0) {
+          var loaded = 0;
+          var total = imgs.length;
+          var done = false;
+          var checkFinish = function () {
+            if (done) return;
+            loaded++;
+            if (loaded >= total) {
+              done = true;
+              setTimeout(triggerPrint, 200);
+            }
+          };
+          for (var i = 0; i < total; i++) {
+            if (imgs[i].complete) {
+              checkFinish();
+            } else {
+              imgs[i].onload = checkFinish;
+              imgs[i].onerror = checkFinish;
+            }
+          }
+          setTimeout(function () {
+            if (!done) {
+              done = true;
+              triggerPrint();
+            }
+          }, 600);
+        } else {
+          setTimeout(triggerPrint, 350);
+        }
       };
 
       // --- CONSOLE SECURITY & ANTI-INSPECT PROTECTION ---
