@@ -2523,6 +2523,45 @@
             </div>
           </div>
 
+          <!-- Pelacakan & Kalkulasi Masa Kerja Onsite -->
+          <div class="p-3 bg-light rounded-3 border mb-3" id="cutiOnsiteContainer">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small fw-bold text-dark d-flex align-items-center gap-1">
+                <i class="bi bi-geo-alt-fill text-primary"></i> Pelacakan Masa Kerja Onsite
+              </span>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle extra-small fw-bold"
+                id="cutiRosterEvaluasiBadge">
+                <i class="bi bi-clock-history me-1"></i>0 Hari Onsite
+              </span>
+            </div>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-5">
+                <label class="form-label extra-small fw-semibold text-secondary mb-1">
+                  Tanggal Awal Masuk Site / Onsite Terakhir <span class="text-danger">*</span>
+                </label>
+                <input type="date" id="cutiTglAwalOnsite" class="form-control form-control-sm bg-white"
+                  onchange="calculateOnsiteWorkingDays()">
+                <div class="form-text extra-small text-muted" style="font-size: 0.7rem;">
+                  Otomatis terisi dari kepulangan cuti terakhir / tanggal mulai kerja site.
+                </div>
+              </div>
+              <div class="col-md-7">
+                <div class="p-2 bg-white rounded border d-flex justify-content-between align-items-center"
+                  style="min-height: 42px;">
+                  <div>
+                    <small class="text-muted extra-small d-block fw-semibold"
+                      style="font-size: 0.68rem; line-height: 1.1;">TOTAL HARI KERJA ONSITE SEBELUM CUTI:</small>
+                    <span class="fw-bold text-dark small" id="cutiTotalHariKerjaOnsiteText">0 Hari Kalender</span>
+                  </div>
+                  <input type="hidden" id="cutiTotalHariKerjaOnsite" value="0">
+                  <div class="text-end">
+                    <span class="extra-small fw-semibold" id="cutiRosterKepatuhanText" style="font-size: 0.75rem;">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Tanggal Cuti & Kalkulasi -->
           <div class="row g-3 mb-3">
             <div class="col-md-4">
@@ -3106,6 +3145,7 @@
               <div class="col-6"><strong>Durasi:</strong> <span id="apprModalDurasi"
                   class="badge bg-primary-subtle text-primary fw-bold">-</span></div>
               <div class="col-12"><strong>Periode:</strong> <span id="apprModalPeriode" class="text-dark">-</span></div>
+              <div class="col-12" id="apprModalMasaOnsiteRow"><strong>Masa Onsite:</strong> <span id="apprModalMasaOnsite" class="text-dark fw-semibold">-</span></div>
               <div class="col-12"><strong>Alasan:</strong> <span id="apprModalAlasan"
                   class="text-dark fst-italic">-</span></div>
             </div>
@@ -5639,6 +5679,7 @@
         if (!pattern) {
           alertRoster.classList.add('d-none');
           alertRoster.innerHTML = '';
+          calculateOnsiteWorkingDays();
           return;
         }
         var r = dbRoster.find(function (item) { return item.name === pattern; });
@@ -5658,6 +5699,7 @@
             calculateCutiDays();
           }
         }
+        calculateOnsiteWorkingDays();
       };
 
       window.handleCutiTanggalMulaiChange = function () {
@@ -5676,6 +5718,7 @@
           }
         }
         calculateCutiDays();
+        calculateOnsiteWorkingDays();
       };
 
       window.calculateCutiDays = function () {
@@ -5706,6 +5749,79 @@
         inputDays.value = days;
         helper.className = 'form-text extra-small text-success fw-semibold';
         helper.innerText = 'Durasi cuti: ' + days + ' hari kalender (' + formatDateDMY(startVal) + ' s/d ' + formatDateDMY(endVal) + ').';
+      };
+
+      window.calculateOnsiteWorkingDays = function () {
+        var tglAwalOnsite = document.getElementById('cutiTglAwalOnsite') ? document.getElementById('cutiTglAwalOnsite').value : '';
+        var tglMulaiCuti = document.getElementById('cutiTanggalMulai') ? document.getElementById('cutiTanggalMulai').value : '';
+        var hiddenTotal = document.getElementById('cutiTotalHariKerjaOnsite');
+        var textTotal = document.getElementById('cutiTotalHariKerjaOnsiteText');
+        var badgeEvaluasi = document.getElementById('cutiRosterEvaluasiBadge');
+        var textKepatuhan = document.getElementById('cutiRosterKepatuhanText');
+
+        if (!hiddenTotal || !textTotal || !badgeEvaluasi || !textKepatuhan) return;
+
+        if (!tglAwalOnsite || !tglMulaiCuti) {
+          hiddenTotal.value = 0;
+          textTotal.innerText = '0 Hari Kalender';
+          badgeEvaluasi.className = 'badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small fw-bold';
+          badgeEvaluasi.innerHTML = '<i class="bi bi-clock-history me-1"></i>0 Hari Onsite';
+          textKepatuhan.innerHTML = '<span class="text-muted">Pilih tanggal awal masuk &amp; tanggal cuti</span>';
+          return;
+        }
+
+        var dStart = new Date(tglAwalOnsite + 'T00:00:00');
+        var dLeave = new Date(tglMulaiCuti + 'T00:00:00');
+
+        if (isNaN(dStart.getTime()) || isNaN(dLeave.getTime())) {
+          return;
+        }
+
+        if (dLeave < dStart) {
+          hiddenTotal.value = 0;
+          textTotal.innerHTML = '<span class="text-danger fw-semibold">Tanggal masuk &gt; tanggal cuti!</span>';
+          badgeEvaluasi.className = 'badge bg-danger-subtle text-danger border border-danger-subtle extra-small fw-bold';
+          badgeEvaluasi.innerHTML = '<i class="bi bi-exclamation-octagon-fill me-1"></i>Tanggal Tidak Valid';
+          textKepatuhan.innerHTML = '<span class="text-danger fw-bold">Tanggal masuk site tidak boleh sesudah tanggal mulai cuti</span>';
+          return;
+        }
+
+        var diffTime = dLeave.getTime() - dStart.getTime();
+        var totalDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        hiddenTotal.value = totalDays;
+        textTotal.innerText = totalDays + ' Hari Kalender (' + formatDateDMY(tglAwalOnsite) + ' s/d ' + formatDateDMY(tglMulaiCuti) + ')';
+
+        // Evaluasi kepatuhan jadwal roster
+        var polaVal = document.getElementById('cutiPolaRoster') ? document.getElementById('cutiPolaRoster').value : '';
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        if (!polaVal && user && user.polaRoster && user.polaRoster !== 'Non-Roster') {
+          polaVal = user.polaRoster;
+        }
+
+        var rItem = (typeof dbRoster !== 'undefined' && dbRoster && dbRoster.length) ? dbRoster.find(function (r) { return r.name === polaVal; }) : null;
+        var targetWorkDays = rItem ? parseInt(rItem.workDays, 10) : 0;
+
+        if (targetWorkDays > 0) {
+          if (totalDays === targetWorkDays) {
+            badgeEvaluasi.className = 'badge bg-success-subtle text-success border border-success-subtle extra-small fw-bold';
+            badgeEvaluasi.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>100% Sesuai Target Roster (' + totalDays + ' Hari)';
+            textKepatuhan.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Tepat Target Roster (' + targetWorkDays + ' Hari Kerja)</span>';
+          } else if (totalDays > targetWorkDays) {
+            var diff = totalDays - targetWorkDays;
+            badgeEvaluasi.className = 'badge bg-warning-subtle text-warning border border-warning-subtle extra-small fw-bold';
+            badgeEvaluasi.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>Over-Roster (+' + diff + ' Hari)';
+            textKepatuhan.innerHTML = '<span class="text-warning fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>Over-Roster (+' + diff + ' hr dari target ' + targetWorkDays + ' hr)</span>';
+          } else {
+            var diffEarly = targetWorkDays - totalDays;
+            badgeEvaluasi.className = 'badge bg-info-subtle text-info border border-info-subtle extra-small fw-bold';
+            badgeEvaluasi.innerHTML = '<i class="bi bi-info-circle-fill me-1"></i>Cuti Lebih Awal (-' + diffEarly + ' Hari)';
+            textKepatuhan.innerHTML = '<span class="text-info fw-bold"><i class="bi bi-info-circle-fill me-1"></i>Cuti Lebih Awal (-' + diffEarly + ' hr dari target ' + targetWorkDays + ' hr)</span>';
+          }
+        } else {
+          badgeEvaluasi.className = 'badge bg-primary-subtle text-primary border border-primary-subtle extra-small fw-bold';
+          badgeEvaluasi.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i>' + totalDays + ' Hari Onsite';
+          textKepatuhan.innerHTML = '<span class="text-muted">Masa kerja onsite sebelum cuti</span>';
+        }
       };
 
       function toDateInputString(d) {
@@ -6033,6 +6149,7 @@
         if (inputEnd && s.endDate) inputEnd.value = s.endDate;
 
         calculateCutiDays();
+        calculateOnsiteWorkingDays();
         openModalPengajuanCuti();
 
         Swal.fire({
@@ -6073,11 +6190,40 @@
           document.getElementById('cutiDept').value = user.dept || '-';
           document.getElementById('cutiJabatan').value = user.jabatan || '-';
           renderRosterStatusCard(user);
+
+          // Auto-populate Tanggal Awal Masuk Site / Onsite Terakhir
+          var inputTglAwalOnsite = document.getElementById('cutiTglAwalOnsite');
+          if (inputTglAwalOnsite && !inputTglAwalOnsite.value) {
+            var myEmpId = String(user.username || '').toLowerCase();
+            var latestCutiRoster = (dbCutiList && dbCutiList.length) ? dbCutiList.find(function (c) {
+              var isMe = (c.empId && String(c.empId).toLowerCase() === myEmpId);
+              var isRoster = c.jenisCuti && String(c.jenisCuti).toLowerCase().indexOf('roster') !== -1;
+              var notRejected = c.status !== 'Ditolak' && c.status !== 'Ditolak Atasan' && c.status !== 'Ditolak HRD';
+              return isMe && isRoster && notRejected;
+            }) : null;
+
+            if (latestCutiRoster && latestCutiRoster.tanggalSelesai) {
+              var dEndLast = new Date(latestCutiRoster.tanggalSelesai + 'T00:00:00');
+              if (!isNaN(dEndLast.getTime())) {
+                dEndLast.setDate(dEndLast.getDate() + 1);
+                inputTglAwalOnsite.value = toDateInputString(dEndLast);
+              }
+            } else {
+              var empFromDb = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) { return k.id === user.username; }) : null;
+              var tglMasukKerja = (empFromDb && empFromDb.tglMulaiKerja) ? empFromDb.tglMulaiKerja : (user.tglMulaiKerja || '');
+              if (tglMasukKerja) {
+                inputTglAwalOnsite.value = parseDateToYMD(tglMasukKerja) || tglMasukKerja;
+              }
+            }
+          }
+          calculateOnsiteWorkingDays();
         }
       };
 
       window.resetCutiForm = function () {
         document.getElementById('formPengajuanCuti').reset();
+        var inputTglAwalOnsite = document.getElementById('cutiTglAwalOnsite');
+        if (inputTglAwalOnsite) inputTglAwalOnsite.value = '';
         initPengajuanCutiForm();
         document.getElementById('cutiJumlahHari').value = 0;
         document.getElementById('cutiDaysHelper').className = 'form-text extra-small text-muted';
@@ -6091,6 +6237,7 @@
           alertRoster.classList.add('d-none');
           alertRoster.innerHTML = '';
         }
+        calculateOnsiteWorkingDays();
       };
 
       window.handleSavePengajuanCuti = function () {
@@ -6113,6 +6260,8 @@
           }
         }
 
+        var tglAwalOnsite = document.getElementById('cutiTglAwalOnsite') ? document.getElementById('cutiTglAwalOnsite').value : '';
+        var totalHariKerjaOnsite = document.getElementById('cutiTotalHariKerjaOnsite') ? parseInt(document.getElementById('cutiTotalHariKerjaOnsite').value, 10) : 0;
         var tglMulai = document.getElementById('cutiTanggalMulai').value;
         var tglSelesai = document.getElementById('cutiTanggalSelesai').value;
         var jmlHari = parseInt(document.getElementById('cutiJumlahHari').value, 10);
@@ -6159,6 +6308,8 @@
             var payload = {
               jenisCuti: jenis,
               polaRoster: polaRoster,
+              tglAwalOnsite: tglAwalOnsite,
+              totalHariKerjaOnsite: totalHariKerjaOnsite,
               tanggalMulai: tglMulai,
               tanggalSelesai: tglSelesai,
               jumlahHari: jmlHari,
@@ -6430,6 +6581,17 @@
 
             dbCutiList = res.list || res.cuti || [];
 
+            // Auto-compute totalHariKerjaOnsite jika belum tersimpan di sheet
+            dbCutiList.forEach(function (c) {
+              if ((c.totalHariKerjaOnsite === undefined || c.totalHariKerjaOnsite === null || c.totalHariKerjaOnsite === '') && c.tglAwalOnsite && c.tanggalMulai) {
+                var dOn = new Date(c.tglAwalOnsite + 'T00:00:00');
+                var dMulai = new Date(c.tanggalMulai + 'T00:00:00');
+                if (!isNaN(dOn.getTime()) && !isNaN(dMulai.getTime()) && dMulai >= dOn) {
+                  c.totalHariKerjaOnsite = Math.round((dMulai.getTime() - dOn.getTime()) / (1000 * 60 * 60 * 24));
+                }
+              }
+            });
+
             // Hitung badge approval yang memerlukan aksi pengguna login
             var needApprovalCount = 0;
             dbCutiList.forEach(function (c) {
@@ -6595,11 +6757,16 @@
           var detailBtn = '<button type="button" class="btn btn-sm btn-action btn-action-view" title="Lihat Detail Pengajuan" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
             '<i class="bi bi-eye"></i>Detail</button>';
 
+          var onsiteBadge = '';
+          if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
+            onsiteBadge = '<div class="extra-small text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-geo-alt me-1 text-primary"></i>Onsite: <strong class="text-dark">' + item.totalHariKerjaOnsite + ' hr</strong></div>';
+          }
+
           html += '<tr>' +
             '<td class="ps-3 py-3 fw-bold text-muted text-center">' + rowNum + '</td>' +
             '<td class="py-3 text-nowrap"><span class="badge bg-light text-primary border font-monospace">' + escapeHTML(item.id) + '</span></td>' +
             '<td class="py-3 fw-semibold text-dark text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</td>' +
-            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + '</td>' +
+            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + onsiteBadge + '</td>' +
             '<td class="py-3 small text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</td>' +
             '<td class="py-3 text-center text-nowrap"><span class="badge bg-primary-subtle text-primary fw-bold">' + item.jumlahHari + ' Hari</span></td>' +
             '<td class="py-3 text-truncate" style="max-width: 170px;" title="' + escapeHTML(item.alasan) + '">' + escapeHTML(item.alasan) + '</td>' +
@@ -6821,6 +6988,11 @@
           var detailBtn = '<button type="button" class="btn btn-sm btn-action btn-action-view" title="Lihat Detail Pengajuan" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
             '<i class="bi bi-eye"></i>Detail</button>';
 
+          var onsiteBadge = '';
+          if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
+            onsiteBadge = '<div class="extra-small text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-geo-alt me-1 text-primary"></i>Onsite: <strong class="text-dark">' + item.totalHariKerjaOnsite + ' hr</strong></div>';
+          }
+
           var rowHighlight = canApprove ? 'style="background-color: #f0fdf4;"' : '';
 
           html += '<tr ' + rowHighlight + '>' +
@@ -6828,7 +7000,7 @@
             '<td class="py-3 text-nowrap"><span class="badge bg-light text-primary border font-monospace">' + escapeHTML(item.id) + '</span></td>' +
             '<td class="py-3"><span class="fw-bold text-dark d-block">' + escapeHTML(item.namaKaryawan || item.empId) + '</span><small class="text-muted">' + escapeHTML(item.dept || '-') + (item.empId ? ' (' + escapeHTML(item.empId) + ')' : '') + '</small></td>' +
             '<td class="py-3 fw-semibold text-dark text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</td>' +
-            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + '</td>' +
+            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + onsiteBadge + '</td>' +
             '<td class="py-3 small text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</td>' +
             '<td class="py-3 text-center text-nowrap"><span class="badge bg-primary-subtle text-primary fw-bold">' + item.jumlahHari + ' Hari</span></td>' +
             '<td class="py-3 text-truncate" style="max-width: 150px;" title="' + escapeHTML(item.alasan) + '">' + escapeHTML(item.alasan) + '</td>' +
@@ -6927,41 +7099,59 @@
             '</div>';
         }
 
-        var bodyHtml =
-          '<div class="row g-3">' +
-          '<div class="col-md-6">' +
-          '<div class="p-3 bg-light rounded-3 border">' +
-          '<span class="extra-small fw-bold text-muted d-block mb-1">ID PENGAJUAN</span>' +
-          '<h6 class="fw-bold text-primary font-monospace mb-2">' + escapeHTML(item.id) + '</h6>' +
-          '<span class="extra-small fw-bold text-muted d-block mb-1">TANGGAL PENGAJUAN</span>' +
-          '<p class="small text-dark mb-0">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</p>' +
-          '</div>' +
-          '</div>' +
-          '<div class="col-md-6">' +
-          '<div class="p-3 bg-light rounded-3 border">' +
-          '<span class="extra-small fw-bold text-muted d-block mb-1">DATA PEMOHON</span>' +
-          '<h6 class="fw-bold text-dark mb-1">' + escapeHTML(item.namaKaryawan) + ' <small class="text-muted">(' + escapeHTML(item.empId) + ')</small></h6>' +
-          '<p class="small text-muted mb-0">' + escapeHTML(item.jabatan || '-') + ' • ' + escapeHTML(item.dept || '-') + '</p>' +
-          '</div>' +
-          '</div>' +
-          '<div class="col-12">' +
-          '<div class="p-3 bg-light rounded-3 border">' +
-          '<div class="row g-2">' +
-          '<div class="col-sm-4">' +
-          '<span class="extra-small fw-bold text-muted d-block">JENIS CUTI</span>' +
-          '<span class="fw-semibold text-dark small">' + escapeHTML(item.jenisCuti) + '</span>' +
-          '</div>' +
-          '<div class="col-sm-4">' +
-          '<span class="extra-small fw-bold text-muted d-block">PERIODE CUTI</span>' +
-          '<span class="fw-semibold text-dark small">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' s/d ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</span>' +
-          '</div>' +
-          '<div class="col-sm-4">' +
-          '<span class="extra-small fw-bold text-muted d-block">DURASI</span>' +
-          '<span class="badge bg-primary fw-bold">' + item.jumlahHari + ' Hari Kalender</span>' +
-          '</div>' +
-          '</div>' +
-          '</div>' +
-          '</div>' +
+          var masaOnsiteHtml = '';
+          if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
+            var awalOnsiteStr = item.tglAwalOnsite ? formatDateDMY(item.tglAwalOnsite) : '-';
+            masaOnsiteHtml =
+              '<div class="col-12 mt-2 pt-2 border-top">' +
+              '<div class="d-flex align-items-center justify-content-between flex-wrap gap-2">' +
+              '<div>' +
+              '<span class="extra-small fw-bold text-muted d-block">MASA KERJA ONSITE SEBELUM CUTI</span>' +
+              '<span class="small text-dark fw-semibold"><i class="bi bi-geo-alt-fill text-primary me-1"></i>Tanggal Masuk Site: ' + awalOnsiteStr + '</span>' +
+              '</div>' +
+              '<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-bold">' +
+              '<i class="bi bi-clock-history me-1"></i>Total ' + item.totalHariKerjaOnsite + ' Hari Kerja Onsite' +
+              '</span>' +
+              '</div>' +
+              '</div>';
+          }
+
+          var bodyHtml =
+            '<div class="row g-3">' +
+            '<div class="col-md-6">' +
+            '<div class="p-3 bg-light rounded-3 border">' +
+            '<span class="extra-small fw-bold text-muted d-block mb-1">ID PENGAJUAN</span>' +
+            '<h6 class="fw-bold text-primary font-monospace mb-2">' + escapeHTML(item.id) + '</h6>' +
+            '<span class="extra-small fw-bold text-muted d-block mb-1">TANGGAL PENGAJUAN</span>' +
+            '<p class="small text-dark mb-0">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</p>' +
+            '</div>' +
+            '</div>' +
+            '<div class="col-md-6">' +
+            '<div class="p-3 bg-light rounded-3 border">' +
+            '<span class="extra-small fw-bold text-muted d-block mb-1">DATA PEMOHON</span>' +
+            '<h6 class="fw-bold text-dark mb-1">' + escapeHTML(item.namaKaryawan) + ' <small class="text-muted">(' + escapeHTML(item.empId) + ')</small></h6>' +
+            '<p class="small text-muted mb-0">' + escapeHTML(item.jabatan || '-') + ' • ' + escapeHTML(item.dept || '-') + '</p>' +
+            '</div>' +
+            '</div>' +
+            '<div class="col-12">' +
+            '<div class="p-3 bg-light rounded-3 border">' +
+            '<div class="row g-2">' +
+            '<div class="col-sm-4">' +
+            '<span class="extra-small fw-bold text-muted d-block">JENIS CUTI</span>' +
+            '<span class="fw-semibold text-dark small">' + escapeHTML(item.jenisCuti) + '</span>' +
+            '</div>' +
+            '<div class="col-sm-4">' +
+            '<span class="extra-small fw-bold text-muted d-block">PERIODE CUTI</span>' +
+            '<span class="fw-semibold text-dark small">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' s/d ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</span>' +
+            '</div>' +
+            '<div class="col-sm-4">' +
+            '<span class="extra-small fw-bold text-muted d-block">DURASI</span>' +
+            '<span class="badge bg-primary fw-bold">' + item.jumlahHari + ' Hari Kalender</span>' +
+            '</div>' +
+            masaOnsiteHtml +
+            '</div>' +
+            '</div>' +
+            '</div>' +
           '<div class="col-12">' +
           '<label class="extra-small fw-bold text-muted d-block mb-1">ALASAN CUTI</label>' +
           '<div class="p-3 bg-white border rounded-3 small text-dark">' + escapeHTML(item.alasan) + '</div>' +
@@ -7092,6 +7282,17 @@
         document.getElementById('apprModalJenis').innerText = item.jenisCuti;
         document.getElementById('apprModalDurasi').innerText = item.jumlahHari + ' Hari';
         document.getElementById('apprModalPeriode').innerText = formatDateDMY(item.tanggalMulai) + ' s/d ' + formatDateDMY(item.tanggalSelesai);
+        
+        var elMasaOnsite = document.getElementById('apprModalMasaOnsite');
+        if (elMasaOnsite) {
+          if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
+            var periodStr = item.tglAwalOnsite ? (' (Masuk: ' + formatDateDMY(item.tglAwalOnsite) + ')') : '';
+            elMasaOnsite.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle fw-bold me-1">' + item.totalHariKerjaOnsite + ' Hari Onsite</span>' + periodStr;
+          } else {
+            elMasaOnsite.innerText = '-';
+          }
+        }
+
         document.getElementById('apprModalAlasan').innerText = item.alasan || '-';
         document.getElementById('apprCatatanText').value = '';
 
@@ -7634,30 +7835,36 @@
               '<button type="button" class="btn btn-sm btn-outline-primary fw-semibold" onclick="openDetailCutiFromKalender(\'' + escapeHTML(item.id) + '\')">' +
               '<i class="bi bi-eye me-1"></i>Lihat Detail</button>';
 
-            html +=
-              '<div class="card border shadow-xs" style="border-radius: 0.85rem; overflow: hidden;">' +
-              '<div class="card-body p-3">' +
-              '<div class="d-flex justify-content-between align-items-start gap-2 mb-2">' +
-              '<div class="d-flex align-items-center gap-2">' +
-              '<div class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; font-size: 0.9rem;">' +
-              escapeHTML((item.namaKaryawan || item.empId || 'K').charAt(0).toUpperCase()) +
-              '</div>' +
-              '<div>' +
-              '<h6 class="fw-bold text-dark mb-0">' + escapeHTML(item.namaKaryawan || item.empId) + '</h6>' +
-              '<small class="text-muted">' + escapeHTML(item.dept || '-') + ' • ' + escapeHTML(item.jabatan || 'Karyawan') + ' (' + escapeHTML(item.empId || '-') + ')</small>' +
-              '</div>' +
-              '</div>' +
-              '<span class="badge ' + statusInfo.cls + ' extra-small"><i class="bi ' + statusInfo.icon + ' me-1"></i>' + escapeHTML(statusInfo.label) + '</span>' +
-              '</div>' +
+              var calOnsiteRow = '';
+              if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
+                calOnsiteRow = '<div class="col-12"><strong>Masa Onsite:</strong> <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">' + item.totalHariKerjaOnsite + ' Hari Onsite</span>' + (item.tglAwalOnsite ? ' (Masuk: ' + formatDateDMY(item.tglAwalOnsite) + ')' : '') + '</div>';
+              }
 
-              '<div class="p-2 bg-light rounded-3 mb-2 small">' +
-              '<div class="row g-2">' +
-              '<div class="col-sm-6"><strong>Jenis Cuti:</strong> <span class="badge bg-primary-subtle text-primary fw-bold">' + escapeHTML(item.jenisCuti) + '</span></div>' +
-              '<div class="col-sm-6"><strong>Durasi Total:</strong> ' + item.jumlahHari + ' Hari Kalender</div>' +
-              '<div class="col-12"><strong>Periode:</strong> ' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</div>' +
-              (item.alasan ? '<div class="col-12"><strong>Alasan:</strong> <span class="text-dark">' + escapeHTML(item.alasan) + '</span></div>' : '') +
-              '</div>' +
-              '</div>' +
+              html +=
+                '<div class="card border shadow-xs" style="border-radius: 0.85rem; overflow: hidden;">' +
+                '<div class="card-body p-3">' +
+                '<div class="d-flex justify-content-between align-items-start gap-2 mb-2">' +
+                '<div class="d-flex align-items-center gap-2">' +
+                '<div class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; font-size: 0.9rem;">' +
+                escapeHTML((item.namaKaryawan || item.empId || 'K').charAt(0).toUpperCase()) +
+                '</div>' +
+                '<div>' +
+                '<h6 class="fw-bold text-dark mb-0">' + escapeHTML(item.namaKaryawan || item.empId) + '</h6>' +
+                '<small class="text-muted">' + escapeHTML(item.dept || '-') + ' • ' + escapeHTML(item.jabatan || 'Karyawan') + ' (' + escapeHTML(item.empId || '-') + ')</small>' +
+                '</div>' +
+                '</div>' +
+                '<span class="badge ' + statusInfo.cls + ' extra-small"><i class="bi ' + statusInfo.icon + ' me-1"></i>' + escapeHTML(statusInfo.label) + '</span>' +
+                '</div>' +
+
+                '<div class="p-2 bg-light rounded-3 mb-2 small">' +
+                '<div class="row g-2">' +
+                '<div class="col-sm-6"><strong>Jenis Cuti:</strong> <span class="badge bg-primary-subtle text-primary fw-bold">' + escapeHTML(item.jenisCuti) + '</span></div>' +
+                '<div class="col-sm-6"><strong>Durasi Total:</strong> ' + item.jumlahHari + ' Hari Kalender</div>' +
+                '<div class="col-12"><strong>Periode:</strong> ' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</div>' +
+                calOnsiteRow +
+                (item.alasan ? '<div class="col-12"><strong>Alasan:</strong> <span class="text-dark">' + escapeHTML(item.alasan) + '</span></div>' : '') +
+                '</div>' +
+                '</div>' +
 
               '<div class="d-flex justify-content-end gap-2">' +
               approveBtnHtml +
@@ -7920,9 +8127,16 @@
           '<tr><td class="label-col">Nomor Kontak / Telepon</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(kontak) + '</td></tr>' +
           '</table>' +
 
+          var onsiteSuratRow = '';
+          if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
+            var tglAwalOnsiteIndo = item.tglAwalOnsite ? formatDateIndo(item.tglAwalOnsite) : '-';
+            onsiteSuratRow = '<tr><td class="label-col">Masa Kerja Onsite</td><td class="colon-col">:</td><td class="value-col"><strong>' + item.totalHariKerjaOnsite + ' Hari Kalender</strong> (Tanggal Masuk Site: ' + tglAwalOnsiteIndo + ')</td></tr>';
+          }
+
           '<div class="surat-section-title">II. RINCIAN PERMOHONAN CUTI</div>' +
           '<table class="surat-table-data">' +
           '<tr><td class="label-col">Jenis Cuti</td><td class="colon-col">:</td><td class="value-col"><strong>' + escapeHTML(jenisCutiLabel) + '</strong></td></tr>' +
+          onsiteSuratRow +
           '<tr><td class="label-col">Periode Pelaksanaan Cuti</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(periodeStr) + '</td></tr>' +
           '<tr><td class="label-col">Durasi / Jumlah Hari</td><td class="colon-col">:</td><td class="value-col"><strong>' + escapeHTML(durasiStr) + '</strong></td></tr>' +
           '<tr><td class="label-col">Tanggal Masuk Kembali Bekerja</td><td class="colon-col">:</td><td class="value-col"><strong>' + escapeHTML(tglMasukKembali) + '</strong></td></tr>' +

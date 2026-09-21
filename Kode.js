@@ -1614,7 +1614,7 @@ function getOrCreatePengajuanCutiSheet(ss) {
     'Catatan Tambahan', 'Status',
     'Approver 1 Nama', 'Approver 1 Jabatan', 'Approver 1 Tanggal', 'Approver 1 Status', 'Approver 1 Catatan',
     'Approver 2 Nama', 'Approver 2 Jabatan', 'Approver 2 Tanggal', 'Approver 2 Status', 'Approver 2 Catatan',
-    'Alasan Penolakan'
+    'Alasan Penolakan', 'Tanggal Awal Onsite', 'Total Hari Kerja Onsite'
   ];
 
   if (!sheet) {
@@ -1764,6 +1764,8 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
   const app2CatatanIdx = headers.findIndex(function (h) { return h.includes('approver 2 catatan'); });
 
   const tolakAlasanIdx = headers.findIndex(function (h) { return h.includes('alasan penolakan') || h.includes('alasan tolak'); });
+  const tglAwalOnsiteIdx = headers.findIndex(function (h) { return h.includes('tanggal awal onsite') || h.includes('awal onsite') || h.includes('tgl awal onsite'); });
+  const totalHariOnsiteIdx = headers.findIndex(function (h) { return h.includes('total hari kerja onsite') || h.includes('hari kerja onsite') || h.includes('hari onsite') || h.includes('total hari onsite'); });
 
   const list = [];
   for (let i = 1; i < data.length; i++) {
@@ -1846,7 +1848,9 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
       approver2Status: app2StatusIdx !== -1 ? String(row[app2StatusIdx] || '').trim() : '',
       approver2Catatan: app2CatatanIdx !== -1 ? String(row[app2CatatanIdx] || '').trim() : '',
 
-      alasanPenolakan: tolakAlasanIdx !== -1 ? String(row[tolakAlasanIdx] || '').trim() : ''
+      alasanPenolakan: tolakAlasanIdx !== -1 ? String(row[tolakAlasanIdx] || '').trim() : '',
+      tglAwalOnsite: tglAwalOnsiteIdx !== -1 && row[tglAwalOnsiteIdx] ? (row[tglAwalOnsiteIdx] instanceof Date ? Utilities.formatDate(row[tglAwalOnsiteIdx], 'Asia/Jakarta', 'yyyy-MM-dd') : String(row[tglAwalOnsiteIdx]).trim()) : '',
+      totalHariKerjaOnsite: totalHariOnsiteIdx !== -1 && row[totalHariOnsiteIdx] !== '' && !isNaN(Number(row[totalHariOnsiteIdx])) ? Number(row[totalHariOnsiteIdx]) : null
     });
   }
 
@@ -1882,6 +1886,8 @@ function submitPengajuanCuti(token, payload) {
   const alamatCuti = String(payload.alamatCuti || '').trim();
   const nomorKontak = String(payload.nomorKontak || '').trim();
   const catatanTambahan = String(payload.catatanTambahan || '').trim();
+  const tglAwalOnsite = String(payload.tglAwalOnsite || '').trim();
+  const totalHariKerjaOnsite = (payload.totalHariKerjaOnsite !== undefined && payload.totalHariKerjaOnsite !== null && payload.totalHariKerjaOnsite !== '') ? Number(payload.totalHariKerjaOnsite) : '';
 
   if (!jenisCuti) return { success: false, message: 'Jenis cuti wajib dipilih.' };
   if (!tanggalMulai || !tanggalSelesai) return { success: false, message: 'Tanggal mulai dan tanggal selesai cuti wajib diisi.' };
@@ -1996,7 +2002,9 @@ function submitPengajuanCuti(token, payload) {
     initialCutiStatus,
     '', '', '', '', '', // Approver 1
     '', '', '', '', '', // Approver 2
-    '' // Alasan Penolakan
+    '', // Alasan Penolakan
+    tglAwalOnsite,
+    totalHariKerjaOnsite
   ]);
 
   return {
