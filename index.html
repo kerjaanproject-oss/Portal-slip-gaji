@@ -1852,6 +1852,7 @@
                 <div class="col-md-3">
                   <label class="form-label extra-small fw-bold text-muted mb-1">FILTER TAHUN</label>
                   <select id="filterTahun" class="form-select form-select-sm" onchange="renderSlipKaryawan()">
+                    <option value="SEMUA">Semua Tahun</option>
                     <option value="2026">2026</option>
                     <option value="2025">2025</option>
                     <option value="2027">2027</option>
@@ -4035,11 +4036,12 @@
             }
           });
         } else if (pageName === 'slip-saya') {
-          gasRun('getSlipKaryawan', token, 'SEMUA', '2026').then(function (res) {
+          gasRun('getSlipKaryawan', token, 'SEMUA', 'SEMUA').then(function (res) {
             hideFullPageLoading();
             if (handleSessionExpired(res)) return;
             if (res.success) {
-              dbSlips = res.slips || [];
+              dbSlips = res.slips || res.data || [];
+              syncSlipYearFilterOptions();
               renderSlipKaryawan();
             } else {
               Swal.fire('Info', res.message || 'Belum ada data slip gaji.', 'info');
@@ -5194,21 +5196,62 @@
         return hari + ', ' + dd + '/' + mm + '/' + year;
       }
 
+      function syncSlipYearFilterOptions() {
+        var selTahun = document.getElementById('filterTahun');
+        if (!selTahun) return;
+
+        var currentSelected = selTahun.value || '';
+        var years = [];
+        if (Array.isArray(dbSlips)) {
+          dbSlips.forEach(function (s) {
+            var y = String(s.tahun || '').trim();
+            if (y && years.indexOf(y) === -1) {
+              years.push(y);
+            }
+          });
+        }
+        years.sort().reverse();
+
+        var optHtml = '<option value="SEMUA">Semua Tahun</option>';
+        years.forEach(function (y) {
+          optHtml += '<option value="' + escapeHTML(y) + '">' + escapeHTML(y) + '</option>';
+        });
+        ['2026', '2025'].forEach(function (defY) {
+          if (years.indexOf(defY) === -1) {
+            optHtml += '<option value="' + defY + '">' + defY + '</option>';
+          }
+        });
+        selTahun.innerHTML = optHtml;
+
+        if (currentSelected && (currentSelected === 'SEMUA' || years.indexOf(currentSelected) !== -1)) {
+          selTahun.value = currentSelected;
+        } else if (years.length > 0) {
+          selTahun.value = years[0];
+        } else {
+          selTahun.value = 'SEMUA';
+        }
+      }
+
       window.resetSlipKaryawanFilters = function () {
-        document.getElementById('filterBulan').value = 'SEMUA';
-        document.getElementById('filterTahun').value = '2026';
+        var selBulan = document.getElementById('filterBulan');
+        var selTahun = document.getElementById('filterTahun');
+        if (selBulan) selBulan.value = 'SEMUA';
+        if (selTahun) selTahun.value = 'SEMUA';
         renderSlipKaryawan();
       };
 
       window.renderSlipKaryawan = function () {
-        var bulan = document.getElementById('filterBulan').value;
-        var tahun = document.getElementById('filterTahun').value;
+        var selBulan = document.getElementById('filterBulan');
+        var selTahun = document.getElementById('filterTahun');
+        var bulan = selBulan ? selBulan.value : 'SEMUA';
+        var tahun = selTahun ? selTahun.value : 'SEMUA';
         var container = document.getElementById('containerSlipCards');
+        if (!container) return;
         container.innerHTML = '';
 
-        var list = dbSlips.filter(function (s) {
-          var matchBulan = (bulan === 'SEMUA') ? true : (s.bulan === bulan);
-          var matchTahun = (s.tahun === tahun);
+        var list = (dbSlips || []).filter(function (s) {
+          var matchBulan = (bulan === 'SEMUA') ? true : (String(s.bulan || '').toLowerCase() === String(bulan || '').toLowerCase());
+          var matchTahun = (tahun === 'SEMUA') ? true : (String(s.tahun || '').trim() === String(tahun || '').trim());
           return matchBulan && matchTahun;
         });
 

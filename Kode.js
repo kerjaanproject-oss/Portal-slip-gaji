@@ -657,42 +657,70 @@ function getSlipKaryawan(token, filterBulan, filterTahun) {
   const session = validateSession(token);
   if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
 
-  const currentEmpId = session.user.username;
+  const currentEmpId = String(session.user.username || '').trim().toLowerCase();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const slipSheet = ss.getSheetByName('SlipGaji');
-  if (!slipSheet) return { success: true, data: [] };
+  if (!slipSheet) return { success: true, data: [], slips: [] };
 
   const slipData = slipSheet.getDataRange().getValues();
   const result = [];
+  if (!slipData || slipData.length <= 1) return { success: true, data: [], slips: [] };
+
+  const headers = slipData[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+  const idIdx = headers.findIndex(function (h) { return h.includes('id slip') || h === 'id' || h.includes('kode'); });
+  const empIdIdx = headers.findIndex(function (h) { return h.includes('id karyawan') || h.includes('nik') || h.includes('nip') || h === 'id_karyawan'; });
+  const nameIdx = headers.findIndex(function (h) { return h.includes('nama'); });
+  const bulanIdx = headers.findIndex(function (h) { return h.includes('bulan'); });
+  const tahunIdx = headers.findIndex(function (h) { return h.includes('tahun'); });
+  const fileIdx = headers.findIndex(function (h) { return h.includes('nama file') || h.includes('file'); });
+  const catIdx = headers.findIndex(function (h) { return h.includes('catatan') || h.includes('keterangan'); });
+  const urlIdx = headers.findIndex(function (h) { return h.includes('url') || h.includes('link'); });
+  const fileIdIdx = headers.findIndex(function (h) { return h.includes('file id') && !h.includes('resi'); });
+  const tglIdx = headers.findIndex(function (h) { return h.includes('tanggal') || h.includes('tgl'); });
+  const resiNameIdx = headers.findIndex(function (h) { return h.includes('file resi') || h.includes('nama resi') || h.includes('nama file resi'); });
+  const resiUrlIdx = headers.findIndex(function (h) { return h.includes('url drive resi') || h.includes('url resi'); });
+  const resiIdIdx = headers.findIndex(function (h) { return h.includes('file id resi') || h.includes('id resi'); });
 
   for (let i = 1; i < slipData.length; i++) {
-    const empId = String(slipData[i][1]);
-    const bulan = String(slipData[i][3]);
-    const tahun = String(slipData[i][4]);
+    const row = slipData[i];
+    if (!row || row.every(function (cell) { return String(cell || '').trim() === ''; })) continue;
 
-    if (empId === currentEmpId) {
-      if ((filterBulan === 'SEMUA' || bulan === filterBulan) && tahun === String(filterTahun)) {
-        const resiId = String(slipData[i][13] || '').trim();
-        const resiName = String(slipData[i][11] || '').trim();
+    const rowEmpId = empIdIdx !== -1 ? String(row[empIdIdx] || '').trim().toLowerCase() : String(row[1] || '').trim().toLowerCase();
+
+    if (rowEmpId === currentEmpId) {
+      const bulan = bulanIdx !== -1 ? String(row[bulanIdx] || '').trim() : String(row[3] || '').trim();
+      const tahun = tahunIdx !== -1 ? String(row[tahunIdx] || '').trim() : String(row[4] || '').trim();
+
+      const matchBulan = (!filterBulan || filterBulan === 'SEMUA' || bulan.toLowerCase() === String(filterBulan).trim().toLowerCase());
+      const matchTahun = (!filterTahun || filterTahun === 'SEMUA' || tahun === String(filterTahun).trim());
+
+      if (matchBulan && matchTahun) {
+        const resiId = resiIdIdx !== -1 ? String(row[resiIdIdx] || '').trim() : String(row[13] || '').trim();
+        const resiName = resiNameIdx !== -1 ? String(row[resiNameIdx] || '').trim() : String(row[11] || '').trim();
+        const resiUrl = resiUrlIdx !== -1 ? String(row[resiUrlIdx] || '').trim() : String(row[12] || '').trim();
+        const fileId = fileIdIdx !== -1 ? String(row[fileIdIdx] || '').trim() : String(row[8] || '').trim();
+        const uploadRaw = tglIdx !== -1 ? row[tglIdx] : row[9];
+
         result.push({
-          id: String(slipData[i][0]),
-          empId: empId,
-          empName: String(slipData[i][2]),
+          id: idIdx !== -1 && row[idIdx] ? String(row[idIdx]).trim() : String(row[0] || ''),
+          empId: empIdIdx !== -1 && row[empIdIdx] ? String(row[empIdIdx]).trim() : String(row[1] || ''),
+          empName: nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : String(row[2] || ''),
           bulan: bulan,
           tahun: tahun,
-          fileName: String(slipData[i][5]),
-          catatan: String(slipData[i][6]),
-          driveUrl: String(slipData[i][7]),
-          uploadDate: slipData[i][9] ? Utilities.formatDate(new Date(slipData[i][9]), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : '-',
+          fileName: fileIdx !== -1 && row[fileIdx] ? String(row[fileIdx]).trim() : String(row[5] || ''),
+          catatan: catIdx !== -1 && row[catIdx] ? String(row[catIdx]).trim() : String(row[6] || ''),
+          driveUrl: urlIdx !== -1 && row[urlIdx] ? String(row[urlIdx]).trim() : String(row[7] || ''),
+          fileId: fileId,
+          uploadDate: uploadRaw instanceof Date ? Utilities.formatDate(uploadRaw, 'Asia/Jakarta', 'yyyy-MM-dd HH:mm') : (uploadRaw ? String(uploadRaw) : '-'),
           resiFileName: resiName,
-          resiDriveUrl: String(slipData[i][12] || ''),
+          resiDriveUrl: resiUrl,
           hasResi: !!(resiId || resiName)
         });
       }
     }
   }
 
-  return { success: true, data: result };
+  return { success: true, data: result, slips: result };
 }
 
 // --- DATA WRITE APIs ---
