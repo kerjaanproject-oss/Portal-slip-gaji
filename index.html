@@ -2555,7 +2555,8 @@
                   </div>
                   <input type="hidden" id="cutiTotalHariKerjaOnsite" value="0">
                   <div class="text-end">
-                    <span class="extra-small fw-semibold" id="cutiRosterKepatuhanText" style="font-size: 0.75rem;">-</span>
+                    <span class="extra-small fw-semibold" id="cutiRosterKepatuhanText"
+                      style="font-size: 0.75rem;">-</span>
                   </div>
                 </div>
               </div>
@@ -3145,7 +3146,8 @@
               <div class="col-6"><strong>Durasi:</strong> <span id="apprModalDurasi"
                   class="badge bg-primary-subtle text-primary fw-bold">-</span></div>
               <div class="col-12"><strong>Periode:</strong> <span id="apprModalPeriode" class="text-dark">-</span></div>
-              <div class="col-12" id="apprModalMasaOnsiteRow"><strong>Masa Onsite:</strong> <span id="apprModalMasaOnsite" class="text-dark fw-semibold">-</span></div>
+              <div class="col-12" id="apprModalMasaOnsiteRow"><strong>Masa Onsite:</strong> <span
+                  id="apprModalMasaOnsite" class="text-dark fw-semibold">-</span></div>
               <div class="col-12"><strong>Alasan:</strong> <span id="apprModalAlasan"
                   class="text-dark fst-italic">-</span></div>
             </div>
@@ -5796,7 +5798,7 @@
           // Tanggal cuti belum dipilih -> Tampilkan hari kerja riil yang sedang berjalan s/d hari ini
           hiddenTotal.value = elapsedNow;
           textTotal.innerHTML = '<strong>' + elapsedNow + ' Hari Kalender</strong> <small class="text-muted extra-small d-block">(Aktual berjalan s/d hari ini: ' + formatDateDMY(tglAwalOnsite) + ' s/d ' + formatDateDMY(dNow) + ')</small>';
-          
+
           if (targetWorkDays > 0) {
             if (elapsedNow >= targetWorkDays) {
               var over = elapsedNow - targetWorkDays;
@@ -5834,7 +5836,7 @@
         var diffLeaveMs = dLeave.getTime() - dStart.getTime();
         var totalDays = Math.round(diffLeaveMs / (1000 * 60 * 60 * 24));
         hiddenTotal.value = totalDays;
-        
+
         textTotal.innerHTML =
           '<strong>' + totalDays + ' Hari Kalender</strong> <span class="text-muted extra-small">(' + formatDateDMY(tglAwalOnsite) + ' s/d ' + formatDateDMY(tglMulaiCuti) + ')</span>' +
           '<div class="extra-small text-secondary mt-1" style="font-size: 0.72rem;"><i class="bi bi-clock-history text-primary me-1"></i>Aktual berjalan s/d hari ini: <strong>Hari ke-' + elapsedNow + '</strong> (' + formatDateDMY(dNow) + ')</div>';
@@ -7186,59 +7188,59 @@
             '</div>';
         }
 
-          var masaOnsiteHtml = '';
-          if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
-            var awalOnsiteStr = item.tglAwalOnsite ? formatDateDMY(item.tglAwalOnsite) : '-';
-            masaOnsiteHtml =
-              '<div class="col-12 mt-2 pt-2 border-top">' +
-              '<div class="d-flex align-items-center justify-content-between flex-wrap gap-2">' +
-              '<div>' +
-              '<span class="extra-small fw-bold text-muted d-block">MASA KERJA ONSITE SEBELUM CUTI</span>' +
-              '<span class="small text-dark fw-semibold"><i class="bi bi-geo-alt-fill text-primary me-1"></i>Tanggal Masuk Site: ' + awalOnsiteStr + '</span>' +
-              '</div>' +
-              '<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-bold">' +
-              '<i class="bi bi-clock-history me-1"></i>Total ' + item.totalHariKerjaOnsite + ' Hari Kerja Onsite' +
-              '</span>' +
-              '</div>' +
-              '</div>';
-          }
+        var masaOnsiteHtml = '';
+        if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
+          var awalOnsiteStr = item.tglAwalOnsite ? formatDateDMY(item.tglAwalOnsite) : '-';
+          masaOnsiteHtml =
+            '<div class="col-12 mt-2 pt-2 border-top">' +
+            '<div class="d-flex align-items-center justify-content-between flex-wrap gap-2">' +
+            '<div>' +
+            '<span class="extra-small fw-bold text-muted d-block">MASA KERJA ONSITE SEBELUM CUTI</span>' +
+            '<span class="small text-dark fw-semibold"><i class="bi bi-geo-alt-fill text-primary me-1"></i>Tanggal Masuk Site: ' + awalOnsiteStr + '</span>' +
+            '</div>' +
+            '<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-bold">' +
+            '<i class="bi bi-clock-history me-1"></i>Total ' + item.totalHariKerjaOnsite + ' Hari Kerja Onsite' +
+            '</span>' +
+            '</div>' +
+            '</div>';
+        }
 
-          var bodyHtml =
-            '<div class="row g-3">' +
-            '<div class="col-md-6">' +
-            '<div class="p-3 bg-light rounded-3 border">' +
-            '<span class="extra-small fw-bold text-muted d-block mb-1">ID PENGAJUAN</span>' +
-            '<h6 class="fw-bold text-primary font-monospace mb-2">' + escapeHTML(item.id) + '</h6>' +
-            '<span class="extra-small fw-bold text-muted d-block mb-1">TANGGAL PENGAJUAN</span>' +
-            '<p class="small text-dark mb-0">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</p>' +
-            '</div>' +
-            '</div>' +
-            '<div class="col-md-6">' +
-            '<div class="p-3 bg-light rounded-3 border">' +
-            '<span class="extra-small fw-bold text-muted d-block mb-1">DATA PEMOHON</span>' +
-            '<h6 class="fw-bold text-dark mb-1">' + escapeHTML(item.namaKaryawan) + ' <small class="text-muted">(' + escapeHTML(item.empId) + ')</small></h6>' +
-            '<p class="small text-muted mb-0">' + escapeHTML(item.jabatan || '-') + ' • ' + escapeHTML(item.dept || '-') + '</p>' +
-            '</div>' +
-            '</div>' +
-            '<div class="col-12">' +
-            '<div class="p-3 bg-light rounded-3 border">' +
-            '<div class="row g-2">' +
-            '<div class="col-sm-4">' +
-            '<span class="extra-small fw-bold text-muted d-block">JENIS CUTI</span>' +
-            '<span class="fw-semibold text-dark small">' + escapeHTML(item.jenisCuti) + '</span>' +
-            '</div>' +
-            '<div class="col-sm-4">' +
-            '<span class="extra-small fw-bold text-muted d-block">PERIODE CUTI</span>' +
-            '<span class="fw-semibold text-dark small">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' s/d ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</span>' +
-            '</div>' +
-            '<div class="col-sm-4">' +
-            '<span class="extra-small fw-bold text-muted d-block">DURASI</span>' +
-            '<span class="badge bg-primary fw-bold">' + item.jumlahHari + ' Hari Kalender</span>' +
-            '</div>' +
-            masaOnsiteHtml +
-            '</div>' +
-            '</div>' +
-            '</div>' +
+        var bodyHtml =
+          '<div class="row g-3">' +
+          '<div class="col-md-6">' +
+          '<div class="p-3 bg-light rounded-3 border">' +
+          '<span class="extra-small fw-bold text-muted d-block mb-1">ID PENGAJUAN</span>' +
+          '<h6 class="fw-bold text-primary font-monospace mb-2">' + escapeHTML(item.id) + '</h6>' +
+          '<span class="extra-small fw-bold text-muted d-block mb-1">TANGGAL PENGAJUAN</span>' +
+          '<p class="small text-dark mb-0">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</p>' +
+          '</div>' +
+          '</div>' +
+          '<div class="col-md-6">' +
+          '<div class="p-3 bg-light rounded-3 border">' +
+          '<span class="extra-small fw-bold text-muted d-block mb-1">DATA PEMOHON</span>' +
+          '<h6 class="fw-bold text-dark mb-1">' + escapeHTML(item.namaKaryawan) + ' <small class="text-muted">(' + escapeHTML(item.empId) + ')</small></h6>' +
+          '<p class="small text-muted mb-0">' + escapeHTML(item.jabatan || '-') + ' • ' + escapeHTML(item.dept || '-') + '</p>' +
+          '</div>' +
+          '</div>' +
+          '<div class="col-12">' +
+          '<div class="p-3 bg-light rounded-3 border">' +
+          '<div class="row g-2">' +
+          '<div class="col-sm-4">' +
+          '<span class="extra-small fw-bold text-muted d-block">JENIS CUTI</span>' +
+          '<span class="fw-semibold text-dark small">' + escapeHTML(item.jenisCuti) + '</span>' +
+          '</div>' +
+          '<div class="col-sm-4">' +
+          '<span class="extra-small fw-bold text-muted d-block">PERIODE CUTI</span>' +
+          '<span class="fw-semibold text-dark small">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' s/d ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</span>' +
+          '</div>' +
+          '<div class="col-sm-4">' +
+          '<span class="extra-small fw-bold text-muted d-block">DURASI</span>' +
+          '<span class="badge bg-primary fw-bold">' + item.jumlahHari + ' Hari Kalender</span>' +
+          '</div>' +
+          masaOnsiteHtml +
+          '</div>' +
+          '</div>' +
+          '</div>' +
           '<div class="col-12">' +
           '<label class="extra-small fw-bold text-muted d-block mb-1">ALASAN CUTI</label>' +
           '<div class="p-3 bg-white border rounded-3 small text-dark">' + escapeHTML(item.alasan) + '</div>' +
@@ -7376,7 +7378,7 @@
         document.getElementById('apprModalJenis').innerText = item.jenisCuti;
         document.getElementById('apprModalDurasi').innerText = item.jumlahHari + ' Hari';
         document.getElementById('apprModalPeriode').innerText = formatDateDMY(item.tanggalMulai) + ' s/d ' + formatDateDMY(item.tanggalSelesai);
-        
+
         var elMasaOnsite = document.getElementById('apprModalMasaOnsite');
         if (elMasaOnsite) {
           if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
@@ -7503,7 +7505,7 @@
 
         Swal.fire({
           title: 'Hapus Data Riwayat Cuti?',
-          html: 'Apakah Anda yakin ingin menghapus data pengajuan cuti ID <strong class="text-danger font-monospace">' + escapeHTML(cutiId) + '</strong>?<br><small class="text-muted">Data ini akan dihapus secara permanen dari sistem dan Google Sheet.</small>',
+          html: 'Apakah Anda yakin ingin menghapus data pengajuan cuti ID <strong class="text-danger font-monospace">' + escapeHTML(cutiId) + '</strong>?<br><small class="text-muted">Data ini akan dihapus secara permanen dari server database.</small>',
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#dc2626',
@@ -7942,36 +7944,36 @@
               '<button type="button" class="btn btn-sm btn-outline-primary fw-semibold" onclick="openDetailCutiFromKalender(\'' + escapeHTML(item.id) + '\')">' +
               '<i class="bi bi-eye me-1"></i>Lihat Detail</button>';
 
-              var calOnsiteRow = '';
-              if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
-                calOnsiteRow = '<div class="col-12"><strong>Masa Onsite:</strong> <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">' + item.totalHariKerjaOnsite + ' Hari Onsite</span>' + (item.tglAwalOnsite ? ' (Masuk: ' + formatDateDMY(item.tglAwalOnsite) + ')' : '') + '</div>';
-              }
+            var calOnsiteRow = '';
+            if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
+              calOnsiteRow = '<div class="col-12"><strong>Masa Onsite:</strong> <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">' + item.totalHariKerjaOnsite + ' Hari Onsite</span>' + (item.tglAwalOnsite ? ' (Masuk: ' + formatDateDMY(item.tglAwalOnsite) + ')' : '') + '</div>';
+            }
 
-              html +=
-                '<div class="card border shadow-xs" style="border-radius: 0.85rem; overflow: hidden;">' +
-                '<div class="card-body p-3">' +
-                '<div class="d-flex justify-content-between align-items-start gap-2 mb-2">' +
-                '<div class="d-flex align-items-center gap-2">' +
-                '<div class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; font-size: 0.9rem;">' +
-                escapeHTML((item.namaKaryawan || item.empId || 'K').charAt(0).toUpperCase()) +
-                '</div>' +
-                '<div>' +
-                '<h6 class="fw-bold text-dark mb-0">' + escapeHTML(item.namaKaryawan || item.empId) + '</h6>' +
-                '<small class="text-muted">' + escapeHTML(item.dept || '-') + ' • ' + escapeHTML(item.jabatan || 'Karyawan') + ' (' + escapeHTML(item.empId || '-') + ')</small>' +
-                '</div>' +
-                '</div>' +
-                '<span class="badge ' + statusInfo.cls + ' extra-small"><i class="bi ' + statusInfo.icon + ' me-1"></i>' + escapeHTML(statusInfo.label) + '</span>' +
-                '</div>' +
+            html +=
+              '<div class="card border shadow-xs" style="border-radius: 0.85rem; overflow: hidden;">' +
+              '<div class="card-body p-3">' +
+              '<div class="d-flex justify-content-between align-items-start gap-2 mb-2">' +
+              '<div class="d-flex align-items-center gap-2">' +
+              '<div class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; font-size: 0.9rem;">' +
+              escapeHTML((item.namaKaryawan || item.empId || 'K').charAt(0).toUpperCase()) +
+              '</div>' +
+              '<div>' +
+              '<h6 class="fw-bold text-dark mb-0">' + escapeHTML(item.namaKaryawan || item.empId) + '</h6>' +
+              '<small class="text-muted">' + escapeHTML(item.dept || '-') + ' • ' + escapeHTML(item.jabatan || 'Karyawan') + ' (' + escapeHTML(item.empId || '-') + ')</small>' +
+              '</div>' +
+              '</div>' +
+              '<span class="badge ' + statusInfo.cls + ' extra-small"><i class="bi ' + statusInfo.icon + ' me-1"></i>' + escapeHTML(statusInfo.label) + '</span>' +
+              '</div>' +
 
-                '<div class="p-2 bg-light rounded-3 mb-2 small">' +
-                '<div class="row g-2">' +
-                '<div class="col-sm-6"><strong>Jenis Cuti:</strong> <span class="badge bg-primary-subtle text-primary fw-bold">' + escapeHTML(item.jenisCuti) + '</span></div>' +
-                '<div class="col-sm-6"><strong>Durasi Total:</strong> ' + item.jumlahHari + ' Hari Kalender</div>' +
-                '<div class="col-12"><strong>Periode:</strong> ' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</div>' +
-                calOnsiteRow +
-                (item.alasan ? '<div class="col-12"><strong>Alasan:</strong> <span class="text-dark">' + escapeHTML(item.alasan) + '</span></div>' : '') +
-                '</div>' +
-                '</div>' +
+              '<div class="p-2 bg-light rounded-3 mb-2 small">' +
+              '<div class="row g-2">' +
+              '<div class="col-sm-6"><strong>Jenis Cuti:</strong> <span class="badge bg-primary-subtle text-primary fw-bold">' + escapeHTML(item.jenisCuti) + '</span></div>' +
+              '<div class="col-sm-6"><strong>Durasi Total:</strong> ' + item.jumlahHari + ' Hari Kalender</div>' +
+              '<div class="col-12"><strong>Periode:</strong> ' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</div>' +
+              calOnsiteRow +
+              (item.alasan ? '<div class="col-12"><strong>Alasan:</strong> <span class="text-dark">' + escapeHTML(item.alasan) + '</span></div>' : '') +
+              '</div>' +
+              '</div>' +
 
               '<div class="d-flex justify-content-end gap-2">' +
               approveBtnHtml +
