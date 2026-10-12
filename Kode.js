@@ -2068,7 +2068,7 @@ function deletePengajuanCuti(token, cutiId) {
   if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
 
   cutiId = String(cutiId || '').trim();
-  if (!cutiId) return { success: false, message: 'ID Cuti tidak valid.' };
+  if (!cutiId) return { success: false, message: 'ID pengajuan cuti tidak valid.' };
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cutiSheet = getOrCreatePengajuanCutiSheet(ss);
@@ -2082,20 +2082,39 @@ function deletePengajuanCuti(token, cutiId) {
   const fileIdIdx = headers.findIndex(function (h) { return h.includes('file id') || h.includes('fileid'); });
 
   const currentUsername = String(session.user.username || '').trim().toLowerCase();
-  const userRole = String(session.user.role || '').trim().toLowerCase();
-  const isHRD = (userRole === 'admin' || userRole === 'hrd');
+
+  // Ambil profil data user terbaru dari sheet Users untuk menjamin role akurat
+  const userSheet = ss.getSheetByName('Users');
+  const uData = userSheet ? userSheet.getDataRange().getValues() : [];
+  let userRole = String(session.user.role || '').trim().toLowerCase();
+  let userDept = String(session.user.dept || '').trim().toLowerCase();
+  for (let u = 1; u < uData.length; u++) {
+    if (String(uData[u][0] || '').trim().toLowerCase() === currentUsername) {
+      userRole = String(uData[u][5] || userRole).trim().toLowerCase();
+      userDept = String(uData[u][3] || userDept).trim().toLowerCase();
+      break;
+    }
+  }
+
+  const isHRD = (userRole === 'admin' || userRole === 'hrd' || currentUsername === 'admin' || cleanDept(userDept) === 'hrd');
 
   for (let i = 1; i < data.length; i++) {
     const rowId = idIdx !== -1 ? String(data[i][idIdx] || '').trim() : String(data[i][0] || '').trim();
     if (rowId === cutiId) {
       const rowEmpId = empIdIdx !== -1 ? String(data[i][empIdIdx] || '').trim().toLowerCase() : String(data[i][2] || '').trim().toLowerCase();
       const status = statusIdx !== -1 ? String(data[i][statusIdx] || '').trim() : String(data[i][17] || '').trim();
+      const statusLower = status.toLowerCase();
 
       if (!isHRD && rowEmpId !== currentUsername) {
-        return { success: false, message: 'Anda tidak memiliki hak untuk membatalkan pengajuan ini.' };
+        return { success: false, message: 'Anda tidak memiliki hak untuk menghapus pengajuan ini.' };
       }
-      if (!isHRD && status !== 'Menunggu Persetujuan Atasan' && status !== 'Menunggu Persetujuan' && status !== 'Menunggu Persetujuan HRD') {
-        return { success: false, message: 'Pengajuan yang sudah diproses atau disetujui tidak dapat dibatalkan.' };
+
+      const isPending = statusLower.includes('menunggu');
+      const isRejected = statusLower.includes('tolak');
+      const isCancelled = statusLower.includes('batal');
+
+      if (!isHRD && !isPending && !isRejected && !isCancelled) {
+        return { success: false, message: 'Pengajuan cuti yang sudah disetujui hanya dapat dihapus oleh HRD / Admin.' };
       }
 
       // Hapus file lampiran jika ada
@@ -2109,7 +2128,7 @@ function deletePengajuanCuti(token, cutiId) {
       }
 
       cutiSheet.deleteRow(i + 1);
-      return { success: true, message: 'Pengajuan cuti berhasil dibatalkan.' };
+      return { success: true, message: 'Data pengajuan cuti ' + cutiId + ' berhasil dihapus.' };
     }
   }
 

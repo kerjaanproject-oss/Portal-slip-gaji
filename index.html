@@ -5761,19 +5761,64 @@
 
         if (!hiddenTotal || !textTotal || !badgeEvaluasi || !textKepatuhan) return;
 
-        if (!tglAwalOnsite || !tglMulaiCuti) {
+        if (!tglAwalOnsite) {
           hiddenTotal.value = 0;
           textTotal.innerText = '0 Hari Kalender';
           badgeEvaluasi.className = 'badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small fw-bold';
           badgeEvaluasi.innerHTML = '<i class="bi bi-clock-history me-1"></i>0 Hari Onsite';
-          textKepatuhan.innerHTML = '<span class="text-muted">Pilih tanggal awal masuk &amp; tanggal cuti</span>';
+          textKepatuhan.innerHTML = '<span class="text-muted">Masukkan tanggal awal masuk site</span>';
           return;
         }
 
+        var dNow = new Date();
+        dNow.setHours(0, 0, 0, 0);
         var dStart = new Date(tglAwalOnsite + 'T00:00:00');
-        var dLeave = new Date(tglMulaiCuti + 'T00:00:00');
 
-        if (isNaN(dStart.getTime()) || isNaN(dLeave.getTime())) {
+        if (isNaN(dStart.getTime())) {
+          return;
+        }
+
+        // Hitung hari kerja aktual yang sudah berjalan hingga hari ini
+        var diffNowMs = dNow.getTime() - dStart.getTime();
+        var elapsedNow = Math.floor(diffNowMs / (1000 * 60 * 60 * 24)) + 1;
+        if (elapsedNow < 1) elapsedNow = 0;
+
+        // Ambil target pola roster
+        var polaVal = document.getElementById('cutiPolaRoster') ? document.getElementById('cutiPolaRoster').value : '';
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        if (!polaVal && user && user.polaRoster && user.polaRoster !== 'Non-Roster') {
+          polaVal = user.polaRoster;
+        }
+        var rItem = (typeof dbRoster !== 'undefined' && dbRoster && dbRoster.length) ? dbRoster.find(function (r) { return r.name === polaVal; }) : null;
+        var targetWorkDays = rItem ? parseInt(rItem.workDays, 10) : 0;
+
+        if (!tglMulaiCuti) {
+          // Tanggal cuti belum dipilih -> Tampilkan hari kerja riil yang sedang berjalan s/d hari ini
+          hiddenTotal.value = elapsedNow;
+          textTotal.innerHTML = '<strong>' + elapsedNow + ' Hari Kalender</strong> <small class="text-muted extra-small d-block">(Aktual berjalan s/d hari ini: ' + formatDateDMY(tglAwalOnsite) + ' s/d ' + formatDateDMY(dNow) + ')</small>';
+          
+          if (targetWorkDays > 0) {
+            if (elapsedNow >= targetWorkDays) {
+              var over = elapsedNow - targetWorkDays;
+              badgeEvaluasi.className = 'badge bg-success-subtle text-success border border-success-subtle extra-small fw-bold';
+              badgeEvaluasi.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Sudah Target (' + elapsedNow + ' Hari Aktual)';
+              textKepatuhan.innerHTML = '<span class="text-success fw-bold">Hari ke-' + elapsedNow + ' (Target ' + targetWorkDays + ' hr tercapai' + (over > 0 ? ', Over-Roster +' + over + ' hr' : '') + ')</span>';
+            } else {
+              var rem = targetWorkDays - elapsedNow;
+              badgeEvaluasi.className = 'badge bg-primary-subtle text-primary border border-primary-subtle extra-small fw-bold';
+              badgeEvaluasi.innerHTML = '<i class="bi bi-clock-history me-1"></i>Hari ke-' + elapsedNow + ' Onsite';
+              textKepatuhan.innerHTML = '<span class="text-muted">Hari ke-' + elapsedNow + ' dari target ' + targetWorkDays + ' hr (' + rem + ' hr lagi)</span>';
+            }
+          } else {
+            badgeEvaluasi.className = 'badge bg-primary-subtle text-primary border border-primary-subtle extra-small fw-bold';
+            badgeEvaluasi.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i>' + elapsedNow + ' Hari Berjalan';
+            textKepatuhan.innerHTML = '<span class="text-muted">Aktual s/d hari ini: ' + formatDateDMY(dNow) + '</span>';
+          }
+          return;
+        }
+
+        var dLeave = new Date(tglMulaiCuti + 'T00:00:00');
+        if (isNaN(dLeave.getTime())) {
           return;
         }
 
@@ -5786,21 +5831,15 @@
           return;
         }
 
-        var diffTime = dLeave.getTime() - dStart.getTime();
-        var totalDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        var diffLeaveMs = dLeave.getTime() - dStart.getTime();
+        var totalDays = Math.round(diffLeaveMs / (1000 * 60 * 60 * 24));
         hiddenTotal.value = totalDays;
-        textTotal.innerText = totalDays + ' Hari Kalender (' + formatDateDMY(tglAwalOnsite) + ' s/d ' + formatDateDMY(tglMulaiCuti) + ')';
+        
+        textTotal.innerHTML =
+          '<strong>' + totalDays + ' Hari Kalender</strong> <span class="text-muted extra-small">(' + formatDateDMY(tglAwalOnsite) + ' s/d ' + formatDateDMY(tglMulaiCuti) + ')</span>' +
+          '<div class="extra-small text-secondary mt-1" style="font-size: 0.72rem;"><i class="bi bi-clock-history text-primary me-1"></i>Aktual berjalan s/d hari ini: <strong>Hari ke-' + elapsedNow + '</strong> (' + formatDateDMY(dNow) + ')</div>';
 
         // Evaluasi kepatuhan jadwal roster
-        var polaVal = document.getElementById('cutiPolaRoster') ? document.getElementById('cutiPolaRoster').value : '';
-        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
-        if (!polaVal && user && user.polaRoster && user.polaRoster !== 'Non-Roster') {
-          polaVal = user.polaRoster;
-        }
-
-        var rItem = (typeof dbRoster !== 'undefined' && dbRoster && dbRoster.length) ? dbRoster.find(function (r) { return r.name === polaVal; }) : null;
-        var targetWorkDays = rItem ? parseInt(rItem.workDays, 10) : 0;
-
         if (targetWorkDays > 0) {
           if (totalDays === targetWorkDays) {
             badgeEvaluasi.className = 'badge bg-success-subtle text-success border border-success-subtle extra-small fw-bold';
@@ -5926,7 +5965,7 @@
           }
           if (txtPola) txtPola.textContent = 'Non-Roster';
           if (descPola) descPola.textContent = 'Karyawan Reguler (Bukan Roster)';
-          if (txtTglMulai) txtTglMulai.textContent = '-';
+          if (txtTglMulai) txtTglMulai.textContent = tglMulai ? formatDateIndo(tglMulai) : '-';
           if (txtHariBerjalan) txtHariBerjalan.textContent = 'Mengikuti hak cuti tahunan / reguler';
           if (txtTglCuti) txtTglCuti.textContent = '-';
           if (txtDurasiCuti) txtDurasiCuti.textContent = 'Sesuai hak cuti tahunan';
@@ -5981,14 +6020,14 @@
         var dNow = new Date();
         dNow.setHours(0, 0, 0, 0);
 
-        // 1. Tentukan Titik Awal Siklus:
+        // 1. Tentukan Titik Awal Onsite Terakhir:
         // Cek apakah karyawan memiliki riwayat cuti roster terakhir yang disetujui / aktif
         var effectiveStintStart = tglMulai;
         var myEmpId = String(user.username || '').toLowerCase();
         var latestCutiRoster = (dbCutiList && dbCutiList.length) ? dbCutiList.find(function (c) {
           var isMe = (c.empId && String(c.empId).toLowerCase() === myEmpId);
           var isRoster = c.jenisCuti && String(c.jenisCuti).toLowerCase().indexOf('roster') !== -1;
-          var notRejected = c.status !== 'Ditolak';
+          var notRejected = c.status !== 'Ditolak' && c.status !== 'Ditolak Atasan' && c.status !== 'Ditolak HRD';
           return isMe && isRoster && notRejected;
         }) : null;
 
@@ -6000,23 +6039,13 @@
           }
         }
 
-        // 2. Perhitungan Siklus Berulang Otomatis (Recurring Rotation Cycle)
-        var cycleTotal = workDays + leaveDays;
-        var dAnchor = new Date(effectiveStintStart + 'T00:00:00');
-        var diffAllMs = dNow.getTime() - dAnchor.getTime();
-        var totalDaysElapsed = Math.floor(diffAllMs / (1000 * 60 * 60 * 24));
-
-        var currentCycleStart = new Date(dAnchor.getTime());
-        if (totalDaysElapsed >= cycleTotal && cycleTotal > 0) {
-          var completedCycles = Math.floor(totalDaysElapsed / cycleTotal);
-          currentCycleStart.setDate(currentCycleStart.getDate() + (completedCycles * cycleTotal));
-        }
-
-        var dStart = currentCycleStart;
+        // 2. Perhitungan Hari Kerja Aktual yang Sedang Berjalan (Real Calendar Calculation)
+        var dStart = new Date(effectiveStintStart + 'T00:00:00');
         var diffMs = dNow.getTime() - dStart.getTime();
         var elapsedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
         if (elapsedDays < 1) elapsedDays = 0;
 
+        // Jadwal cuti ideal sesuai target hari kerja roster
         var dLeaveStart = new Date(dStart.getTime());
         dLeaveStart.setDate(dLeaveStart.getDate() + workDays);
 
@@ -6037,9 +6066,11 @@
 
         window._currentRosterSuggestion = {
           pola: pola,
+          stintStart: effectiveStintStart,
           startDate: effectiveLeaveStart,
           endDate: effectiveLeaveEnd,
-          leaveDays: leaveDays
+          leaveDays: leaveDays,
+          elapsedDays: elapsedDays
         };
 
         var remainingDays = workDays - elapsedDays;
@@ -6047,34 +6078,39 @@
 
         if (txtPola) txtPola.textContent = pola;
         if (descPola) descPola.textContent = 'Kerja ' + workDays + ' hr, Cuti ' + leaveDays + ' hr' + (rItem && rItem.notes ? ' (' + rItem.notes + ')' : '');
-        if (txtTglMulai) txtTglMulai.textContent = formatDateIndo(toDateInputString(dStart));
-        if (txtHariBerjalan) txtHariBerjalan.innerHTML = 'Hari ke-<strong>' + elapsedDays + '</strong> dari ' + workDays + ' hari kerja';
-        if (txtTglCuti) txtTglCuti.textContent = formatDateIndo(strLeaveStart) + ' s/d ' + formatDateIndo(strLeaveEnd);
+        if (txtTglMulai) txtTglMulai.textContent = formatDateIndo(effectiveStintStart);
         if (txtDurasiCuti) txtDurasiCuti.textContent = leaveDays + ' Hari Kalender';
 
         if (btnApply) btnApply.classList.remove('d-none');
         if (progressContainer) {
           progressContainer.classList.remove('d-none');
-          if (progressText) progressText.textContent = percent + '% (' + elapsedDays + ' / ' + workDays + ' hari)';
+          if (progressText) progressText.textContent = percent + '% (' + elapsedDays + ' / ' + workDays + ' hari aktual)';
           if (progressBar) progressBar.style.width = percent + '%';
         }
 
         if (elapsedDays >= workDays) {
-          // 🟢 SUDAH WAKTUNYA CUTI
+          // 🟢 SUDAH WAKTUNYA CUTI / OVER-ROSTER
+          var overDays = elapsedDays - workDays;
           card.style.borderLeft = '5px solid #16a34a !important';
           if (badge) {
             badge.className = 'badge bg-success text-white px-3 py-2 fs-7 fw-semibold shadow-sm';
-            badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Sudah Waktunya Cuti';
+            badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Sudah Waktunya Cuti' + (overDays > 0 ? ' (+' + overDays + ' Hari)' : '');
+          }
+          if (txtHariBerjalan) {
+            txtHariBerjalan.innerHTML = 'Hari ke-<strong>' + elapsedDays + '</strong> (Target ' + workDays + ' hari tercapai' + (overDays > 0 ? ', <span class="text-warning fw-bold">Over-Roster +' + overDays + ' hari</span>' : '') + ')';
+          }
+          if (txtTglCuti) {
+            txtTglCuti.innerHTML = '<span class="text-success fw-bold">Dapat diajukan sekarang</span> <small class="text-muted d-block">(Jatuh tempo: ' + formatDateIndo(strLeaveStart) + ')</small>';
           }
           if (progressBar) {
             progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated bg-success';
           }
           if (btnApply) {
             btnApply.className = 'btn btn-success btn-sm fw-semibold py-2 px-3 shadow-sm w-100 mb-2';
-            btnApply.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Ajukan Cuti Sekarang';
+            btnApply.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Ajukan Cuti Sekarang (' + elapsedDays + ' Hari Kerja)';
           }
           if (helpAction) {
-            helpAction.innerHTML = '<span class="text-success fw-semibold">Target kerja telah tercapai. Klik untuk mengisi form otomatis.</span>';
+            helpAction.innerHTML = '<span class="text-success fw-semibold">Target ' + workDays + ' hari telah tercapai (Aktual: ' + elapsedDays + ' hari onsite). Klik untuk isi formulir otomatis.</span>';
           }
         } else if (remainingDays <= 7 && remainingDays > 0) {
           // 🟡 MENJELANG JADWAL CUTI
@@ -6083,15 +6119,21 @@
             badge.className = 'badge bg-warning text-dark px-3 py-2 fs-7 fw-semibold shadow-sm';
             badge.innerHTML = '<i class="bi bi-clock-history me-1"></i>Menjelang Jadwal Cuti (' + remainingDays + ' Hari Lagi)';
           }
+          if (txtHariBerjalan) {
+            txtHariBerjalan.innerHTML = 'Hari ke-<strong>' + elapsedDays + '</strong> dari ' + workDays + ' hari kerja (<span class="text-warning fw-bold">' + remainingDays + ' hari lagi</span>)';
+          }
+          if (txtTglCuti) {
+            txtTglCuti.textContent = formatDateIndo(strLeaveStart) + ' s/d ' + formatDateIndo(strLeaveEnd);
+          }
           if (progressBar) {
             progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated bg-warning';
           }
           if (btnApply) {
             btnApply.className = 'btn btn-warning text-dark btn-sm fw-semibold py-2 px-3 shadow-sm w-100 mb-2';
-            btnApply.innerHTML = '<i class="bi bi-calendar-plus me-1"></i>Gunakan Jadwal Ini';
+            btnApply.innerHTML = '<i class="bi bi-calendar-plus me-1"></i>Gunakan Jadwal Roster Ini';
           }
           if (helpAction) {
-            helpAction.innerHTML = 'Tersisa ' + remainingDays + ' hari lagi. Klik untuk persiapkan formulir cuti.';
+            helpAction.innerHTML = 'Aktual ' + elapsedDays + ' hari berjalan, tersisa ' + remainingDays + ' hari lagi. Klik untuk persiapkan formulir cuti.';
           }
         } else {
           // 🔵 DALAM PERIODE KERJA
@@ -6099,6 +6141,12 @@
           if (badge) {
             badge.className = 'badge bg-info text-dark px-3 py-2 fs-7 fw-semibold';
             badge.innerHTML = '<i class="bi bi-briefcase-fill me-1"></i>Dalam Periode Kerja (' + remainingDays + ' Hari Lagi)';
+          }
+          if (txtHariBerjalan) {
+            txtHariBerjalan.innerHTML = 'Hari ke-<strong>' + elapsedDays + '</strong> dari ' + workDays + ' hari kerja (Aktual per hari ini)';
+          }
+          if (txtTglCuti) {
+            txtTglCuti.textContent = formatDateIndo(strLeaveStart) + ' s/d ' + formatDateIndo(strLeaveEnd);
           }
           if (progressBar) {
             progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated bg-primary';
@@ -6108,7 +6156,7 @@
             btnApply.innerHTML = '<i class="bi bi-calendar2-range me-1"></i>Gunakan Jadwal Ini';
           }
           if (helpAction) {
-            helpAction.textContent = 'Klik untuk mengisi tanggal cuti otomatis sesuai estimasi roster.';
+            helpAction.textContent = 'Klik untuk mengisi tanggal cuti otomatis sesuai estimasi roster (' + formatDateIndo(strLeaveStart) + ').';
           }
         }
       };
@@ -6142,6 +6190,9 @@
             handleRosterPatternChange();
           }
         }
+
+        var inputTglAwal = document.getElementById('cutiTglAwalOnsite');
+        if (inputTglAwal && s.stintStart) inputTglAwal.value = s.stintStart;
 
         var inputStart = document.getElementById('cutiTanggalMulai');
         var inputEnd = document.getElementById('cutiTanggalSelesai');
@@ -6659,6 +6710,35 @@
       };
 
       // ==========================================
+      // HELPER OTORISASI HAPUS PENGAJUAN CUTI
+      // ==========================================
+      window.canUserDeleteCuti = function (item) {
+        if (!item) return false;
+        var user = Auth.getUser();
+        if (!user) return false;
+
+        var uRole = String(user.role || '').toLowerCase();
+        var uName = String(user.username || '').toLowerCase();
+        var uDept = String(user.dept || '').toLowerCase();
+        var isHRD = (uRole === 'admin' || uRole === 'hrd' || uName === 'admin' || (typeof cleanDept === 'function' && cleanDept(uDept) === 'hrd'));
+
+        // HRD / Admin memiliki wewenang hapus penuh
+        if (isHRD) return true;
+
+        // Pemilik pengajuan sendiri
+        var isOwner = String(item.empId || '').toLowerCase() === uName;
+        if (!isOwner) return false;
+
+        var st = String(item.status || '').toLowerCase();
+        // Pemilik dapat membatalkan / menghapus jika berstatus Menunggu, Ditolak, atau Dibatalkan
+        if (st.indexOf('menunggu') !== -1 || st.indexOf('tolak') !== -1 || st.indexOf('batal') !== -1) {
+          return true;
+        }
+
+        return false;
+      };
+
+      // ==========================================
       // TABEL 1: RIWAYAT CUTI SAYA (PERSONAL LEAVE)
       // ==========================================
       window.renderRiwayatCutiTable = function () {
@@ -6742,10 +6822,10 @@
               '<i class="bi bi-paperclip"></i>Lampiran</button>';
           }
 
-          var cancelBtn = '';
-          if (item.status === 'Menunggu Persetujuan Atasan' || item.status === 'Menunggu Persetujuan' || item.status === 'Menunggu') {
-            cancelBtn = '<button type="button" class="btn btn-sm btn-action btn-action-delete" title="Batalkan Pengajuan Cuti" onclick="confirmBatalCuti(\'' + escapeHTML(item.id) + '\')">' +
-              '<i class="bi bi-trash3"></i>Batal</button>';
+          var deleteBtn = '';
+          if (canUserDeleteCuti(item)) {
+            deleteBtn = '<button type="button" class="btn btn-sm btn-action btn-action-delete" title="Hapus Data Riwayat Cuti" onclick="confirmHapusCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-trash3"></i>Hapus</button>';
           }
 
           var printBtn = '';
@@ -6776,7 +6856,7 @@
             '<div class="action-group">' +
             detailBtn +
             printBtn +
-            cancelBtn +
+            deleteBtn +
             '</div>' +
             '</td>' +
             '</tr>';
@@ -6988,6 +7068,12 @@
           var detailBtn = '<button type="button" class="btn btn-sm btn-action btn-action-view" title="Lihat Detail Pengajuan" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
             '<i class="bi bi-eye"></i>Detail</button>';
 
+          var deleteBtn = '';
+          if (isHRD) {
+            deleteBtn = '<button type="button" class="btn btn-sm btn-action btn-action-delete" title="Hapus Data Pengajuan Cuti" onclick="confirmHapusCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-trash3"></i>Hapus</button>';
+          }
+
           var onsiteBadge = '';
           if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
             onsiteBadge = '<div class="extra-small text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-geo-alt me-1 text-primary"></i>Onsite: <strong class="text-dark">' + item.totalHariKerjaOnsite + ' hr</strong></div>';
@@ -7011,6 +7097,7 @@
             approveBtn +
             detailBtn +
             printBtn +
+            deleteBtn +
             '</div>' +
             '</td>' +
             '</tr>';
@@ -7257,6 +7344,13 @@
               '</button>' +
               actionBtnHtml;
           }
+          if (canUserDeleteCuti(item)) {
+            actionBtnHtml =
+              '<button type="button" class="btn btn-outline-danger btn-sm fw-semibold shadow-sm me-auto" onclick="if(bsModalDetailCuti) bsModalDetailCuti.hide(); confirmHapusCuti(\'' + escapeHTML(item.id) + '\');">' +
+              '<i class="bi bi-trash3 me-1"></i>Hapus Pengajuan' +
+              '</button>' +
+              actionBtnHtml;
+          }
           footerActionsEl.innerHTML = actionBtnHtml;
         }
 
@@ -7403,28 +7497,38 @@
         });
       };
 
-      window.confirmBatalCuti = function (cutiId) {
+      window.confirmHapusCuti = function (cutiId) {
+        cutiId = String(cutiId || '').trim();
+        if (!cutiId) return;
+
         Swal.fire({
-          title: 'Batalkan Pengajuan Cuti?',
-          text: 'Pengajuan ID ' + cutiId + ' akan dibatalkan dan dihapus.',
+          title: 'Hapus Data Riwayat Cuti?',
+          html: 'Apakah Anda yakin ingin menghapus data pengajuan cuti ID <strong class="text-danger font-monospace">' + escapeHTML(cutiId) + '</strong>?<br><small class="text-muted">Data ini akan dihapus secara permanen dari sistem dan Google Sheet.</small>',
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#ef4444',
+          confirmButtonColor: '#dc2626',
           cancelButtonColor: '#64748b',
-          confirmButtonText: 'Ya, Batalkan',
-          cancelButtonText: 'Tidak'
+          confirmButtonText: '<i class="bi bi-trash3 me-1"></i>Ya, Hapus Data',
+          cancelButtonText: 'Batal',
+          reverseButtons: true
         }).then(function (result) {
           if (!result.isConfirmed) return;
 
-          showFullPageLoading('Membatalkan pengajuan cuti...');
+          showFullPageLoading('Menghapus data riwayat cuti...');
           gasRun('deletePengajuanCuti', Auth.getToken(), cutiId).then(function (res) {
             hideFullPageLoading();
             if (handleSessionExpired(res)) return;
             if (res.success) {
-              Swal.fire('Dibatalkan', res.message || 'Pengajuan cuti berhasil dibatalkan.', 'success');
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil Dihapus',
+                text: res.message || 'Data pengajuan cuti berhasil dihapus.',
+                timer: 2000,
+                showConfirmButton: false
+              });
               loadRiwayatCuti();
             } else {
-              Swal.fire('Gagal', res.message || 'Gagal membatalkan pengajuan cuti.', 'error');
+              Swal.fire('Gagal Menghapus', res.message || 'Gagal menghapus pengajuan cuti.', 'error');
             }
           }).catch(function (err) {
             hideFullPageLoading();
@@ -7432,6 +7536,9 @@
           });
         });
       };
+
+      // Alias untuk menjaga kompatibilitas
+      window.confirmBatalCuti = window.confirmHapusCuti;
 
       // ==========================================
       // MODUL KALENDER CUTI TIM & DEPARTEMEN
