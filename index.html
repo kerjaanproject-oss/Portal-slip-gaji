@@ -2539,7 +2539,8 @@
               <div class="d-flex align-items-center gap-2">
                 <span id="modalPengumumanLoginBadge" class="badge bg-white text-primary fw-bold"
                   style="font-size: 0.72rem; letter-spacing: 0.5px;">INFORMASI</span>
-                <small id="modalPengumumanLoginDate" class="text-white-50 small" style="font-size: 0.75rem;"></small>
+                <small id="modalPengumumanLoginDate" class="text-white fw-semibold small"
+                  style="font-size: 0.78rem; opacity: 0.95;"></small>
               </div>
               <h6 class="modal-title fw-bold text-white mb-0 mt-0.5" id="modalPengumumanLoginTitle">Pengumuman Penting
               </h6>
@@ -2550,9 +2551,10 @@
         </div>
 
         <div class="modal-body p-4" style="max-height: 60vh; overflow-y: auto;">
-          <h5 id="modalPengumumanLoginSubject" class="fw-bold text-dark mb-3"></h5>
-          <div id="modalPengumumanLoginContent" class="text-secondary"
-            style="font-size: 0.925rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word;"></div>
+          <h5 id="modalPengumumanLoginSubject" class="fw-bold mb-3" style="color: #0f172a; font-size: 1.2rem;"></h5>
+          <div id="modalPengumumanLoginContent"
+            style="font-size: 0.95rem; line-height: 1.65; color: #111827; font-weight: 500; white-space: pre-wrap; word-break: break-word;">
+          </div>
 
           <div id="modalPengumumanLoginMeta"
             class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center small text-muted">
@@ -2668,8 +2670,9 @@
           </div>
           <h5 id="detailPengumumanJudul" class="fw-bold text-dark mb-3"></h5>
           <div class="p-3 bg-light rounded-3 mb-3 border">
-            <div id="detailPengumumanIsi" class="text-secondary"
-              style="font-size: 0.925rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word;"></div>
+            <div id="detailPengumumanIsi"
+              style="font-size: 0.95rem; line-height: 1.65; color: #111827; font-weight: 500; white-space: pre-wrap; word-break: break-word;">
+            </div>
           </div>
           <div class="row g-2 small text-muted">
             <div class="col-sm-6">
@@ -4651,6 +4654,28 @@
       // --- MODUL PENGUMUMAN (ANNOUNCEMENT) ---
       // ==========================================
 
+      function formatDateDDMMYYYY(dateStr) {
+        if (!dateStr) return '';
+        var str = String(dateStr).trim();
+        // Cek pola YYYY-MM-DD
+        var match = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+        if (match) {
+          var y = match[1];
+          var m = match[2].length === 1 ? '0' + match[2] : match[2];
+          var d = match[3].length === 1 ? '0' + match[3] : match[3];
+          return d + '/' + m + '/' + y;
+        }
+        // Fallback jika berupa Date object string atau ISO
+        var dt = new Date(str);
+        if (!isNaN(dt.getTime())) {
+          var day = String(dt.getDate()).padStart(2, '0');
+          var month = String(dt.getMonth() + 1).padStart(2, '0');
+          var year = dt.getFullYear();
+          return day + '/' + month + '/' + year;
+        }
+        return str;
+      }
+
       // 1. Logika Login Pop-up (Opsi A)
       window.checkActiveAnnouncement = function () {
         gasRun('getActiveAnnouncement').then(function (res) {
@@ -4722,14 +4747,17 @@
         if (subjectEl) subjectEl.innerText = ann.judul || '';
         if (contentEl) contentEl.innerText = ann.isi || '';
         if (authorEl) authorEl.innerText = ann.dibuatOleh || 'HRD Management';
-        if (dateEl) dateEl.innerText = ann.tanggalDibuat ? '(' + ann.tanggalDibuat + ')' : '';
+        if (dateEl) dateEl.innerText = ann.tanggalDibuat ? '(' + formatDateDDMMYYYY(ann.tanggalDibuat) + ')' : '';
 
         if (periodEl) {
           if (ann.tanggalMulai && ann.tanggalSelesai) {
-            periodEl.innerHTML = '<i class="bi bi-calendar-range me-1"></i>Periode: ' + escapeHTML(ann.tanggalMulai) + ' s/d ' + escapeHTML(ann.tanggalSelesai);
+            periodEl.innerHTML = '<i class="bi bi-calendar-range me-1"></i>Periode: ' + escapeHTML(formatDateDDMMYYYY(ann.tanggalMulai)) + ' s/d ' + escapeHTML(formatDateDDMMYYYY(ann.tanggalSelesai));
             periodEl.classList.remove('d-none');
           } else if (ann.tanggalMulai) {
-            periodEl.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Mulai: ' + escapeHTML(ann.tanggalMulai);
+            periodEl.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Mulai: ' + escapeHTML(formatDateDDMMYYYY(ann.tanggalMulai));
+            periodEl.classList.remove('d-none');
+          } else if (ann.tanggalSelesai) {
+            periodEl.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Sampai: ' + escapeHTML(formatDateDDMMYYYY(ann.tanggalSelesai));
             periodEl.classList.remove('d-none');
           } else {
             periodEl.classList.add('d-none');
@@ -4823,11 +4851,11 @@
           // Periode
           var periodeText = '-';
           if (a.tanggalMulai && a.tanggalSelesai) {
-            periodeText = escapeHTML(a.tanggalMulai) + ' s/d ' + escapeHTML(a.tanggalSelesai);
+            periodeText = escapeHTML(formatDateDDMMYYYY(a.tanggalMulai)) + ' s/d ' + escapeHTML(formatDateDDMMYYYY(a.tanggalSelesai));
           } else if (a.tanggalMulai) {
-            periodeText = 'Mulai ' + escapeHTML(a.tanggalMulai);
+            periodeText = 'Mulai ' + escapeHTML(formatDateDDMMYYYY(a.tanggalMulai));
           } else if (a.tanggalSelesai) {
-            periodeText = 's/d ' + escapeHTML(a.tanggalSelesai);
+            periodeText = 's/d ' + escapeHTML(formatDateDDMMYYYY(a.tanggalSelesai));
           } else {
             periodeText = '<span class="text-muted small">Tanpa Batas</span>';
           }
@@ -4846,7 +4874,7 @@
             '<td class="text-center">' + tipeBadge + '</td>' +
             '<td class="text-center small">' + periodeText + '</td>' +
             '<td class="text-center">' + statusBtn + '</td>' +
-            '<td class="small text-muted"><i class="bi bi-person me-1"></i>' + escapeHTML(a.dibuatOleh || 'HRD') + (a.tanggalDibuat ? '<div class="extra-small text-black-50">' + escapeHTML(a.tanggalDibuat) + '</div>' : '') + '</td>' +
+            '<td class="small text-muted"><i class="bi bi-person me-1"></i>' + escapeHTML(a.dibuatOleh || 'HRD') + (a.tanggalDibuat ? '<div class="extra-small text-black-50">' + escapeHTML(formatDateDDMMYYYY(a.tanggalDibuat)) + '</div>' : '') + '</td>' +
             '<td class="text-center text-nowrap"><div class="action-group">' +
             '<button class="btn btn-sm btn-action btn-action-view" onclick="openDetailAnnouncementModal(\'' + escapeHTML(a.id) + '\')" title="Lihat Detail Pengumuman"><i class="bi bi-eye"></i></button>' +
             '<button class="btn btn-sm btn-action btn-action-edit" onclick="openEditAnnouncementModal(\'' + escapeHTML(a.id) + '\')" title="Edit Pengumuman"><i class="bi bi-pencil-square"></i>Edit</button>' +
@@ -4928,16 +4956,16 @@
 
         var periodeStr = '-';
         if (item.tanggalMulai && item.tanggalSelesai) {
-          periodeStr = item.tanggalMulai + ' s/d ' + item.tanggalSelesai;
+          periodeStr = formatDateDDMMYYYY(item.tanggalMulai) + ' s/d ' + formatDateDDMMYYYY(item.tanggalSelesai);
         } else if (item.tanggalMulai) {
-          periodeStr = 'Mulai ' + item.tanggalMulai;
+          periodeStr = 'Mulai ' + formatDateDDMMYYYY(item.tanggalMulai);
         } else if (item.tanggalSelesai) {
-          periodeStr = 's/d ' + item.tanggalSelesai;
+          periodeStr = 's/d ' + formatDateDDMMYYYY(item.tanggalSelesai);
         } else {
           periodeStr = 'Berlaku Seterusnya';
         }
         periodeEl.innerText = periodeStr;
-        authorEl.innerText = (item.dibuatOleh || 'HRD') + (item.tanggalDibuat ? ' (' + item.tanggalDibuat + ')' : '');
+        authorEl.innerText = (item.dibuatOleh || 'HRD') + (item.tanggalDibuat ? ' (' + formatDateDDMMYYYY(item.tanggalDibuat) + ')' : '');
 
         bsModalDetailPengumuman.show();
       };
