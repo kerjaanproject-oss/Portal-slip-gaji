@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwScAuIxdjhHTknZHQMyFa9r8EdRGV-X-LndS84uTTpW4UoimKOMzmGGr36m0yJJhoj/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwgdSMfxZBVUp0dZjhIctGX1RBh1fJxXLo-qzOJRvTOOup5U04meHLaIgiQaoF15NGa/exec";
   </script>
   <!-- Favicon & Ikon Pintasan Layar Depan -->
   <link rel="icon" type="image/png"
@@ -675,9 +675,9 @@
     }
 
     .btn-action-edit {
-      color: #475569 !important;
-      background-color: #f1f5f9;
-      border-color: #e2e8f0 !important;
+      color: #b45309 !important;
+      background-color: #fef3c7;
+      border-color: #fde68a !important;
     }
 
     .btn-action-delete {
@@ -721,7 +721,7 @@
 
     .btn-action-edit:hover {
       color: #ffffff !important;
-      background-color: #475569;
+      background-color: #d97706;
     }
 
     .btn-action-delete:hover {
@@ -1408,6 +1408,215 @@
       color: #94a3b8;
     }
 
+    .surat-p-intro {
+      margin-bottom: 12px;
+      font-size: 9.5pt;
+      text-align: justify;
+      line-height: 1.5;
+    }
+
+    /* --- RESPONSIVE PREVIEW MODAL SURAT CUTI (TABLET & MOBILE) --- */
+    @media screen and (max-width: 991.98px) {
+      .surat-cuti-paper-container {
+        padding: 0.85rem;
+      }
+
+      .surat-cuti-paper {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: auto !important;
+        padding: 18px 18px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    @media screen and (max-width: 767.98px) {
+      .surat-cuti-paper-container {
+        padding: 0.5rem 0.25rem !important;
+        background-color: #334155 !important;
+        border-radius: 0.5rem !important;
+        display: block !important;
+      }
+
+      .surat-cuti-paper {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: auto !important;
+        padding: 14px 10px !important;
+        font-size: 8.5pt !important;
+        line-height: 1.4 !important;
+        border-radius: 6px;
+      }
+
+      .surat-kop {
+        padding-bottom: 8px !important;
+        margin-bottom: 12px !important;
+        border-bottom-width: 2px !important;
+      }
+
+      .surat-kop-logo-td {
+        width: 48px !important;
+        vertical-align: middle !important;
+      }
+
+      .surat-kop-logo {
+        width: 44px !important;
+        height: 44px !important;
+      }
+
+      .surat-kop-spacer-td {
+        display: none !important;
+      }
+
+      .surat-kop-center-td {
+        padding: 0 4px 0 8px !important;
+        text-align: left !important;
+      }
+
+      .surat-kop-company {
+        font-size: 10.5pt !important;
+        margin-bottom: 1px !important;
+        letter-spacing: 0 !important;
+      }
+
+      .surat-kop-division {
+        font-size: 7pt !important;
+        margin-bottom: 1px !important;
+      }
+
+      .surat-kop-address {
+        font-size: 6.5pt !important;
+        line-height: 1.25 !important;
+      }
+
+      .surat-title {
+        margin-bottom: 10px !important;
+      }
+
+      .surat-title h4 {
+        font-size: 9.5pt !important;
+        margin-bottom: 2px !important;
+        letter-spacing: 0 !important;
+      }
+
+      .surat-nomor {
+        font-size: 7.5pt !important;
+      }
+
+      .surat-p-intro {
+        font-size: 7.5pt !important;
+        text-align: left !important;
+        line-height: 1.35 !important;
+        margin-bottom: 8px !important;
+      }
+
+      .surat-section-title {
+        font-size: 8pt !important;
+        padding-left: 6px !important;
+        margin: 8px 0 4px 0 !important;
+      }
+
+      .surat-table-data {
+        font-size: 7.5pt !important;
+        margin-bottom: 6px !important;
+      }
+
+      .surat-table-data td {
+        padding: 2.5px 3px !important;
+        word-break: break-word;
+      }
+
+      .surat-table-data .label-col {
+        width: 36% !important;
+      }
+
+      .surat-table-data .colon-col {
+        width: 3% !important;
+      }
+
+      .surat-table-data .value-col {
+        width: 61% !important;
+      }
+
+      .surat-ketentuan {
+        font-size: 7pt !important;
+        padding: 6px 8px !important;
+        margin: 8px 0 !important;
+        line-height: 1.3 !important;
+      }
+
+      .surat-ketentuan ol {
+        padding-left: 14px !important;
+      }
+
+      .surat-signatures-container {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+        margin-top: 12px !important;
+      }
+
+      .surat-sig-box {
+        padding: 6px 4px 5px 4px !important;
+        border-radius: 6px !important;
+      }
+
+      .surat-sig-title {
+        font-size: 6.5pt !important;
+        margin-bottom: 2px !important;
+      }
+
+      .surat-sig-stamp {
+        height: 44px !important;
+        margin: 2px 0 !important;
+      }
+
+      .stamp-badge {
+        padding: 2px 4px !important;
+        font-size: 5.5pt !important;
+        border-width: 1px !important;
+      }
+
+      .stamp-badge span {
+        font-size: 5.5pt !important;
+      }
+
+      .stamp-badge small {
+        font-size: 4.5pt !important;
+        display: none !important;
+      }
+
+      .surat-sig-name {
+        font-size: 7pt !important;
+        margin-bottom: 0 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .surat-sig-role {
+        font-size: 6pt !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .surat-sig-date {
+        font-size: 5.5pt !important;
+        margin-top: 1px !important;
+      }
+
+      .surat-watermark-footer {
+        margin-top: 12px !important;
+        padding-top: 6px !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 3px !important;
+        font-size: 6pt !important;
+        line-height: 1.25 !important;
+      }
+    }
+
     @media print {
       body * {
         visibility: hidden !important;
@@ -1432,6 +1641,15 @@
         box-shadow: none !important;
         width: 100% !important;
         padding: 8mm 12mm !important;
+      }
+
+      .surat-signatures-container {
+        display: flex !important;
+        flex-direction: row !important;
+      }
+
+      .surat-kop-spacer-td {
+        display: table-cell !important;
       }
 
       @page {
@@ -3035,6 +3253,19 @@
         </div>
         <div class="modal-body p-3 p-md-4"
           style="overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior-y: contain; flex: 1 1 auto; min-height: 0;">
+          <input type="hidden" id="editCutiId" value="">
+          <div id="editCutiNotice" class="alert alert-warning border-warning-subtle py-2 px-3 mb-3 d-none">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-pencil-square text-warning fs-5 flex-shrink-0"></i>
+              <div>
+                <strong class="text-dark d-block">Mode Edit Pengajuan Cuti: <span id="editCutiNoticeId"
+                    class="font-monospace text-primary"></span></strong>
+                <span class="small text-muted">Pengajuan ini belum disetujui atasan. Anda dapat mengubah data permohonan
+                  di bawah ini.</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Profil Karyawan (Auto-Filled) -->
           <div class="bg-light p-3 rounded-3 mb-4 border">
             <div class="d-flex align-items-center gap-2 mb-2">
@@ -3837,41 +4068,46 @@
 
   <!-- MODAL: CETAK / UNDUH SURAT IZIN CUTI RESMI -->
   <div class="modal fade" id="modalCetakSuratCuti" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-fullscreen-md-down modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem;">
-        <div class="modal-header bg-light py-3 px-4 border-bottom">
-          <div class="d-flex align-items-center gap-2">
-            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
-              style="width: 38px; height: 38px;">
+        <div class="modal-header bg-light py-2 px-3 py-md-3 px-md-4 border-bottom">
+          <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
+            <div
+              class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0"
+              style="width: 36px; height: 36px;">
               <i class="bi bi-file-earmark-pdf fs-5"></i>
             </div>
-            <div>
-              <h6 class="modal-title fw-bold text-dark mb-0">Surat Izin Cuti Resmi</h6>
-              <small class="text-muted extra-small" id="modalCetakSuratSubtitle">Pratinjau Dokumen Siap Cetak &
-                PDF</small>
+            <div class="overflow-hidden">
+              <h6 class="modal-title fw-bold text-dark mb-0 text-truncate">Surat Izin Cuti Resmi</h6>
+              <small class="text-muted extra-small text-truncate d-block" id="modalCetakSuratSubtitle">Pratinjau Dokumen
+                Siap Cetak &amp; PDF</small>
             </div>
           </div>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body p-0 bg-secondary-subtle">
-          <div class="surat-cuti-paper-container py-4">
-            <div id="printSuratCutiArea">
+          <div class="surat-cuti-paper-container py-2 py-md-4 px-1 px-md-3">
+            <div id="printSuratCutiArea" style="width: 100%; max-width: 210mm; margin: 0 auto;">
               <div class="surat-cuti-paper" id="suratCutiPaperContent">
                 <!-- Populated dynamically via JS -->
               </div>
             </div>
           </div>
         </div>
-        <div class="modal-footer bg-white py-2 px-4 justify-content-between">
-          <div class="d-flex align-items-center gap-2">
+        <div
+          class="modal-footer bg-white py-2 px-3 px-md-4 d-flex flex-column-reverse flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2">
+          <div class="d-flex align-items-center justify-content-between justify-content-sm-start gap-2">
             <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 extra-small">
-              <i class="bi bi-patch-check-fill me-1"></i>Dokumen Sah & Terverifikasi
+              <i class="bi bi-patch-check-fill me-1"></i>Dokumen Sah &amp; Terverifikasi
             </span>
-            <small class="text-muted extra-small d-none d-md-inline" id="modalCetakSuratNoDoc">No: -</small>
+            <small class="text-muted extra-small" id="modalCetakSuratNoDoc">No: -</small>
           </div>
-          <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-            <button type="button" class="btn btn-primary btn-sm fw-semibold shadow-sm" onclick="printSuratCutiDoc()">
+          <div class="d-flex align-items-center gap-2 w-100 w-sm-auto justify-content-end">
+            <button type="button" class="btn btn-secondary btn-sm flex-fill flex-sm-grow-0"
+              data-bs-dismiss="modal">Tutup</button>
+            <button type="button"
+              class="btn btn-primary btn-sm fw-semibold shadow-sm flex-fill flex-sm-grow-0 text-nowrap"
+              onclick="printSuratCutiDoc()">
               <i class="bi bi-printer me-1"></i>Cetak / Simpan PDF
             </button>
           </div>
@@ -7374,13 +7610,14 @@
       window.openModalPengajuanCuti = function () {
         var modalEl = document.getElementById('modalPengajuanCuti');
         if (!modalEl) return;
+        resetCutiForm();
+        initPengajuanCutiForm();
+        populateCutiRosterSelect();
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
           if (!bsModalPengajuanCuti) {
             bsModalPengajuanCuti = new bootstrap.Modal(modalEl);
           }
         }
-        initPengajuanCutiForm();
-        populateCutiRosterSelect();
         if (bsModalPengajuanCuti) {
           bsModalPengajuanCuti.show();
         }
@@ -7390,6 +7627,138 @@
         if (bsModalPengajuanCuti) {
           bsModalPengajuanCuti.hide();
         }
+      };
+
+      window.openModalEditCuti = function (cutiId) {
+        var cleanId = String(cutiId || '').trim();
+        var item = (typeof dbCutiList !== 'undefined' && dbCutiList) ? dbCutiList.find(function (c) {
+          return String(c.id || '').trim() === cleanId;
+        }) : null;
+
+        if (!item) {
+          Swal.fire('Data Tidak Ditemukan', 'Pengajuan cuti ' + cleanId + ' tidak ditemukan.', 'error');
+          return;
+        }
+
+        if (typeof canUserEditCuti === 'function' && !canUserEditCuti(item)) {
+          Swal.fire({
+            title: 'Tidak Dapat Diedit',
+            text: 'Pengajuan cuti ini sudah diproses atau disetujui oleh atasan sehingga tidak dapat diubah lagi oleh karyawan.',
+            icon: 'warning',
+            confirmButtonColor: '#2563eb'
+          });
+          return;
+        }
+
+        var editIdEl = document.getElementById('editCutiId');
+        if (editIdEl) editIdEl.value = item.id;
+
+        var noticeEl = document.getElementById('editCutiNotice');
+        var noticeIdEl = document.getElementById('editCutiNoticeId');
+        if (noticeEl) noticeEl.classList.remove('d-none');
+        if (noticeIdEl) noticeIdEl.innerText = item.id;
+
+        var titleEl = document.getElementById('modalPengajuanCutiTitle');
+        if (titleEl) {
+          titleEl.innerHTML = '<i class="bi bi-pencil-square me-2"></i>Edit Pengajuan Cuti (' + escapeHTML(item.id) + ')';
+        }
+
+        var btnSubmit = document.getElementById('btnSubmitCuti');
+        if (btnSubmit) {
+          btnSubmit.innerHTML = '<i class="bi bi-check2-circle me-1"></i>Simpan Perubahan';
+          btnSubmit.className = 'btn btn-warning btn-sm px-4 py-2 fw-semibold btn-cuti-submit shadow-sm text-dark';
+        }
+
+        document.getElementById('cutiNamaKaryawan').value = item.namaKaryawan || '';
+        document.getElementById('cutiIdKaryawan').value = item.empId || '';
+        document.getElementById('cutiDept').value = item.dept || '-';
+        document.getElementById('cutiJabatan').value = item.jabatan || '-';
+
+        populateCutiRosterSelect();
+
+        var rawJenis = String(item.jenisCuti || '').trim();
+        var selectJenis = document.getElementById('cutiJenis');
+        var selectRoster = document.getElementById('cutiPolaRoster');
+        var colRoster = document.getElementById('cutiPolaRosterCol');
+        var inputLainnya = document.getElementById('cutiJenisLainnya');
+        var colLainnya = document.getElementById('cutiJenisLainnyaCol');
+
+        if (rawJenis.indexOf('Cuti Roster') !== -1) {
+          selectJenis.value = 'Cuti Roster';
+          if (colRoster) colRoster.classList.remove('d-none');
+          var matchRoster = rawJenis.match(/\((.*?)\)/);
+          var rosterPattern = matchRoster ? matchRoster[1].trim() : (item.polaRoster || '');
+          if (selectRoster && rosterPattern) {
+            selectRoster.value = rosterPattern;
+          }
+          handleRosterPatternChange();
+        } else if (rawJenis.startsWith('Lainnya:') || rawJenis.startsWith('Lainnya :')) {
+          selectJenis.value = 'Lainnya';
+          if (colLainnya) colLainnya.classList.remove('d-none');
+          if (inputLainnya) inputLainnya.value = rawJenis.replace(/^Lainnya\s*:\s*/i, '').trim();
+        } else {
+          selectJenis.value = rawJenis;
+          if (colRoster) colRoster.classList.add('d-none');
+          if (colLainnya) colLainnya.classList.add('d-none');
+        }
+
+        var alertSakit = document.getElementById('cutiSakitAlert');
+        if (alertSakit) {
+          if (rawJenis === 'Cuti Sakit') {
+            alertSakit.classList.remove('d-none');
+          } else {
+            alertSakit.classList.add('d-none');
+          }
+        }
+
+        var inputTglAwalOnsite = document.getElementById('cutiTglAwalOnsite');
+        if (inputTglAwalOnsite) {
+          inputTglAwalOnsite.value = item.tglAwalOnsite ? parseDateToYMD(item.tglAwalOnsite) || item.tglAwalOnsite : '';
+        }
+
+        var inputMulai = document.getElementById('cutiTanggalMulai');
+        var inputSelesai = document.getElementById('cutiTanggalSelesai');
+        var inputJumlah = document.getElementById('cutiJumlahHari');
+        if (inputMulai) inputMulai.value = item.tanggalMulai ? parseDateToYMD(item.tanggalMulai) || item.tanggalMulai : '';
+        if (inputSelesai) inputSelesai.value = item.tanggalSelesai ? parseDateToYMD(item.tanggalSelesai) || item.tanggalSelesai : '';
+        if (inputJumlah) inputJumlah.value = item.jumlahHari || 0;
+
+        document.getElementById('cutiAlasan').value = item.alasan || '';
+        document.getElementById('cutiAlamat').value = item.alamat || '';
+        document.getElementById('cutiKontak').value = item.kontak || '';
+        document.getElementById('cutiCatatan').value = item.catatanTambahan || '';
+
+        var fileLampiranEl = document.getElementById('cutiLampiran');
+        if (fileLampiranEl) fileLampiranEl.value = '';
+
+        calculateOnsiteWorkingDays();
+        calculateCutiDays();
+
+        var modalEl = document.getElementById('modalPengajuanCuti');
+        if (!bsModalPengajuanCuti && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          bsModalPengajuanCuti = new bootstrap.Modal(modalEl);
+        }
+        if (bsModalPengajuanCuti) {
+          bsModalPengajuanCuti.show();
+        }
+      };
+
+      window.openEditFromModal = function (cutiId, currentModalEl) {
+        if (currentModalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          var bsCurrent = bootstrap.Modal.getInstance(currentModalEl);
+          if (bsCurrent) {
+            var onHidden = function () {
+              currentModalEl.removeEventListener('hidden.bs.modal', onHidden);
+              setTimeout(function () {
+                openModalEditCuti(cutiId);
+              }, 150);
+            };
+            currentModalEl.addEventListener('hidden.bs.modal', onHidden);
+            bsCurrent.hide();
+            return;
+          }
+        }
+        openModalEditCuti(cutiId);
       };
 
       window.initPengajuanCutiForm = function () {
@@ -7432,6 +7801,21 @@
 
       window.resetCutiForm = function () {
         document.getElementById('formPengajuanCuti').reset();
+        var editIdEl = document.getElementById('editCutiId');
+        if (editIdEl) editIdEl.value = '';
+
+        var noticeEl = document.getElementById('editCutiNotice');
+        if (noticeEl) noticeEl.classList.add('d-none');
+
+        var titleEl = document.getElementById('modalPengajuanCutiTitle');
+        if (titleEl) titleEl.innerHTML = '<i class="bi bi-file-earmark-plus-fill me-1"></i>Formulir Permohonan Cuti';
+
+        var btnSubmit = document.getElementById('btnSubmitCuti');
+        if (btnSubmit) {
+          btnSubmit.innerHTML = '<i class="bi bi-send-fill me-1"></i>Kirim Pengajuan Cuti';
+          btnSubmit.className = 'btn btn-primary btn-sm px-4 py-2 fw-semibold btn-cuti-submit shadow-sm';
+        }
+
         var inputTglAwalOnsite = document.getElementById('cutiTglAwalOnsite');
         if (inputTglAwalOnsite) inputTglAwalOnsite.value = '';
         initPengajuanCutiForm();
@@ -7500,22 +7884,34 @@
           return;
         }
 
+        var editId = document.getElementById('editCutiId') ? document.getElementById('editCutiId').value.trim() : '';
+        var isEdit = Boolean(editId);
+
+        var confirmTitle = isEdit ? 'Simpan Perubahan Pengajuan Cuti?' : 'Kirim Pengajuan Cuti?';
+        var confirmText = isEdit
+          ? 'Perubahan data pengajuan cuti ' + editId + ' selama ' + jmlHari + ' hari kalender (' + formatDateDMY(tglMulai) + ' s/d ' + formatDateDMY(tglSelesai) + ') akan disimpan.'
+          : 'Permohonan cuti selama ' + jmlHari + ' hari kalender (' + formatDateDMY(tglMulai) + ' s/d ' + formatDateDMY(tglSelesai) + ') akan dikirim.';
+        var confirmBtnText = isEdit ? 'Ya, Simpan Perubahan' : 'Ya, Kirim Sekarang';
+        var confirmBtnColor = isEdit ? '#d97706' : '#2563eb';
+        var loadingText = isEdit ? 'Menyimpan perubahan data cuti...' : 'Mengunggah & memproses pengajuan cuti...';
+
         Swal.fire({
-          title: 'Kirim Pengajuan Cuti?',
-          text: 'Permohonan cuti selama ' + jmlHari + ' hari kalender (' + formatDateDMY(tglMulai) + ' s/d ' + formatDateDMY(tglSelesai) + ') akan dikirim.',
+          title: confirmTitle,
+          text: confirmText,
           icon: 'question',
           showCancelButton: true,
-          confirmButtonColor: '#2563eb',
+          confirmButtonColor: confirmBtnColor,
           cancelButtonColor: '#64748b',
-          confirmButtonText: 'Ya, Kirim Sekarang',
+          confirmButtonText: confirmBtnText,
           cancelButtonText: 'Periksa Kembali'
         }).then(function (result) {
           if (!result.isConfirmed) return;
 
-          showFullPageLoading('Mengunggah & memproses pengajuan cuti...');
+          showFullPageLoading(loadingText);
 
           var processUpload = function (fileData) {
             var payload = {
+              cutiId: editId,
               jenisCuti: jenis,
               polaRoster: polaRoster,
               tglAwalOnsite: tglAwalOnsite,
@@ -7532,7 +7928,9 @@
               lampiranMimeType: fileData ? fileData.type : ''
             };
 
-            gasRun('submitPengajuanCuti', Auth.getToken(), payload).then(function (res) {
+            var targetAction = isEdit ? 'editPengajuanCuti' : 'submitPengajuanCuti';
+
+            gasRun(targetAction, Auth.getToken(), payload).then(function (res) {
               hideFullPageLoading();
               if (handleSessionExpired(res)) return;
               if (res.success) {
@@ -7541,21 +7939,24 @@
                 }
                 Swal.fire({
                   title: 'Berhasil!',
-                  text: res.message || 'Pengajuan cuti berhasil dikirim.',
+                  text: res.message || (isEdit ? 'Data pengajuan cuti berhasil diperbarui.' : 'Pengajuan cuti berhasil dikirim.'),
                   icon: 'success',
-                  showCancelButton: true,
+                  showCancelButton: !isEdit,
                   confirmButtonColor: '#2563eb',
                   cancelButtonColor: '#64748b',
-                  confirmButtonText: 'Buka Riwayat Cuti',
+                  confirmButtonText: isEdit ? 'OK' : 'Buka Riwayat Cuti',
                   cancelButtonText: 'Tetap di Sini'
-                }).then(function (result) {
+                }).then(function (swalRes) {
                   resetCutiForm();
-                  if (result.isConfirmed) {
+                  if (typeof loadRiwayatCuti === 'function') {
+                    loadRiwayatCuti(false);
+                  }
+                  if (!isEdit && swalRes && swalRes.isConfirmed) {
                     showPage('riwayat-cuti', document.getElementById('subitem-riwayat-cuti'));
                   }
                 });
               } else {
-                Swal.fire('Gagal Mengajukan Cuti', res.message || 'Terjadi kesalahan sistem.', 'error');
+                Swal.fire(isEdit ? 'Gagal Memperbarui Cuti' : 'Gagal Mengajukan Cuti', res.message || 'Terjadi kesalahan sistem.', 'error');
               }
             }).catch(function (err) {
               hideFullPageLoading();
@@ -7928,6 +8329,49 @@
       };
 
       // ==========================================
+      // HELPER OTORISASI EDIT PENGAJUAN CUTI
+      // ==========================================
+      window.canUserEditCuti = function (item) {
+        if (!item) return false;
+        var user = Auth.getUser();
+        if (!user) return false;
+
+        var uRole = String(user.role || '').toLowerCase();
+        var uName = String(user.username || '').toLowerCase();
+        var isAdmin = (uRole === 'admin' || uRole === 'admin master' || uName === 'admin');
+
+        // Karyawan hanya bisa edit pengajuannya sendiri (kecuali admin)
+        var isOwner = String(item.empId || '').toLowerCase() === uName;
+        if (!isOwner && !isAdmin) return false;
+
+        // Aturan Kunci: Hanya bisa di-edit sebelum di-approve oleh atasan!
+        // Ketika sudah di-approve oleh atasan sampai PJO, karyawan TIDAK BISA edit.
+        var status = String(item.status || '').trim();
+        var app1Status = String(item.approver1Status || '').trim().toLowerCase();
+
+        // Jika Approver 1 sudah menyetujui, sudah di tahap HRD, PJO, atau Final Disetujui -> TIDAK BISA EDIT
+        if (app1Status === 'disetujui' || app1Status === 'approved') {
+          return false;
+        }
+
+        if (status === 'Menunggu Persetujuan HRD' || status === 'Menunggu Persetujuan PJO' || status === 'Menunggu Persetujuan Direktur' || status === 'Disetujui') {
+          return false;
+        }
+
+        // Jika sudah ditolak atau dibatalkan, tidak dapat diedit
+        if (status.toLowerCase().indexOf('tolak') !== -1 || status.toLowerCase().indexOf('batal') !== -1) {
+          return false;
+        }
+
+        // Boleh diedit jika masih Menunggu Persetujuan Atasan (atau Menunggu Persetujuan)
+        if (status === 'Menunggu Persetujuan Atasan' || status === 'Menunggu Persetujuan') {
+          return true;
+        }
+
+        return false;
+      };
+
+      // ==========================================
       // TABEL 1: RIWAYAT CUTI SAYA (PERSONAL LEAVE)
       // ==========================================
       window.renderRiwayatCutiTable = function () {
@@ -8011,6 +8455,12 @@
               '<i class="bi bi-paperclip"></i>Lampiran</button>';
           }
 
+          var editBtn = '';
+          if (canUserEditCuti(item)) {
+            editBtn = '<button type="button" class="btn btn-sm btn-action btn-action-edit" title="Edit Data Pengajuan Cuti" onclick="openModalEditCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-pencil-square"></i>Edit</button>';
+          }
+
           var deleteBtn = '';
           if (canUserDeleteCuti(item)) {
             deleteBtn = '<button type="button" class="btn btn-sm btn-action btn-action-delete" title="Hapus Data Riwayat Cuti" onclick="confirmHapusCuti(\'' + escapeHTML(item.id) + '\')">' +
@@ -8044,6 +8494,7 @@
             '<td class="pe-3 py-3 text-center text-nowrap">' +
             '<div class="action-group">' +
             detailBtn +
+            editBtn +
             printBtn +
             deleteBtn +
             '</div>' +
@@ -8276,6 +8727,12 @@
           var detailBtn = '<button type="button" class="btn btn-sm btn-action btn-action-view" title="Lihat Detail Pengajuan" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
             '<i class="bi bi-eye"></i>Detail</button>';
 
+          var editBtn = '';
+          if (canUserEditCuti(item)) {
+            editBtn = '<button type="button" class="btn btn-sm btn-action btn-action-edit" title="Edit Data Pengajuan Cuti" onclick="openModalEditCuti(\'' + escapeHTML(item.id) + '\')">' +
+              '<i class="bi bi-pencil-square"></i>Edit</button>';
+          }
+
           var deleteBtn = '';
           if (isHRD) {
             deleteBtn = '<button type="button" class="btn btn-sm btn-action btn-action-delete" title="Hapus Data Pengajuan Cuti" onclick="confirmHapusCuti(\'' + escapeHTML(item.id) + '\')">' +
@@ -8304,6 +8761,7 @@
             '<div class="action-group">' +
             approveBtn +
             detailBtn +
+            editBtn +
             printBtn +
             deleteBtn +
             '</div>' +
@@ -8701,6 +9159,13 @@
             actionBtnHtml =
               '<button type="button" class="btn btn-success btn-sm fw-semibold shadow-sm" onclick="openApprovalFromModal(\'' + escapeHTML(item.id) + '\', document.getElementById(\'modalDetailCuti\'))">' +
               '<i class="bi bi-shield-check me-1"></i>Proses Approval' +
+              '</button>' +
+              actionBtnHtml;
+          }
+          if (canUserEditCuti(item)) {
+            actionBtnHtml =
+              '<button type="button" class="btn btn-warning btn-sm fw-semibold shadow-sm text-dark" onclick="openEditFromModal(\'' + escapeHTML(item.id) + '\', document.getElementById(\'modalDetailCuti\'))">' +
+              '<i class="bi bi-pencil-square me-1"></i>Edit Pengajuan' +
               '</button>' +
               actionBtnHtml;
           }
@@ -9647,15 +10112,15 @@
           '<div class="surat-kop">' +
           '<table style="width: 100%; border-collapse: collapse;">' +
           '<tr>' +
-          '<td style="width: 90px; vertical-align: middle; text-align: left;">' +
-          '<img src="image/BBB.png" alt="Logo PT. Berkah Batu Bara" class="surat-kop-logo" style="width: 78px; height: 78px; object-fit: contain; display: block;">' +
+          '<td class="surat-kop-logo-td" style="width: 90px; vertical-align: middle; text-align: left;">' +
+          '<img src="image/BBB.png" alt="Logo PT. Berkah Batu Bara" class="surat-kop-logo">' +
           '</td>' +
-          '<td style="text-align: center; vertical-align: middle; padding: 0 10px;">' +
+          '<td class="surat-kop-center-td" style="text-align: center; vertical-align: middle; padding: 0 10px;">' +
           '<div class="surat-kop-company">PT. BERKAH BATU BARA</div>' +
           '<div class="surat-kop-division">GENERAL SUPPLIER TRANSPORT &amp; MINING CONTRACTOR</div>' +
           '<div class="surat-kop-address">JL. KH. Wahid Hasyim 1 Karya Baru No 56 RT 11 Kel. Sempaja Utara, Kota Samarinda<br>Telp: 0822 777 505 &nbsp;|&nbsp; Email: berkahbatubara2112@gmail.com</div>' +
           '</td>' +
-          '<td style="width: 90px; vertical-align: middle;"></td>' +
+          '<td class="surat-kop-spacer-td" style="width: 90px; vertical-align: middle;"></td>' +
           '</tr>' +
           '</table>' +
           '</div>' +
@@ -9665,7 +10130,7 @@
           '<div class="surat-nomor">Nomor: ' + escapeHTML(nomorSurat) + '</div>' +
           '</div>' +
 
-          '<p style="margin-bottom: 12px; font-size: 9.5pt; text-align: justify; line-height: 1.5;">' +
+          '<p class="surat-p-intro">' +
           'Berdasarkan permohonan izin cuti yang telah diajukan dan melalui tahapan verifikasi serta persetujuan berjenjang sesuai dengan peraturan ketenagakerjaan perusahaan yang berlaku, Manajemen <strong>PT. BERKAH BATU BARA</strong> dengan ini menerbitkan Surat Izin Cuti Resmi kepada:' +
           '</p>' +
 
@@ -9800,13 +10265,17 @@
           'body { font-family: "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #0f172a; }' +
           '.surat-cuti-paper { width: 100%; max-width: 210mm; min-height: 297mm; padding: 12mm 16mm; margin: 0 auto; box-sizing: border-box; }' +
           '.surat-kop { border-bottom: 3px double #0f172a; padding-bottom: 12px; margin-bottom: 18px; }' +
+          '.surat-kop-logo-td { width: 90px !important; vertical-align: middle; }' +
+          '.surat-kop-spacer-td { width: 90px !important; display: table-cell !important; vertical-align: middle; }' +
+          '.surat-kop-center-td { text-align: center; vertical-align: middle; padding: 0 10px; }' +
           '.surat-kop-logo { width: 78px; height: 78px; object-fit: contain; display: block; }' +
-          '.surat-kop-company { font-size: 15.5pt; font-weight: 800; color: #0f172a; letter-spacing: 0.5px; margin-bottom: 3px; text-transform: uppercase; line-height: 1.2; }' +
-          '.surat-kop-division { font-size: 10pt; font-weight: 700; color: #1e40af; letter-spacing: 0.5px; margin-bottom: 3px; }' +
-          '.surat-kop-address { font-size: 8.5pt; color: #475569; line-height: 1.4; }' +
+          '.surat-kop-company { font-size: 15.5pt; font-weight: 800; color: #0f172a; letter-spacing: 0.5px; margin-bottom: 3px; text-transform: uppercase; line-height: 1.2; text-align: center; }' +
+          '.surat-kop-division { font-size: 10pt; font-weight: 700; color: #1e40af; letter-spacing: 0.5px; margin-bottom: 3px; text-align: center; }' +
+          '.surat-kop-address { font-size: 8.5pt; color: #475569; line-height: 1.4; text-align: center; }' +
           '.surat-title { text-align: center; margin-bottom: 16px; }' +
           '.surat-title h4 { font-size: 12.5pt; font-weight: 800; text-decoration: underline; color: #0f172a; margin-bottom: 3px; letter-spacing: 0.5px; }' +
           '.surat-nomor { font-size: 9pt; color: #334155; font-weight: 600; }' +
+          '.surat-p-intro { margin-bottom: 12px; font-size: 9.5pt; text-align: justify; line-height: 1.5; }' +
           '.surat-table-data { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 9.5pt; }' +
           '.surat-table-data td { padding: 3.5px 6px; vertical-align: top; }' +
           '.surat-table-data .label-col { width: 30%; color: #475569; font-weight: 600; }' +
@@ -9815,8 +10284,8 @@
           '.surat-section-title { font-size: 9.5pt; font-weight: 700; color: #0f172a; border-left: 3px solid #2563eb; padding-left: 8px; margin: 12px 0 6px 0; background: #f8fafc; padding-top: 2px; padding-bottom: 2px; }' +
           '.surat-ketentuan { font-size: 8pt; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin: 12px 0; line-height: 1.4; }' +
           '.surat-ketentuan ol { margin: 0; padding-left: 18px; }' +
-          '.surat-signatures-container { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; }' +
-          '.surat-sig-box { flex: 1; text-align: center; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 10px 6px 8px 6px; background: #fafafa; position: relative; }' +
+          '.surat-signatures-container { display: flex !important; justify-content: space-between !important; margin-top: 20px; gap: 10px; }' +
+          '.surat-sig-box { flex: 1 !important; text-align: center; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 10px 6px 8px 6px; background: #fafafa; position: relative; }' +
           '.surat-sig-title { font-size: 8pt; font-weight: 700; color: #334155; margin-bottom: 4px; text-transform: uppercase; }' +
           '.surat-sig-stamp { height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 3px 0; }' +
           '.stamp-badge { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 8px; border-radius: 4px; font-size: 7pt; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.2; }' +

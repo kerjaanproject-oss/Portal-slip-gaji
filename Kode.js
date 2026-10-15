@@ -25,6 +25,7 @@ const ALLOWED_PROTECTED_ACTIONS = [
   'sendSlipEmailNotification',
   'sendSlipEmailNotificationBatch',
   'submitPengajuanCuti',
+  'editPengajuanCuti',
   'getCutiKaryawan',
   'deletePengajuanCuti',
   'getLampiranCutiBase64',
@@ -2082,6 +2083,159 @@ function submitPengajuanCuti(token, payload) {
     cutiId: cutiId,
     jumlahHari: jumlahHari
   };
+}
+
+function editPengajuanCuti(token, payload) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  payload = payload || {};
+  const cutiId = String(payload.cutiId || '').trim();
+  if (!cutiId) return { success: false, message: 'ID pengajuan cuti tidak valid.' };
+
+  const jenisCuti = String(payload.jenisCuti || '').trim();
+  const tanggalMulai = String(payload.tanggalMulai || '').trim();
+  const tanggalSelesai = String(payload.tanggalSelesai || '').trim();
+  const alasanCuti = String(payload.alasanCuti || '').trim();
+  const alamatCuti = String(payload.alamatCuti || '').trim();
+  const nomorKontak = String(payload.nomorKontak || '').trim();
+  const catatanTambahan = String(payload.catatanTambahan || '').trim();
+  const tglAwalOnsite = String(payload.tglAwalOnsite || '').trim();
+  const totalHariKerjaOnsite = (payload.totalHariKerjaOnsite !== undefined && payload.totalHariKerjaOnsite !== null && payload.totalHariKerjaOnsite !== '') ? Number(payload.totalHariKerjaOnsite) : '';
+
+  if (!jenisCuti) return { success: false, message: 'Jenis cuti wajib dipilih.' };
+  if (!tanggalMulai || !tanggalSelesai) return { success: false, message: 'Tanggal mulai dan tanggal selesai cuti wajib diisi.' };
+  if (!alasanCuti) return { success: false, message: 'Alasan cuti wajib diisi.' };
+
+  // Hitung jumlah hari kalender
+  const dStart = new Date(tanggalMulai + 'T00:00:00');
+  const dEnd = new Date(tanggalSelesai + 'T00:00:00');
+  if (isNaN(dStart.getTime()) || isNaN(dEnd.getTime())) {
+    return { success: false, message: 'Format tanggal cuti tidak valid.' };
+  }
+  if (dEnd < dStart) {
+    return { success: false, message: 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai.' };
+  }
+  const diffTime = Math.abs(dEnd.getTime() - dStart.getTime());
+  const jumlahHari = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const cutiSheet = getOrCreatePengajuanCutiSheet(ss);
+  const data = cutiSheet.getDataRange().getValues();
+  if (!data || data.length <= 1) return { success: false, message: 'Data pengajuan cuti tidak ditemukan.' };
+
+  const headers = data[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+  const idIdx = headers.findIndex(function (h) { return h.includes('id pengajuan') || h === 'id cuti' || h === 'id' || h.includes('kode'); });
+  const empIdIdx = headers.findIndex(function (h) { return h.includes('id karyawan') || h.includes('nik') || h.includes('nip') || h === 'username' || h === 'id_karyawan'; });
+  const statusIdx = headers.findIndex(function (h) { return h.includes('status'); });
+  const jenisIdx = headers.findIndex(function (h) { return h.includes('jenis cuti') || h === 'jenis'; });
+  const tglMulaiIdx = headers.findIndex(function (h) { return h.includes('tanggal mulai') || h.includes('tgl mulai'); });
+  const tglSelesaiIdx = headers.findIndex(function (h) { return h.includes('tanggal selesai') || h.includes('tgl selesai'); });
+  const jmlHariIdx = headers.findIndex(function (h) { return h.includes('jumlah hari') || h.includes('durasi'); });
+  const alasanIdx = headers.findIndex(function (h) { return h.includes('alasan'); });
+  const alamatIdx = headers.findIndex(function (h) { return h.includes('alamat'); });
+  const kontakIdx = headers.findIndex(function (h) { return h.includes('kontak') || h.includes('telepon') || h.includes('hp'); });
+  const lampiranNameIdx = headers.findIndex(function (h) { return h.includes('nama file lampiran') || h.includes('file lampiran'); });
+  const lampiranUrlIdx = headers.findIndex(function (h) { return h.includes('url drive') || h.includes('url lampiran'); });
+  const lampiranFileIdIdx = headers.findIndex(function (h) { return h.includes('file id') || h.includes('fileid'); });
+  const catatanIdx = headers.findIndex(function (h) { return h.includes('catatan'); });
+  const app1StatusIdx = headers.findIndex(function (h) { return h.includes('approver 1 status'); });
+  const tglAwalOnsiteIdx = headers.findIndex(function (h) { return h.includes('tanggal awal onsite') || h.includes('tgl awal onsite'); });
+  const totalHariOnsiteIdx = headers.findIndex(function (h) { return h.includes('total hari kerja onsite') || h.includes('total hari onsite'); });
+
+  const currentUsername = String(session.user.username || '').trim().toLowerCase();
+  const userRole = String(session.user.role || '').trim().toLowerCase();
+  const isAdmin = (userRole === 'admin' || userRole === 'admin master' || currentUsername === 'admin');
+
+  for (let i = 1; i < data.length; i++) {
+    const rowId = idIdx !== -1 ? String(data[i][idIdx] || '').trim() : String(data[i][0] || '').trim();
+    if (rowId === cutiId) {
+      const rowEmpId = empIdIdx !== -1 ? String(data[i][empIdIdx] || '').trim().toLowerCase() : '';
+      const currentStatus = statusIdx !== -1 ? String(data[i][statusIdx] || '').trim() : '';
+      const app1Status = app1StatusIdx !== -1 ? String(data[i][app1StatusIdx] || '').trim().toLowerCase() : '';
+
+      // 1. Validasi Kepemilikan (Karyawan hanya bisa edit pengajuannya sendiri, kecuali admin)
+      if (!isAdmin && rowEmpId !== currentUsername) {
+        return { success: false, message: 'Akses ditolak: Anda tidak memiliki wewenang untuk mengubah pengajuan cuti ini.' };
+      }
+
+      // 2. Validasi Status Approval:
+      // Karyawan hanya bisa edit SEBELUM diapprove oleh atasan.
+      // Ketika sudah diapprove oleh atasan sampai PJO, karyawan TIDAK BISA edit.
+      if (!isAdmin) {
+        if (app1Status === 'disetujui' || app1Status === 'approved') {
+          return { success: false, message: 'Pengajuan cuti ini sudah disetujui oleh atasan dan tidak dapat diubah lagi oleh karyawan.' };
+        }
+        if (currentStatus === 'Menunggu Persetujuan HRD' || currentStatus === 'Menunggu Persetujuan PJO' || currentStatus === 'Menunggu Persetujuan Direktur' || currentStatus === 'Disetujui') {
+          return { success: false, message: 'Pengajuan cuti ini sudah diproses/disetujui tahap atasan ke atas dan tidak dapat diubah lagi.' };
+        }
+        if (currentStatus.toLowerCase().indexOf('tolak') !== -1) {
+          return { success: false, message: 'Pengajuan cuti yang telah ditolak tidak dapat diubah. Silakan buat pengajuan cuti baru.' };
+        }
+      }
+
+      const rowIndex = i + 1;
+
+      // Format jenis cuti jika cuti roster
+      let jenisCutiFinal = jenisCuti;
+      if (jenisCuti === 'Cuti Roster' && payload.polaRoster) {
+        jenisCutiFinal = 'Cuti Roster (' + payload.polaRoster + ')';
+      }
+
+      // Upload berkas lampiran baru jika ada
+      if (payload.lampiranBase64 && payload.lampiranName) {
+        try {
+          const b64Data = payload.lampiranBase64.replace(/^data:.*?;base64,/, '');
+          const fileSize = getBase64FileSize(b64Data);
+          if (fileSize > 5242880) {
+            return { success: false, message: 'Ukuran lampiran bukti maksimal 5 MB.' };
+          }
+          const fileBytes = Utilities.base64Decode(b64Data);
+          const mimeType = payload.lampiranMimeType || 'application/octet-stream';
+          const cleanFileName = String(payload.lampiranName).replace(/[^a-zA-Z0-9._-]/g, '_');
+          const blob = Utilities.newBlob(fileBytes, mimeType, 'Bukti_Cuti_' + cleanFileName);
+
+          const tahun = tanggalMulai.substring(0, 4) || String(new Date().getFullYear());
+          const empName = String(data[i][3] || session.user.fullname || 'Karyawan');
+          const folder = getLampiranCutiStorageFolder(tahun, empName);
+          const savedFile = folder.createFile(blob);
+
+          // Hapus file lampiran lama jika ada
+          const oldFileId = lampiranFileIdIdx !== -1 ? String(data[i][lampiranFileIdIdx] || '').trim() : '';
+          if (oldFileId) {
+            try { DriveApp.getFileById(oldFileId).setTrashed(true); } catch (eIgnore) { }
+          }
+
+          if (lampiranNameIdx !== -1) cutiSheet.getRange(rowIndex, lampiranNameIdx + 1).setValue(savedFile.getName());
+          if (lampiranUrlIdx !== -1) cutiSheet.getRange(rowIndex, lampiranUrlIdx + 1).setValue(savedFile.getUrl());
+          if (lampiranFileIdIdx !== -1) cutiSheet.getRange(rowIndex, lampiranFileIdIdx + 1).setValue(savedFile.getId());
+        } catch (fErr) {
+          return { success: false, message: 'Gagal mengunggah berkas lampiran baru: ' + fErr.toString() };
+        }
+      }
+
+      // Update nilai kolom pada Google Sheet
+      if (jenisIdx !== -1) cutiSheet.getRange(rowIndex, jenisIdx + 1).setValue(jenisCutiFinal);
+      if (tglMulaiIdx !== -1) cutiSheet.getRange(rowIndex, tglMulaiIdx + 1).setValue(tanggalMulai);
+      if (tglSelesaiIdx !== -1) cutiSheet.getRange(rowIndex, tglSelesaiIdx + 1).setValue(tanggalSelesai);
+      if (jmlHariIdx !== -1) cutiSheet.getRange(rowIndex, jmlHariIdx + 1).setValue(jumlahHari);
+      if (alasanIdx !== -1) cutiSheet.getRange(rowIndex, alasanIdx + 1).setValue(alasanCuti);
+      if (alamatIdx !== -1) cutiSheet.getRange(rowIndex, alamatIdx + 1).setValue(alamatCuti);
+      if (kontakIdx !== -1) cutiSheet.getRange(rowIndex, kontakIdx + 1).setValue(nomorKontak);
+      if (catatanIdx !== -1) cutiSheet.getRange(rowIndex, catatanIdx + 1).setValue(catatanTambahan);
+      if (tglAwalOnsiteIdx !== -1) cutiSheet.getRange(rowIndex, tglAwalOnsiteIdx + 1).setValue(tglAwalOnsite);
+      if (totalHariOnsiteIdx !== -1) cutiSheet.getRange(rowIndex, totalHariOnsiteIdx + 1).setValue(totalHariKerjaOnsite);
+
+      return {
+        success: true,
+        message: 'Pengajuan cuti ' + cutiId + ' berhasil diperbarui (' + jumlahHari + ' Hari Kalender).',
+        cutiId: cutiId,
+        jumlahHari: jumlahHari
+      };
+    }
+  }
+
+  return { success: false, message: 'Data pengajuan cuti tidak ditemukan.' };
 }
 
 function getCutiKaryawan(token) {
