@@ -1546,6 +1546,7 @@
       margin: 0 0 8px 0;
       background: linear-gradient(135deg, #ffffff 20%, #e2e8f0 60%, #93c5fd 100%);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
       text-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
       animation: splashSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
@@ -8318,6 +8319,88 @@
         });
       };
 
+      // Helper menghitung dan merapikan informasi periode kerja onsite (mulai s/d akhir kerja & total hari kerja)
+      function getCutiWorkPeriodInfo(item) {
+        if (!item) {
+          return {
+            tglMulaiKerja: '',
+            tglAkhirKerja: '',
+            totalHariKerja: 0,
+            strMulai: '-',
+            strAkhir: '-',
+            strTotal: '-',
+            polaRoster: ''
+          };
+        }
+
+        var tglAwal = item.tglAwalOnsite ? String(item.tglAwalOnsite).trim() : '';
+        var tglCutiMulai = item.tanggalMulai ? String(item.tanggalMulai).trim() : '';
+        var myEmpId = String(item.empId || '').trim().toLowerCase();
+
+        // 1. Jika tglAwalOnsite belum terisi pada objek, cari dari riwayat cuti sebelumnya atau data profil karyawan
+        if (!tglAwal && tglCutiMulai && typeof dbCutiList !== 'undefined' && dbCutiList) {
+          var curMulaiTime = new Date(tglCutiMulai + 'T00:00:00').getTime();
+          var prevLeaves = dbCutiList.filter(function (c) {
+            if (String(c.empId || '').toLowerCase() !== myEmpId) return false;
+            if (c.id === item.id) return false;
+            if (!c.tanggalSelesai) return false;
+            var dEnd = new Date(c.tanggalSelesai + 'T00:00:00').getTime();
+            return !isNaN(dEnd) && dEnd < curMulaiTime;
+          }).sort(function (a, b) {
+            return new Date(b.tanggalSelesai + 'T00:00:00').getTime() - new Date(a.tanggalSelesai + 'T00:00:00').getTime();
+          });
+
+          if (prevLeaves.length > 0 && prevLeaves[0].tanggalSelesai) {
+            var dPrev = new Date(prevLeaves[0].tanggalSelesai + 'T00:00:00');
+            dPrev.setDate(dPrev.getDate() + 1);
+            tglAwal = toDateInputString(dPrev);
+          } else if (typeof dbKaryawan !== 'undefined' && dbKaryawan) {
+            var kObj = dbKaryawan.find(function (k) {
+              return String(k.username || k.id || '').toLowerCase() === myEmpId;
+            });
+            if (kObj && kObj.tglMulaiKerja) {
+              tglAwal = parseDateToYMD(kObj.tglMulaiKerja) || kObj.tglMulaiKerja;
+            }
+          }
+        }
+
+        // 2. Tentukan Tanggal Akhir Bekerja (hari terakhir bekerja di site, yaitu 1 hari sebelum tanggal mulai cuti)
+        var tglAkhir = '';
+        var dStart = tglAwal ? new Date(tglAwal + 'T00:00:00') : null;
+        var dCutiMulai = tglCutiMulai ? new Date(tglCutiMulai + 'T00:00:00') : null;
+
+        if (dCutiMulai && !isNaN(dCutiMulai.getTime())) {
+          var dAkhir = new Date(dCutiMulai.getTime());
+          dAkhir.setDate(dAkhir.getDate() - 1);
+          if (dStart && !isNaN(dStart.getTime()) && dAkhir < dStart) {
+            dAkhir = new Date(dStart.getTime());
+          }
+          tglAkhir = toDateInputString(dAkhir);
+        }
+
+        // 3. Tentukan Total Hari Kerja Kalender
+        var totalDays = 0;
+        if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
+          totalDays = parseInt(item.totalHariKerjaOnsite, 10);
+        }
+        if ((!totalDays || isNaN(totalDays) || totalDays <= 0) && dStart && dCutiMulai && !isNaN(dStart.getTime()) && !isNaN(dCutiMulai.getTime()) && dCutiMulai >= dStart) {
+          totalDays = Math.round((dCutiMulai.getTime() - dStart.getTime()) / (1000 * 60 * 60 * 24));
+        }
+        if (!totalDays || isNaN(totalDays)) {
+          totalDays = 0;
+        }
+
+        return {
+          tglMulaiKerja: tglAwal,
+          tglAkhirKerja: tglAkhir,
+          totalHariKerja: totalDays,
+          strMulai: tglAwal ? formatDateDMY(tglAwal) : '-',
+          strAkhir: tglAkhir ? formatDateDMY(tglAkhir) : '-',
+          strTotal: totalDays > 0 ? (totalDays + ' Hari Kalender') : '-',
+          polaRoster: item.polaRoster || ''
+        };
+      }
+
       window.viewDetailCuti = function (cutiId) {
         var cleanId = String(cutiId || '').trim();
         var item = dbCutiList.find(function (c) {
@@ -8421,22 +8504,50 @@
             '</div>';
         }
 
-        var masaOnsiteHtml = '';
-        if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
-          var awalOnsiteStr = item.tglAwalOnsite ? formatDateDMY(item.tglAwalOnsite) : '-';
-          masaOnsiteHtml =
-            '<div class="col-12 mt-2 pt-2 border-top">' +
-            '<div class="d-flex align-items-center justify-content-between flex-wrap gap-2">' +
-            '<div>' +
-            '<span class="extra-small fw-bold text-muted d-block">MASA KERJA ONSITE SEBELUM CUTI</span>' +
-            '<span class="small text-dark fw-semibold"><i class="bi bi-geo-alt-fill text-primary me-1"></i>Tanggal Masuk Site: ' + awalOnsiteStr + '</span>' +
-            '</div>' +
-            '<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-bold">' +
-            '<i class="bi bi-clock-history me-1"></i>Total ' + item.totalHariKerjaOnsite + ' Hari Kerja Onsite' +
-            '</span>' +
-            '</div>' +
+        var workInfo = getCutiWorkPeriodInfo(item);
+
+        var rosterNoteHtml = '';
+        if (item.polaRoster) {
+          rosterNoteHtml =
+            '<div class="col-12 mt-2 pt-2 border-top extra-small text-muted">' +
+            '<i class="bi bi-diagram-2 text-primary me-1"></i>Pola Roster Kerja: <strong class="text-dark">' + escapeHTML(item.polaRoster) + '</strong>' +
             '</div>';
         }
+
+        var masaKerjaSection =
+          '<div class="col-12">' +
+          '<div class="p-3 bg-white rounded-3 border shadow-xs" style="border-left: 4px solid #16a34a !important;">' +
+          '<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 pb-2 border-bottom">' +
+          '<div class="d-flex align-items-center gap-2">' +
+          '<div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">' +
+          '<i class="bi bi-briefcase-fill fs-6"></i>' +
+          '</div>' +
+          '<div>' +
+          '<span class="extra-small fw-bold text-muted d-block">INFORMASI MASA KERJA SEBELUM CUTI</span>' +
+          '<h6 class="fw-bold text-dark mb-0">Periode Mulai &amp; Akhir Bekerja</h6>' +
+          '</div>' +
+          '</div>' +
+          (workInfo.totalHariKerja > 0
+            ? '<span class="badge bg-success text-white px-3 py-2 fw-bold" style="font-size: 0.85rem;"><i class="bi bi-clock-history me-1"></i>Total: ' + workInfo.totalHariKerja + ' Hari Kerja</span>'
+            : '<span class="badge bg-secondary-subtle text-secondary px-3 py-2">Belum Terhitung</span>') +
+          '</div>' +
+          '<div class="row g-2 pt-1">' +
+          '<div class="col-sm-4">' +
+          '<span class="extra-small fw-bold text-muted d-block">TANGGAL MULAI KERJA (MASUK SITE)</span>' +
+          '<span class="fw-semibold text-dark small"><i class="bi bi-calendar-check text-primary me-1"></i>' + workInfo.strMulai + '</span>' +
+          '</div>' +
+          '<div class="col-sm-4">' +
+          '<span class="extra-small fw-bold text-muted d-block">TANGGAL AKHIR KERJA (SEBELUM CUTI)</span>' +
+          '<span class="fw-semibold text-dark small"><i class="bi bi-calendar-x text-danger me-1"></i>' + workInfo.strAkhir + '</span>' +
+          '</div>' +
+          '<div class="col-sm-4">' +
+          '<span class="extra-small fw-bold text-muted d-block">PERIODE BEKERJA ONSITE</span>' +
+          '<span class="small text-secondary font-monospace fw-semibold">' + workInfo.strMulai + ' <span class="text-muted">s/d</span> ' + workInfo.strAkhir + '</span>' +
+          '</div>' +
+          rosterNoteHtml +
+          '</div>' +
+          '</div>' +
+          '</div>';
 
         var bodyHtml =
           '<div class="row g-3">' +
@@ -8467,13 +8578,13 @@
           '<span class="fw-semibold text-dark small">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' s/d ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</span>' +
           '</div>' +
           '<div class="col-sm-4">' +
-          '<span class="extra-small fw-bold text-muted d-block">DURASI</span>' +
+          '<span class="extra-small fw-bold text-muted d-block">DURASI CUTI</span>' +
           '<span class="badge bg-primary fw-bold">' + item.jumlahHari + ' Hari Kalender</span>' +
           '</div>' +
-          masaOnsiteHtml +
           '</div>' +
           '</div>' +
           '</div>' +
+          masaKerjaSection +
           '<div class="col-12">' +
           '<label class="extra-small fw-bold text-muted d-block mb-1">ALASAN CUTI</label>' +
           '<div class="p-3 bg-white border rounded-3 small text-dark">' + escapeHTML(item.alasan) + '</div>' +
@@ -8588,14 +8699,14 @@
           }
           if (canApprove) {
             actionBtnHtml =
-              '<button type="button" class="btn btn-success btn-sm fw-semibold shadow-sm" onclick="if(bsModalDetailCuti) bsModalDetailCuti.hide(); openModalApprovalCuti(\'' + escapeHTML(item.id) + '\');">' +
+              '<button type="button" class="btn btn-success btn-sm fw-semibold shadow-sm" onclick="openApprovalFromModal(\'' + escapeHTML(item.id) + '\', document.getElementById(\'modalDetailCuti\'))">' +
               '<i class="bi bi-shield-check me-1"></i>Proses Approval' +
               '</button>' +
               actionBtnHtml;
           }
           if (canUserDeleteCuti(item)) {
             actionBtnHtml =
-              '<button type="button" class="btn btn-outline-danger btn-sm fw-semibold shadow-sm me-auto" onclick="if(bsModalDetailCuti) bsModalDetailCuti.hide(); confirmHapusCuti(\'' + escapeHTML(item.id) + '\');">' +
+              '<button type="button" class="btn btn-outline-danger btn-sm fw-semibold shadow-sm me-auto" onclick="openHapusFromModal(\'' + escapeHTML(item.id) + '\', document.getElementById(\'modalDetailCuti\'))">' +
               '<i class="bi bi-trash3 me-1"></i>Hapus Pengajuan' +
               '</button>' +
               actionBtnHtml;
@@ -8603,10 +8714,76 @@
           footerActionsEl.innerHTML = actionBtnHtml;
         }
 
-        if (!bsModalDetailCuti) {
-          bsModalDetailCuti = new bootstrap.Modal(document.getElementById('modalDetailCuti'));
+        var modalDetailEl = document.getElementById('modalDetailCuti');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          bsModalDetailCuti = bootstrap.Modal.getOrCreateInstance(modalDetailEl);
+          bsModalDetailCuti.show();
         }
-        bsModalDetailCuti.show();
+      };
+
+      // Modal Transition Handlers
+      window.openApprovalFromModal = function (cutiId, currentModalEl) {
+        if (!cutiId) return;
+        if (!currentModalEl) {
+          currentModalEl = document.getElementById('modalDetailCuti');
+        }
+
+        var bsCurrentModal = (typeof bootstrap !== 'undefined' && bootstrap.Modal && currentModalEl)
+          ? bootstrap.Modal.getInstance(currentModalEl)
+          : null;
+
+        if (bsCurrentModal && currentModalEl.classList.contains('show')) {
+          var fired = false;
+          var onHidden = function () {
+            if (fired) return;
+            fired = true;
+            currentModalEl.removeEventListener('hidden.bs.modal', onHidden);
+            setTimeout(function () {
+              openModalApprovalCuti(cutiId);
+            }, 60);
+          };
+          currentModalEl.addEventListener('hidden.bs.modal', onHidden);
+          bsCurrentModal.hide();
+          setTimeout(function () {
+            if (!fired) {
+              onHidden();
+            }
+          }, 350);
+        } else {
+          openModalApprovalCuti(cutiId);
+        }
+      };
+
+      window.openHapusFromModal = function (cutiId, currentModalEl) {
+        if (!cutiId) return;
+        if (!currentModalEl) {
+          currentModalEl = document.getElementById('modalDetailCuti');
+        }
+
+        var bsCurrentModal = (typeof bootstrap !== 'undefined' && bootstrap.Modal && currentModalEl)
+          ? bootstrap.Modal.getInstance(currentModalEl)
+          : null;
+
+        if (bsCurrentModal && currentModalEl.classList.contains('show')) {
+          var fired = false;
+          var onHidden = function () {
+            if (fired) return;
+            fired = true;
+            currentModalEl.removeEventListener('hidden.bs.modal', onHidden);
+            setTimeout(function () {
+              confirmHapusCuti(cutiId);
+            }, 60);
+          };
+          currentModalEl.addEventListener('hidden.bs.modal', onHidden);
+          bsCurrentModal.hide();
+          setTimeout(function () {
+            if (!fired) {
+              onHidden();
+            }
+          }, 350);
+        } else {
+          confirmHapusCuti(cutiId);
+        }
       };
 
       // Approval Modal Handlers
@@ -8626,11 +8803,13 @@
         document.getElementById('apprModalDurasi').innerText = item.jumlahHari + ' Hari';
         document.getElementById('apprModalPeriode').innerText = formatDateDMY(item.tanggalMulai) + ' s/d ' + formatDateDMY(item.tanggalSelesai);
 
+        var workInfo = getCutiWorkPeriodInfo(item);
         var elMasaOnsite = document.getElementById('apprModalMasaOnsite');
         if (elMasaOnsite) {
-          if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
-            var periodStr = item.tglAwalOnsite ? (' (Masuk: ' + formatDateDMY(item.tglAwalOnsite) + ')') : '';
-            elMasaOnsite.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle fw-bold me-1">' + item.totalHariKerjaOnsite + ' Hari Onsite</span>' + periodStr;
+          if (workInfo && workInfo.totalHariKerja > 0) {
+            elMasaOnsite.innerHTML =
+              '<span class="badge bg-success-subtle text-success border border-success-subtle fw-bold me-1">' + workInfo.totalHariKerja + ' Hari Kerja</span>' +
+              '<span class="text-muted">(Mulai: <strong>' + workInfo.strMulai + '</strong> s/d Akhir: <strong>' + workInfo.strAkhir + '</strong>)</span>';
           } else {
             elMasaOnsite.innerText = '-';
           }
@@ -8682,10 +8861,10 @@
         }
 
         var modalEl = document.getElementById('modalApprovalCuti');
-        if (!bsModalApprovalCuti) {
-          bsModalApprovalCuti = new bootstrap.Modal(modalEl);
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          bsModalApprovalCuti = bootstrap.Modal.getOrCreateInstance(modalEl);
+          bsModalApprovalCuti.show();
         }
-        bsModalApprovalCuti.show();
       };
 
       window.submitApprovalCuti = function (action) {
@@ -9198,9 +9377,10 @@
               '<button type="button" class="btn btn-sm btn-outline-primary fw-semibold" onclick="openDetailCutiFromKalender(\'' + escapeHTML(item.id) + '\')">' +
               '<i class="bi bi-eye me-1"></i>Lihat Detail</button>';
 
+            var calWorkInfo = getCutiWorkPeriodInfo(item);
             var calOnsiteRow = '';
-            if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
-              calOnsiteRow = '<div class="col-12"><strong>Masa Onsite:</strong> <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">' + item.totalHariKerjaOnsite + ' Hari Onsite</span>' + (item.tglAwalOnsite ? ' (Masuk: ' + formatDateDMY(item.tglAwalOnsite) + ')' : '') + '</div>';
+            if (calWorkInfo && calWorkInfo.totalHariKerja > 0) {
+              calOnsiteRow = '<div class="col-12"><strong>Masa Kerja Onsite:</strong> <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">' + calWorkInfo.totalHariKerja + ' Hari Kerja</span> <small class="text-muted">(' + calWorkInfo.strMulai + ' s/d ' + calWorkInfo.strAkhir + ')</small></div>';
             }
 
             html +=
@@ -9447,10 +9627,12 @@
         var alamatStr = item.alamat || item.alamatCuti || '-';
         var catatanStr = item.catatan || item.catatanTambahan || '-';
 
+        var workInfo = getCutiWorkPeriodInfo(item);
         var onsiteSuratRow = '';
-        if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
-          var tglAwalOnsiteIndo = item.tglAwalOnsite ? formatDateIndo(item.tglAwalOnsite) : '-';
-          onsiteSuratRow = '<tr><td class="label-col">Masa Kerja Onsite</td><td class="colon-col">:</td><td class="value-col"><strong>' + item.totalHariKerjaOnsite + ' Hari Kalender</strong> (Tanggal Masuk Site: ' + tglAwalOnsiteIndo + ')</td></tr>';
+        if (workInfo && workInfo.totalHariKerja > 0) {
+          var tglMulaiIndo = workInfo.tglMulaiKerja ? formatDateIndo(workInfo.tglMulaiKerja) : '-';
+          var tglAkhirIndo = workInfo.tglAkhirKerja ? formatDateIndo(workInfo.tglAkhirKerja) : '-';
+          onsiteSuratRow = '<tr><td class="label-col">Masa Kerja Onsite</td><td class="colon-col">:</td><td class="value-col"><strong>' + workInfo.totalHariKerja + ' Hari Kalender</strong> (Periode: ' + tglMulaiIndo + ' s/d ' + tglAkhirIndo + ')</td></tr>';
         }
 
         // Update modal header info
