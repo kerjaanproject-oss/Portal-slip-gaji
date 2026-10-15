@@ -139,12 +139,7 @@ function setupDatabase() {
   }
 
   // 5. Sheet PengajuanCuti
-  let cutiSheet = ss.getSheetByName('PengajuanCuti');
-  if (!cutiSheet) {
-    cutiSheet = ss.insertSheet('PengajuanCuti');
-    cutiSheet.appendRow(['ID Pengajuan', 'Tanggal Pengajuan', 'ID Karyawan', 'Nama Karyawan', 'Departemen', 'Jabatan', 'Jenis Cuti', 'Tanggal Mulai', 'Tanggal Selesai', 'Jumlah Hari', 'Alasan Cuti', 'Alamat Selama Cuti', 'Nomor Kontak', 'Nama File Lampiran', 'URL Drive', 'File ID Drive', 'Catatan Tambahan', 'Status']);
-    cutiSheet.getRange(1, 1, 1, 18).setFontWeight('bold').setBackground('#e2e8f0');
-  }
+  getOrCreatePengajuanCutiSheet(ss);
 
   // 6. Sheet MasterRoster
   getOrCreateMasterRosterSheet(ss);
@@ -1650,6 +1645,7 @@ function getOrCreatePengajuanCutiSheet(ss) {
     'Catatan Tambahan', 'Status',
     'Approver 1 Nama', 'Approver 1 Jabatan', 'Approver 1 Tanggal', 'Approver 1 Status', 'Approver 1 Catatan',
     'Approver 2 Nama', 'Approver 2 Jabatan', 'Approver 2 Tanggal', 'Approver 2 Status', 'Approver 2 Catatan',
+    'Approver 3 Nama', 'Approver 3 Jabatan', 'Approver 3 Tanggal', 'Approver 3 Status', 'Approver 3 Catatan',
     'Alasan Penolakan', 'Tanggal Awal Onsite', 'Total Hari Kerja Onsite'
   ];
 
@@ -1712,6 +1708,27 @@ function normalizeDept(d) {
   return cleanDept(d);
 }
 
+function isJobPJO(role, jabatan) {
+  const r = String(role || '').trim().toLowerCase();
+  const j = String(jabatan || '').trim().toLowerCase();
+  if (r === 'pjo' || r === 'direktur' || r === 'director') return true;
+  const keywords = [
+    'pjo',
+    'penanggung jawab operasional',
+    'penanggungjawab operasional',
+    'ktt',
+    'kepala teknik tambang',
+    'direktur',
+    'director',
+    'project manager',
+    'general manager'
+  ];
+  for (let k = 0; k < keywords.length; k++) {
+    if (j.includes(keywords[k])) return true;
+  }
+  return false;
+}
+
 function isJobAtasan(role, jabatan) {
   const r = String(role || '').trim().toLowerCase();
   const j = String(jabatan || '').trim().toLowerCase();
@@ -1764,6 +1781,7 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
   const userRoleLower = userRole.toLowerCase();
   const isHRD = (userRoleLower === 'admin' || userRoleLower === 'hrd' || currentUsername === 'admin');
   const isSupervisor = isJobAtasan(userRole, userJab);
+  const isPJO = isJobPJO(userRole, userJab);
 
   const headers = data[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
   const idIdx = headers.findIndex(function (h) { return h.includes('id pengajuan') || h === 'id cuti' || h === 'id' || h.includes('kode'); });
@@ -1799,6 +1817,13 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
   const app2StatusIdx = headers.findIndex(function (h) { return h.includes('approver 2 status'); });
   const app2CatatanIdx = headers.findIndex(function (h) { return h.includes('approver 2 catatan'); });
 
+  // Approver 3 (PJO / Direktur)
+  const app3NameIdx = headers.findIndex(function (h) { return h.includes('approver 3 nama') || h.includes('approver3 nama') || h === 'approver 3'; });
+  const app3JabIdx = headers.findIndex(function (h) { return h.includes('approver 3 jabatan') || h.includes('approver3 jabatan'); });
+  const app3TglIdx = headers.findIndex(function (h) { return h.includes('approver 3 tanggal') || h.includes('approver 3 tgl'); });
+  const app3StatusIdx = headers.findIndex(function (h) { return h.includes('approver 3 status'); });
+  const app3CatatanIdx = headers.findIndex(function (h) { return h.includes('approver 3 catatan'); });
+
   const tolakAlasanIdx = headers.findIndex(function (h) { return h.includes('alasan penolakan') || h.includes('alasan tolak'); });
   const tglAwalOnsiteIdx = headers.findIndex(function (h) { return h.includes('tanggal awal onsite') || h.includes('awal onsite') || h.includes('tgl awal onsite'); });
   const totalHariOnsiteIdx = headers.findIndex(function (h) { return h.includes('total hari kerja onsite') || h.includes('hari kerja onsite') || h.includes('hari onsite') || h.includes('total hari onsite'); });
@@ -1814,12 +1839,12 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
     const rowDeptNorm = normalizeDept(applicantDb && applicantDb.dept ? applicantDb.dept : rawRowDept);
 
     // Hak Lihat Riwayat Cuti:
-    // 1. HRD/Admin melihat semua pengajuan seluruh departemen.
+    // 1. HRD/Admin dan PJO/Direktur melihat semua pengajuan seluruh departemen.
     // 2. Supervisor melihat:
     //    - Pengajuan dari departemennya sendiri (userDeptNorm === rowDeptNorm)
     //    - Pengajuan miliknya sendiri (rowEmpId === currentUsername)
     // 3. Karyawan biasa hanya melihat pengajuannya sendiri.
-    if (!isHRD) {
+    if (!isHRD && !isPJO) {
       if (isSupervisor) {
         const isOwnRow = (rowEmpId === currentUsername);
         const isDeptRow = isSameDept(userDept, rowDeptNorm) || isSameDept(userDept, rawRowDept) || (userDeptNorm !== '' && (userDeptNorm === rowDeptNorm || userDeptNorm === normalizeDept(rawRowDept)));
@@ -1883,6 +1908,13 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
       approver2Tanggal: app2TglIdx !== -1 ? (row[app2TglIdx] instanceof Date ? Utilities.formatDate(row[app2TglIdx], 'Asia/Jakarta', 'dd/MM/yyyy HH:mm') : String(row[app2TglIdx] || '').trim()) : '',
       approver2Status: app2StatusIdx !== -1 ? String(row[app2StatusIdx] || '').trim() : '',
       approver2Catatan: app2CatatanIdx !== -1 ? String(row[app2CatatanIdx] || '').trim() : '',
+
+      // Approver 3 (PJO / Direktur)
+      approver3Nama: app3NameIdx !== -1 ? String(row[app3NameIdx] || '').trim() : '',
+      approver3Jabatan: app3JabIdx !== -1 ? String(row[app3JabIdx] || '').trim() : '',
+      approver3Tanggal: app3TglIdx !== -1 ? (row[app3TglIdx] instanceof Date ? Utilities.formatDate(row[app3TglIdx], 'Asia/Jakarta', 'dd/MM/yyyy HH:mm') : String(row[app3TglIdx] || '').trim()) : '',
+      approver3Status: app3StatusIdx !== -1 ? String(row[app3StatusIdx] || '').trim() : '',
+      approver3Catatan: app3CatatanIdx !== -1 ? String(row[app3CatatanIdx] || '').trim() : '',
 
       alasanPenolakan: tolakAlasanIdx !== -1 ? String(row[tolakAlasanIdx] || '').trim() : '',
       tglAwalOnsite: tglAwalOnsiteIdx !== -1 && row[tglAwalOnsiteIdx] ? (row[tglAwalOnsiteIdx] instanceof Date ? Utilities.formatDate(row[tglAwalOnsiteIdx], 'Asia/Jakarta', 'yyyy-MM-dd') : String(row[tglAwalOnsiteIdx]).trim()) : '',
@@ -2000,22 +2032,22 @@ function submitPengajuanCuti(token, payload) {
 
   const submitterRole = String(session.user.role || '').trim().toLowerCase();
   const submitterJab = String(session.user.jabatan || '').trim().toLowerCase();
+  const isSubmitterPJO = isJobPJO(submitterRole, submitterJab);
+  const isSubmitterHRD = (submitterRole === 'hrd' || submitterRole === 'admin');
   const isSubmitterAtasan = (
     submitterRole === 'supervisor' ||
     submitterRole === 'atasan' ||
-    submitterRole === 'admin' ||
-    submitterRole === 'hrd' ||
-    submitterJab.includes('supervisor') ||
-    submitterJab.includes('manager') ||
-    submitterJab.includes('lead') ||
-    submitterJab.includes('head') ||
-    submitterJab.includes('kabag') ||
-    submitterJab.includes('koordinator') ||
-    submitterJab.includes('direktur') ||
-    submitterJab.includes('superintendent') ||
-    submitterJab.includes('kepala')
+    isJobAtasan(submitterRole, submitterJab)
   );
-  const initialCutiStatus = isSubmitterAtasan ? 'Menunggu Persetujuan HRD' : 'Menunggu Persetujuan Atasan';
+
+  let initialCutiStatus = 'Menunggu Persetujuan Atasan';
+  if (isSubmitterPJO) {
+    initialCutiStatus = 'Menunggu Persetujuan HRD';
+  } else if (isSubmitterHRD) {
+    initialCutiStatus = 'Menunggu Persetujuan PJO';
+  } else if (isSubmitterAtasan) {
+    initialCutiStatus = 'Menunggu Persetujuan HRD';
+  }
 
   cutiSheet.appendRow([
     cutiId,
@@ -2038,6 +2070,7 @@ function submitPengajuanCuti(token, payload) {
     initialCutiStatus,
     '', '', '', '', '', // Approver 1
     '', '', '', '', '', // Approver 2
+    '', '', '', '', '', // Approver 3
     '', // Alasan Penolakan
     tglAwalOnsite,
     totalHariKerjaOnsite
@@ -2213,6 +2246,13 @@ function processApprovalCuti(token, cutiId, action, catatan) {
   const app2StatusIdx = headers.findIndex(function (h) { return h.includes('approver 2 status'); });
   const app2CatatanIdx = headers.findIndex(function (h) { return h.includes('approver 2 catatan'); });
 
+  // Indexes Approver 3 (PJO / Direktur)
+  const app3NameIdx = headers.findIndex(function (h) { return h.includes('approver 3 nama') || h.includes('approver3 nama') || h === 'approver 3'; });
+  const app3JabIdx = headers.findIndex(function (h) { return h.includes('approver 3 jabatan') || h.includes('approver3 jabatan'); });
+  const app3TglIdx = headers.findIndex(function (h) { return h.includes('approver 3 tanggal') || h.includes('approver 3 tgl'); });
+  const app3StatusIdx = headers.findIndex(function (h) { return h.includes('approver 3 status'); });
+  const app3CatatanIdx = headers.findIndex(function (h) { return h.includes('approver 3 catatan'); });
+
   const tolakAlasanIdx = headers.findIndex(function (h) { return h.includes('alasan penolakan') || h.includes('alasan tolak'); });
 
   const user = session.user;
@@ -2222,10 +2262,13 @@ function processApprovalCuti(token, cutiId, action, catatan) {
   const userJab = String(user.jabatan || '').trim().toLowerCase();
   const currentUsername = String(user.username || '').trim().toLowerCase();
 
-  const isHRD = (userRole === 'admin' || userRole === 'hrd' || userDept.includes('hr') || userDept.includes('human resource'));
+  const isAdmin = (userRole === 'admin' || userRole === 'admin master' || currentUsername === 'admin');
+  const isHRD = (isAdmin || userRole === 'hrd' || userDept.includes('hr') || userDept.includes('human resource'));
   const isSupervisor = isJobAtasan(userRole, userJab);
+  const isPJO = isJobPJO(userRole, userJab);
+  const canApprovePJO = (isPJO || isAdmin);
 
-  if (!isHRD && !isSupervisor) {
+  if (!isHRD && !isSupervisor && !canApprovePJO) {
     return { success: false, message: 'Akses ditolak: Anda tidak memiliki wewenang untuk melakukan approval cuti.' };
   }
 
@@ -2268,23 +2311,6 @@ function processApprovalCuti(token, cutiId, action, catatan) {
       const applicantJab = String(applicant.jabatan || rawRowJab).trim().toLowerCase();
       const applicantDept = String(applicant.dept || rawRowDept).trim();
 
-      // Cek apakah pemohon adalah Atasan / Supervisor
-      const isApplicantAtasan = (
-        applicantRole === 'supervisor' ||
-        applicantRole === 'atasan' ||
-        applicantRole === 'admin' ||
-        applicantRole === 'hrd' ||
-        applicantJab.includes('supervisor') ||
-        applicantJab.includes('manager') ||
-        applicantJab.includes('lead') ||
-        applicantJab.includes('head') ||
-        applicantJab.includes('kabag') ||
-        applicantJab.includes('koordinator') ||
-        applicantJab.includes('direktur') ||
-        applicantJab.includes('superintendent') ||
-        applicantJab.includes('kepala')
-      );
-
       // Cegah approval diri sendiri kecuali akun Admin
       if (rowEmpId === currentUsername && userRole !== 'admin') {
         return { success: false, message: 'Anda tidak dapat memproses persetujuan pengajuan cuti Anda sendiri.' };
@@ -2294,68 +2320,14 @@ function processApprovalCuti(token, cutiId, action, catatan) {
       const nowStr = Utilities.formatDate(now, 'Asia/Jakarta', 'dd/MM/yyyy HH:mm');
       const rowIndex = i + 1;
 
-      // ATURAN 1: PEMOHON ADALAH ATASAN / SUPERVISOR
-      // Sesuai instruksi: "dan untuk atasan yang bisa approv untuk sementara saat ini hanya HRD"
-      if (isApplicantAtasan) {
-        if (!isHRD) {
-          return {
-            success: false,
-            message: 'Akses ditolak: Pengajuan cuti dari Atasan / Supervisor (' + (applicant.fullname || rowEmpId) + ') saat ini hanya dapat disetujui oleh HRD.'
-          };
-        }
-
-        if (action === 'Setujui') {
-          cutiSheet.getRange(rowIndex, statusIdx + 1).setValue('Disetujui');
-          if (app1NameIdx !== -1) cutiSheet.getRange(rowIndex, app1NameIdx + 1).setValue(user.fullname);
-          if (app1JabIdx !== -1) cutiSheet.getRange(rowIndex, app1JabIdx + 1).setValue(user.jabatan);
-          if (app1TglIdx !== -1) cutiSheet.getRange(rowIndex, app1TglIdx + 1).setValue(nowStr);
-          if (app1StatusIdx !== -1) cutiSheet.getRange(rowIndex, app1StatusIdx + 1).setValue('Disetujui');
-          if (app1CatatanIdx !== -1) cutiSheet.getRange(rowIndex, app1CatatanIdx + 1).setValue(catatan || 'Disetujui HRD (Persetujuan Cuti Atasan)');
-
-          if (app2NameIdx !== -1) cutiSheet.getRange(rowIndex, app2NameIdx + 1).setValue(user.fullname);
-          if (app2JabIdx !== -1) cutiSheet.getRange(rowIndex, app2JabIdx + 1).setValue(user.jabatan);
-          if (app2TglIdx !== -1) cutiSheet.getRange(rowIndex, app2TglIdx + 1).setValue(nowStr);
-          if (app2StatusIdx !== -1) cutiSheet.getRange(rowIndex, app2StatusIdx + 1).setValue('Disetujui');
-          if (app2CatatanIdx !== -1) cutiSheet.getRange(rowIndex, app2CatatanIdx + 1).setValue(catatan || 'Disetujui Final HRD');
-
-          return {
-            success: true,
-            message: 'Pengajuan cuti Atasan berhasil disetujui langsung oleh HRD.',
-            newStatus: 'Disetujui'
-          };
-        } else {
-          cutiSheet.getRange(rowIndex, statusIdx + 1).setValue('Ditolak HRD');
-          if (app1NameIdx !== -1) cutiSheet.getRange(rowIndex, app1NameIdx + 1).setValue(user.fullname);
-          if (app1JabIdx !== -1) cutiSheet.getRange(rowIndex, app1JabIdx + 1).setValue(user.jabatan);
-          if (app1TglIdx !== -1) cutiSheet.getRange(rowIndex, app1TglIdx + 1).setValue(nowStr);
-          if (app1StatusIdx !== -1) cutiSheet.getRange(rowIndex, app1StatusIdx + 1).setValue('Ditolak');
-          if (app1CatatanIdx !== -1) cutiSheet.getRange(rowIndex, app1CatatanIdx + 1).setValue(catatan);
-
-          if (app2NameIdx !== -1) cutiSheet.getRange(rowIndex, app2NameIdx + 1).setValue(user.fullname);
-          if (app2JabIdx !== -1) cutiSheet.getRange(rowIndex, app2JabIdx + 1).setValue(user.jabatan);
-          if (app2TglIdx !== -1) cutiSheet.getRange(rowIndex, app2TglIdx + 1).setValue(nowStr);
-          if (app2StatusIdx !== -1) cutiSheet.getRange(rowIndex, app2StatusIdx + 1).setValue('Ditolak');
-          if (app2CatatanIdx !== -1) cutiSheet.getRange(rowIndex, app2CatatanIdx + 1).setValue(catatan);
-
-          if (tolakAlasanIdx !== -1) cutiSheet.getRange(rowIndex, tolakAlasanIdx + 1).setValue(catatan);
-
-          return {
-            success: true,
-            message: 'Pengajuan cuti Atasan berhasil ditolak oleh HRD.',
-            newStatus: 'Ditolak HRD'
-          };
-        }
-      }
-
-      // ATURAN 2: PEMOHON ADALAH KARYAWAN BIASA
       // 1. TAHAP 1: Approval Atasan / Supervisor
       if (currentStatus === 'Menunggu Persetujuan Atasan' || currentStatus === 'Menunggu Persetujuan') {
         if (!isSupervisor && !isHRD) {
-          return { success: false, message: 'Hanya Atasan/Supervisor yang berhak memproses permohonan tahap ini.' };
+          return { success: false, message: 'Hanya Atasan/Supervisor (atau Admin/HRD) yang berhak memproses permohonan tahap ini.' };
         }
 
         // Atasan hanya bisa approve untuk karyawan yang sama departemen dengannya
-        // HRD bisa approve semua departemen
+        // HRD/Admin bisa approve semua departemen
         if (!isHRD) {
           const matchDept = isSameDept(userDept, applicantDept) || isSameDept(userDept, rawRowDept) || (userDeptNorm !== '' && (userDeptNorm === normalizeDept(applicantDept) || userDeptNorm === normalizeDept(rawRowDept)));
           if (!matchDept) {
@@ -2397,20 +2369,20 @@ function processApprovalCuti(token, cutiId, action, catatan) {
       // 2. TAHAP 2: Approval HRD
       else if (currentStatus === 'Menunggu Persetujuan HRD') {
         if (!isHRD) {
-          return { success: false, message: 'Hanya HRD / Admin yang berhak memproses approval tahap akhir.' };
+          return { success: false, message: 'Hanya HRD / Admin yang berhak memproses permohonan tahap verifikasi ini.' };
         }
 
         if (action === 'Setujui') {
-          cutiSheet.getRange(rowIndex, statusIdx + 1).setValue('Disetujui');
+          cutiSheet.getRange(rowIndex, statusIdx + 1).setValue('Menunggu Persetujuan PJO');
           if (app2NameIdx !== -1) cutiSheet.getRange(rowIndex, app2NameIdx + 1).setValue(user.fullname);
           if (app2JabIdx !== -1) cutiSheet.getRange(rowIndex, app2JabIdx + 1).setValue(user.jabatan);
           if (app2TglIdx !== -1) cutiSheet.getRange(rowIndex, app2TglIdx + 1).setValue(nowStr);
           if (app2StatusIdx !== -1) cutiSheet.getRange(rowIndex, app2StatusIdx + 1).setValue('Disetujui');
-          if (app2CatatanIdx !== -1) cutiSheet.getRange(rowIndex, app2CatatanIdx + 1).setValue(catatan || 'Disetujui Final');
+          if (app2CatatanIdx !== -1) cutiSheet.getRange(rowIndex, app2CatatanIdx + 1).setValue(catatan || 'Disetujui HRD');
           return {
             success: true,
-            message: 'Pengajuan cuti telah disetujui sepenuhnya oleh HRD.',
-            newStatus: 'Disetujui'
+            message: 'Pengajuan cuti berhasil diverifikasi oleh HRD dan diteruskan ke PJO / Direktur untuk pengesahan akhir.',
+            newStatus: 'Menunggu Persetujuan PJO'
           };
         } else {
           cutiSheet.getRange(rowIndex, statusIdx + 1).setValue('Ditolak HRD');
@@ -2424,6 +2396,40 @@ function processApprovalCuti(token, cutiId, action, catatan) {
             success: true,
             message: 'Pengajuan cuti telah ditolak oleh HRD.',
             newStatus: 'Ditolak HRD'
+          };
+        }
+      }
+
+      // 3. TAHAP 3: Approval PJO / Direktur (Final Sign-off)
+      else if (currentStatus === 'Menunggu Persetujuan PJO' || currentStatus === 'Menunggu Persetujuan Direktur') {
+        if (!canApprovePJO) {
+          return { success: false, message: 'Akses ditolak: Hanya PJO / Direktur (atau Admin) yang berhak memproses persetujuan tahap akhir ini.' };
+        }
+
+        if (action === 'Setujui') {
+          cutiSheet.getRange(rowIndex, statusIdx + 1).setValue('Disetujui');
+          if (app3NameIdx !== -1) cutiSheet.getRange(rowIndex, app3NameIdx + 1).setValue(user.fullname);
+          if (app3JabIdx !== -1) cutiSheet.getRange(rowIndex, app3JabIdx + 1).setValue(user.jabatan);
+          if (app3TglIdx !== -1) cutiSheet.getRange(rowIndex, app3TglIdx + 1).setValue(nowStr);
+          if (app3StatusIdx !== -1) cutiSheet.getRange(rowIndex, app3StatusIdx + 1).setValue('Disetujui');
+          if (app3CatatanIdx !== -1) cutiSheet.getRange(rowIndex, app3CatatanIdx + 1).setValue(catatan || 'Disetujui Final PJO / Direktur');
+          return {
+            success: true,
+            message: 'Pengajuan cuti telah disetujui dan disahkan secara resmi oleh PJO / Direktur.',
+            newStatus: 'Disetujui'
+          };
+        } else {
+          cutiSheet.getRange(rowIndex, statusIdx + 1).setValue('Ditolak PJO');
+          if (app3NameIdx !== -1) cutiSheet.getRange(rowIndex, app3NameIdx + 1).setValue(user.fullname);
+          if (app3JabIdx !== -1) cutiSheet.getRange(rowIndex, app3JabIdx + 1).setValue(user.jabatan);
+          if (app3TglIdx !== -1) cutiSheet.getRange(rowIndex, app3TglIdx + 1).setValue(nowStr);
+          if (app3StatusIdx !== -1) cutiSheet.getRange(rowIndex, app3StatusIdx + 1).setValue('Ditolak');
+          if (app3CatatanIdx !== -1) cutiSheet.getRange(rowIndex, app3CatatanIdx + 1).setValue(catatan);
+          if (tolakAlasanIdx !== -1) cutiSheet.getRange(rowIndex, tolakAlasanIdx + 1).setValue(catatan);
+          return {
+            success: true,
+            message: 'Pengajuan cuti telah ditolak oleh PJO / Direktur.',
+            newStatus: 'Ditolak PJO'
           };
         }
       }

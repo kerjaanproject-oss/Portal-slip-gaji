@@ -1361,6 +1361,23 @@
       background-color: #eff6ff;
     }
 
+    .stamp-badge.approved-pjo {
+      border: 1.5px solid #7c3aed;
+      color: #7c3aed;
+      background-color: #f5f3ff;
+    }
+
+    .bg-pjo {
+      background-color: #7c3aed !important;
+      color: #ffffff !important;
+    }
+
+    .bg-pjo-subtle {
+      background-color: #f5f3ff !important;
+      color: #7c3aed !important;
+      border: 1px solid #ddd6fe !important;
+    }
+
     .surat-sig-name {
       font-size: 8.5pt;
       font-weight: 800;
@@ -2349,6 +2366,7 @@
                           <option value="SEMUA">Semua Status</option>
                           <option value="Menunggu Persetujuan Atasan">Menunggu Atasan</option>
                           <option value="Menunggu Persetujuan HRD">Menunggu HRD</option>
+                          <option value="Menunggu Persetujuan PJO">Menunggu PJO / Direktur</option>
                           <option value="Disetujui">Disetujui</option>
                           <option value="Ditolak">Ditolak</option>
                         </select>
@@ -2480,6 +2498,7 @@
                           <option value="SEMUA">Semua Status</option>
                           <option value="Menunggu Persetujuan Atasan">Menunggu Atasan</option>
                           <option value="Menunggu Persetujuan HRD">Menunggu HRD</option>
+                          <option value="Menunggu Persetujuan PJO">Menunggu PJO / Direktur</option>
                           <option value="Disetujui">Disetujui</option>
                           <option value="Ditolak">Ditolak</option>
                         </select>
@@ -7605,6 +7624,28 @@
         renderPersetujuanCutiTable();
       };
 
+      // Helper periksa apakah role atau jabatan termasuk level PJO / Direktur
+      function isJobPJO(jabatan, role) {
+        var j = String(jabatan || '').trim().toLowerCase();
+        var r = String(role || '').trim().toLowerCase();
+        if (r === 'pjo' || r === 'direktur' || r === 'director') return true;
+        var keywords = [
+          'pjo',
+          'penanggung jawab operasional',
+          'penanggungjawab operasional',
+          'ktt',
+          'kepala teknik tambang',
+          'direktur',
+          'director',
+          'project manager',
+          'general manager'
+        ];
+        for (var k = 0; k < keywords.length; k++) {
+          if (j.indexOf(keywords[k]) !== -1) return true;
+        }
+        return false;
+      }
+
       // Helper periksa apakah role atau jabatan termasuk level Atasan/Supervisor
       function isJobAtasan(jabatan, role) {
         var r = String(role || '').trim().toLowerCase();
@@ -7662,15 +7703,18 @@
         var uJab = String(user.jabatan || '').toLowerCase();
         var uName = String(user.username || '').toLowerCase();
 
-        var isHRD = (uRole === 'admin' || uRole === 'hrd' || uName === 'admin');
+        var isAdmin = (uRole === 'admin' || uName === 'admin');
+        var isHRD = (isAdmin || uRole === 'hrd');
         var isSupervisor = (uRole === 'supervisor' || uRole === 'atasan' || isJobAtasan(uJab, uRole));
+        var isPJO = isJobPJO(uJab, uRole);
+        var canApprovePJO = (isPJO || isAdmin);
 
         var rowEmp = String(item.empId || '').toLowerCase();
         var rowDept = String(item.dept || '');
         var status = String(item.status || '').trim();
 
         // 1. Cegah approval diri sendiri kecuali akun Admin Master
-        if (rowEmp === uName && uRole !== 'admin') return false;
+        if (rowEmp === uName && !isAdmin) return false;
 
         // Cek apakah pemohon adalah Atasan / Supervisor
         var applicantObj = (typeof dbKaryawan !== 'undefined' && dbKaryawan) ? dbKaryawan.find(function (k) {
@@ -7685,17 +7729,14 @@
         var statusLower = status.toLowerCase();
         var isPendingAtasan = (statusLower.indexOf('atasan') !== -1 || status === 'Menunggu Persetujuan' || status === 'Menunggu' || status === 'Pending');
         var isPendingHRD = (statusLower.indexOf('hrd') !== -1);
+        var isPendingPJO = (statusLower.indexOf('pjo') !== -1 || statusLower.indexOf('direktur') !== -1);
 
-        // ATURAN 1: Jika pemohon adalah Atasan / Supervisor
-        // "dan untuk atasan yang bisa approv untuk sementara saat ini hanya HRD"
-        if (isApplicantAtasan) {
-          if (!isHRD) return false;
-          return (isPendingAtasan || isPendingHRD);
-        }
-
-        // ATURAN 2: Pemohon adalah Karyawan Biasa
         // TAHAP 1: Menunggu Persetujuan Atasan
         if (isPendingAtasan) {
+          if (isApplicantAtasan) {
+            // Jika pemohon atasan, langsung di-handle HRD
+            return isHRD;
+          }
           if (isHRD) return true; // HRD bisa approv semua departemen
           if (isSupervisor) {
             // Atasan HANYA bisa approv untuk karyawan yang SAMA departemennya
@@ -7706,8 +7747,12 @@
 
         // TAHAP 2: Menunggu Persetujuan HRD
         if (isPendingHRD) {
-          if (isHRD) return true; // Hanya HRD / Admin
-          return false;
+          return isHRD; // Hanya HRD / Admin
+        }
+
+        // TAHAP 3: Menunggu Persetujuan PJO / Direktur
+        if (isPendingPJO) {
+          return canApprovePJO; // PJO, Direktur, atau Admin (wewenang cadangan)
         }
 
         return false;
@@ -7715,10 +7760,14 @@
 
       function getCutiStatusBadge(status) {
         var s = String(status || '').trim();
-        if (s === 'Menunggu Persetujuan HRD') {
+        if (s === 'Menunggu Persetujuan PJO' || s === 'Menunggu Persetujuan Direktur') {
+          return { cls: 'bg-pjo text-white', icon: 'bi-award-fill', label: 'Menunggu PJO' };
+        } else if (s === 'Menunggu Persetujuan HRD') {
           return { cls: 'bg-info text-dark', icon: 'bi-clock-history', label: 'Menunggu HRD' };
         } else if (s === 'Disetujui') {
           return { cls: 'bg-success text-white', icon: 'bi-check-circle-fill', label: 'Disetujui' };
+        } else if (s === 'Ditolak PJO') {
+          return { cls: 'bg-danger text-white', icon: 'bi-x-circle-fill', label: 'Ditolak PJO' };
         } else if (s === 'Ditolak Atasan') {
           return { cls: 'bg-danger text-white', icon: 'bi-x-circle-fill', label: 'Ditolak Atasan' };
         } else if (s === 'Ditolak HRD') {
@@ -7905,7 +7954,7 @@
           if (filterStatus === 'SEMUA') {
             matchStatus = true;
           } else if (filterStatus === 'Ditolak') {
-            matchStatus = (item.status === 'Ditolak' || item.status === 'Ditolak Atasan' || item.status === 'Ditolak HRD');
+            matchStatus = (item.status === 'Ditolak' || item.status === 'Ditolak Atasan' || item.status === 'Ditolak HRD' || item.status === 'Ditolak PJO');
           } else if (filterStatus === 'Menunggu Persetujuan Atasan') {
             matchStatus = (item.status === 'Menunggu Persetujuan Atasan' || item.status === 'Menunggu Persetujuan');
           } else {
@@ -8022,14 +8071,16 @@
         var uJab = String(user.jabatan || '').toLowerCase();
         var uName = String(user.username || '').toLowerCase();
 
-        var isHRD = (uRole === 'admin' || uRole === 'hrd' || uName === 'admin');
+        var isAdmin = (uRole === 'admin' || uName === 'admin');
+        var isHRD = (isAdmin || uRole === 'hrd');
         var isSupervisor = (uRole === 'supervisor' || uRole === 'atasan' || isJobAtasan(uJab, uRole));
+        var isPJO = isJobPJO(uJab, uRole);
 
         // Filter bawahan / karyawan untuk halaman Persetujuan
         var subordinateLeaves = dbCutiList.filter(function (item) {
           var rowEmp = String(item.empId || '').toLowerCase();
-          if (isHRD) {
-            return true; // HRD dapat melihat permohonan semua karyawan
+          if (isAdmin || isHRD || isPJO) {
+            return true; // Admin, HRD, dan PJO/Direktur dapat melihat permohonan seluruh karyawan
           }
           if (isSupervisor) {
             if (rowEmp === uName) return false; // Jangan tampilkan cuti diri sendiri di tabel approval
@@ -8047,7 +8098,24 @@
         // Tampilkan info banner departemen
         var containerBanner = document.getElementById('containerAtasanBanner');
         if (containerBanner) {
-          if (isSupervisor && !isHRD) {
+          if (isPJO && !isAdmin) {
+            containerBanner.classList.remove('d-none');
+            containerBanner.innerHTML =
+              '<div class="alert alert-light border d-flex align-items-center justify-content-between flex-wrap gap-2 p-3 shadow-xs mb-0" style="border-color: #ddd6fe !important;">' +
+              '<div class="d-flex align-items-center gap-2">' +
+              '<div class="rounded-circle bg-pjo-subtle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">' +
+              '<i class="bi bi-award-fill fs-5"></i>' +
+              '</div>' +
+              '<div>' +
+              '<h6 class="fw-bold text-dark mb-0">Login sebagai PJO / Direktur</h6>' +
+              '<small class="text-muted">Pengesahan Akhir (Final Approval) cuti seluruh departemen &bull; Jabatan: <strong class="text-primary">' + escapeHTML(user.jabatan || 'PJO / Direktur') + '</strong></small>' +
+              '</div>' +
+              '</div>' +
+              (needApprovalCount > 0
+                ? '<span class="badge bg-pjo px-3 py-2 fw-semibold"><i class="bi bi-bell-fill me-1"></i>' + needApprovalCount + ' Permohonan Memerlukan Persetujuan PJO</span>'
+                : '<span class="badge bg-success-subtle text-success px-3 py-2 fw-semibold"><i class="bi bi-check-circle me-1"></i>Semua Permohonan Telah Diproses</span>') +
+              '</div>';
+          } else if (isSupervisor && !isHRD) {
             containerBanner.classList.remove('d-none');
             containerBanner.innerHTML =
               '<div class="alert alert-light border border-primary-subtle d-flex align-items-center justify-content-between flex-wrap gap-2 p-3 shadow-xs mb-0">' +
@@ -8074,11 +8142,11 @@
               '</div>' +
               '<div>' +
               '<h6 class="fw-bold text-dark mb-0">Login sebagai HRD / Admin Master</h6>' +
-              '<small class="text-muted">Wewenang persetujuan penuh seluruh departemen &amp; persetujuan cuti Atasan.</small>' +
+              '<small class="text-muted">Wewenang persetujuan penuh seluruh departemen &amp; wewenang cadangan di setiap tahap approval.</small>' +
               '</div>' +
               '</div>' +
               (needApprovalCount > 0
-                ? '<span class="badge bg-danger px-3 py-2 fw-semibold"><i class="bi bi-bell-fill me-1"></i>' + needApprovalCount + ' Permohonan Memerlukan Persetujuan HRD</span>'
+                ? '<span class="badge bg-danger px-3 py-2 fw-semibold"><i class="bi bi-bell-fill me-1"></i>' + needApprovalCount + ' Permohonan Memerlukan Persetujuan</span>'
                 : '<span class="badge bg-success-subtle text-success px-3 py-2 fw-semibold"><i class="bi bi-check-circle me-1"></i>Semua Permohonan Telah Diproses</span>') +
               '</div>';
           } else {
@@ -8102,7 +8170,7 @@
           if (filterStatus === 'SEMUA') {
             matchStatus = true;
           } else if (filterStatus === 'Ditolak') {
-            matchStatus = (item.status === 'Ditolak' || item.status === 'Ditolak Atasan' || item.status === 'Ditolak HRD');
+            matchStatus = (item.status === 'Ditolak' || item.status === 'Ditolak Atasan' || item.status === 'Ditolak HRD' || item.status === 'Ditolak PJO');
           } else if (filterStatus === 'Menunggu Persetujuan Atasan') {
             matchStatus = (item.status === 'Menunggu Persetujuan Atasan' || item.status === 'Menunggu Persetujuan');
           } else {
@@ -8288,15 +8356,15 @@
         var step3NoteHtml = '';
 
         if (item.status === 'Menunggu Persetujuan HRD') {
-          step3CircleCls = 'bg-warning text-dark';
+          step3CircleCls = 'bg-info text-dark';
           step3Icon = 'bi-hourglass-split';
-          step3BadgeCls = 'bg-warning-subtle text-warning';
+          step3BadgeCls = 'bg-info-subtle text-info';
           step3BadgeText = 'Menunggu Verifikasi HRD';
-        } else if (item.approver2Status === 'Disetujui' || item.status === 'Disetujui') {
+        } else if (item.approver2Status === 'Disetujui' || item.status === 'Menunggu Persetujuan PJO' || item.status === 'Menunggu Persetujuan Direktur' || item.status === 'Disetujui' || item.status === 'Ditolak PJO') {
           step3CircleCls = 'bg-success text-white';
           step3Icon = 'bi-check';
           step3BadgeCls = 'bg-success-subtle text-success';
-          step3BadgeText = 'Disetujui Final';
+          step3BadgeText = 'Disetujui HRD';
         } else if (item.approver2Status === 'Ditolak' || item.status === 'Ditolak HRD') {
           step3CircleCls = 'bg-danger text-white';
           step3Icon = 'bi-x';
@@ -8308,9 +8376,37 @@
           step3NoteHtml = '<div class="extra-small text-dark mt-1 p-2 bg-light rounded border"><i class="bi bi-chat-left-text me-1 text-muted"></i><strong>Catatan:</strong> ' + escapeHTML(item.approver2Catatan) + '</div>';
         }
 
+        // Step 4 (PJO / Direktur) styling
+        var step4CircleCls = 'bg-light border text-muted';
+        var step4Icon = 'bi-circle';
+        var step4BadgeCls = 'bg-light text-muted border';
+        var step4BadgeText = 'Menunggu Tahap 2';
+        var step4NoteHtml = '';
+
+        if (item.status === 'Menunggu Persetujuan PJO' || item.status === 'Menunggu Persetujuan Direktur') {
+          step4CircleCls = 'bg-pjo text-white';
+          step4Icon = 'bi-hourglass-split';
+          step4BadgeCls = 'bg-pjo-subtle text-pjo';
+          step4BadgeText = 'Menunggu Persetujuan PJO';
+        } else if (item.approver3Status === 'Disetujui' || item.status === 'Disetujui') {
+          step4CircleCls = 'bg-success text-white';
+          step4Icon = 'bi-check';
+          step4BadgeCls = 'bg-success-subtle text-success';
+          step4BadgeText = 'Disetujui Final';
+        } else if (item.approver3Status === 'Ditolak' || item.status === 'Ditolak PJO') {
+          step4CircleCls = 'bg-danger text-white';
+          step4Icon = 'bi-x';
+          step4BadgeCls = 'bg-danger-subtle text-danger';
+          step4BadgeText = 'Ditolak PJO';
+        }
+
+        if (item.approver3Catatan) {
+          step4NoteHtml = '<div class="extra-small text-dark mt-1 p-2 bg-light rounded border"><i class="bi bi-chat-left-text me-1 text-muted"></i><strong>Catatan:</strong> ' + escapeHTML(item.approver3Catatan) + '</div>';
+        }
+
         var rejectionBanner = '';
         if (item.alasanPenolakan || item.status.indexOf('Ditolak') !== -1) {
-          var rejectReason = item.alasanPenolakan || item.approver2Catatan || item.approver1Catatan || 'Tidak dicantumkan alasan khusus.';
+          var rejectReason = item.alasanPenolakan || item.approver3Catatan || item.approver2Catatan || item.approver1Catatan || 'Tidak dicantumkan alasan khusus.';
           rejectionBanner =
             '<div class="col-12 mt-2">' +
             '<div class="alert alert-danger border-danger-subtle d-flex align-items-start gap-2 mb-0 p-3">' +
@@ -8437,10 +8533,10 @@
           '</div>' +
 
           // Step 3
-          '<div class="position-relative">' +
+          '<div class="mb-4 position-relative">' +
           '<span class="position-absolute rounded-circle ' + step3CircleCls + ' d-flex align-items-center justify-content-center" style="left: -32px; top: 0px; width: 24px; height: 24px; font-size: 12px;"><i class="bi ' + step3Icon + '"></i></span>' +
           '<div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">' +
-          '<strong class="text-dark small">3. Persetujuan HRD (Final)</strong>' +
+          '<strong class="text-dark small">3. Verifikasi &amp; Persetujuan HRD</strong>' +
           '<span class="badge ' + step3BadgeCls + ' extra-small">' + step3BadgeText + '</span>' +
           '</div>' +
           '<div class="extra-small text-muted mb-1">' +
@@ -8448,6 +8544,20 @@
           '</div>' +
           '<div class="extra-small text-secondary mb-1"><i class="bi bi-clock me-1"></i>' + (item.approver2Tanggal ? escapeHTML(formatDateDMY(item.approver2Tanggal, true)) : 'Belum diproses') + '</div>' +
           step3NoteHtml +
+          '</div>' +
+
+          // Step 4
+          '<div class="position-relative">' +
+          '<span class="position-absolute rounded-circle ' + step4CircleCls + ' d-flex align-items-center justify-content-center" style="left: -32px; top: 0px; width: 24px; height: 24px; font-size: 12px;"><i class="bi ' + step4Icon + '"></i></span>' +
+          '<div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">' +
+          '<strong class="text-dark small">4. Pengesahan Akhir PJO / Direktur (Final)</strong>' +
+          '<span class="badge ' + step4BadgeCls + ' extra-small">' + step4BadgeText + '</span>' +
+          '</div>' +
+          '<div class="extra-small text-muted mb-1">' +
+          '<strong>' + escapeHTML(item.approver3Nama || (item.status === 'Menunggu Persetujuan PJO' || item.status === 'Menunggu Persetujuan Direktur' ? 'Menunggu Pengesahan PJO' : 'Menunggu Tahap Sebelumnya')) + '</strong>' + (item.approver3Jabatan ? ' • ' + escapeHTML(item.approver3Jabatan) : '') +
+          '</div>' +
+          '<div class="extra-small text-secondary mb-1"><i class="bi bi-clock me-1"></i>' + (item.approver3Tanggal ? escapeHTML(formatDateDMY(item.approver3Tanggal, true)) : 'Belum diproses') + '</div>' +
+          step4NoteHtml +
           '</div>' +
 
           '</div>' +
@@ -8539,20 +8649,27 @@
         var applicantJabatan = applicantObj ? applicantObj.jabatan : (item.jabatan || '');
         var isApplicantAtasan = isJobAtasan(applicantJabatan, applicantRole);
 
-        if (isApplicantAtasan) {
+        if (item.status === 'Menunggu Persetujuan PJO' || item.status === 'Menunggu Persetujuan Direktur') {
+          if (stageBadge) {
+            stageBadge.className = 'badge bg-pjo text-white fw-semibold';
+            stageBadge.innerText = 'Tahap 3: PJO / Direktur Final';
+          }
+          if (subtitle) subtitle.innerText = 'Pengesahan Akhir (PJO / Direktur)';
+          if (guide) guide.innerText = 'Persetujuan ini merupakan tahap akhir resmi. Status cuti akan menjadi Disetujui penuh dan surat izin cuti resmi siap dicetak.';
+        } else if (isApplicantAtasan) {
           if (stageBadge) {
             stageBadge.className = 'badge bg-primary text-white fw-semibold';
             stageBadge.innerText = 'Persetujuan Khusus HRD';
           }
           if (subtitle) subtitle.innerText = 'Persetujuan Permohonan Cuti Atasan / Supervisor';
-          if (guide) guide.innerText = 'Pemohon adalah Atasan / Supervisor. Sesuai kebijakan, permohonan cuti ini diproses dan disetujui langsung oleh HRD.';
+          if (guide) guide.innerText = 'Pemohon adalah Atasan / Supervisor. Permohonan cuti ini diproses oleh HRD dan selanjutnya diteruskan ke PJO / Direktur untuk pengesahan akhir.';
         } else if (item.status === 'Menunggu Persetujuan HRD') {
           if (stageBadge) {
             stageBadge.className = 'badge bg-info text-dark fw-semibold';
-            stageBadge.innerText = 'Tahap 2: HRD Final';
+            stageBadge.innerText = 'Tahap 2: HRD Verifikasi';
           }
-          if (subtitle) subtitle.innerText = 'Persetujuan Tahap Akhir (HRD / Manajemen)';
-          if (guide) guide.innerText = 'Persetujuan ini akan menyelesaikan proses dan menerbitkan status Disetujui final.';
+          if (subtitle) subtitle.innerText = 'Persetujuan Tahap 2 (HRD / Personalia)';
+          if (guide) guide.innerText = 'Setelah disetujui HRD, permohonan cuti akan diteruskan ke PJO / Direktur untuk pengesahan akhir.';
         } else {
           if (stageBadge) {
             stageBadge.className = 'badge bg-warning text-dark fw-semibold';
@@ -9430,16 +9547,30 @@
 
           // 3. HRD
           '<div class="surat-sig-box">' +
-          '<div class="surat-sig-title">Disahkan Oleh (HRD)</div>' +
+          '<div class="surat-sig-title">Diverifikasi (HRD)</div>' +
           '<div class="surat-sig-stamp">' +
           '<div class="stamp-badge approved-hrd">' +
-          '<span><i class="bi bi-award-fill"></i> VERIFIED &amp; RECORDED</span>' +
+          '<span><i class="bi bi-check2-circle"></i> VERIFIED HRD</span>' +
           '<small style="font-size: 5.5pt; opacity: 0.85;">HRD OFFICIAL STAMP</small>' +
           '</div>' +
           '</div>' +
           '<div class="surat-sig-name">' + escapeHTML(item.approver2Nama || 'Human Resources Dept') + '</div>' +
           '<div class="surat-sig-role">' + escapeHTML(item.approver2Jabatan || 'HR Manager / Superintendent') + '</div>' +
           '<div class="surat-sig-date">' + (item.approver2Tanggal ? escapeHTML(formatDateIndo(item.approver2Tanggal, true)) : '-') + '</div>' +
+          '</div>' +
+
+          // 4. PJO / Direktur
+          '<div class="surat-sig-box">' +
+          '<div class="surat-sig-title">Disahkan (PJO / Direktur)</div>' +
+          '<div class="surat-sig-stamp">' +
+          '<div class="stamp-badge approved-pjo">' +
+          '<span><i class="bi bi-award-fill"></i> FINAL APPROVAL</span>' +
+          '<small style="font-size: 5.5pt; opacity: 0.85;">PJO / DIREKTUR SIGN</small>' +
+          '</div>' +
+          '</div>' +
+          '<div class="surat-sig-name">' + escapeHTML(item.approver3Nama || 'PJO / Direktur') + '</div>' +
+          '<div class="surat-sig-role">' + escapeHTML(item.approver3Jabatan || 'Penanggung Jawab Operasional') + '</div>' +
+          '<div class="surat-sig-date">' + (item.approver3Tanggal ? escapeHTML(formatDateIndo(item.approver3Tanggal, true)) : '-') + '</div>' +
           '</div>' +
 
           '</div>' +
@@ -9508,6 +9639,7 @@
           '.stamp-badge.verified { border: 1.5px solid #16a34a; color: #16a34a; background-color: #f0fdf4; }' +
           '.stamp-badge.approved-mgr { border: 1.5px solid #0284c7; color: #0284c7; background-color: #f0f9ff; }' +
           '.stamp-badge.approved-hrd { border: 1.5px solid #2563eb; color: #2563eb; background-color: #eff6ff; }' +
+          '.stamp-badge.approved-pjo { border: 1.5px solid #7c3aed; color: #7c3aed; background-color: #f5f3ff; }' +
           '.surat-sig-name { font-size: 8.5pt; font-weight: 800; color: #0f172a; text-decoration: underline; margin-bottom: 1px; }' +
           '.surat-sig-role { font-size: 7.5pt; color: #64748b; }' +
           '.surat-sig-date { font-size: 7pt; color: #94a3b8; margin-top: 2px; }' +
