@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwgdSMfxZBVUp0dZjhIctGX1RBh1fJxXLo-qzOJRvTOOup5U04meHLaIgiQaoF15NGa/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbxeo1TRV66mybl42gesP-zTnwIdPXoZnWp9X_HhaOAJ6KagUa0PBVtACBg0aMiKidhk/exec";
   </script>
   <!-- Favicon & Ikon Pintasan Layar Depan -->
   <link rel="icon" type="image/png"
@@ -3417,6 +3417,94 @@
             </div>
           </div>
 
+          <!-- Informasi Titik Drop / Logistik Tiket Cuti Roster (Opsional) -->
+          <div class="card border-0 rounded-3 p-3 mb-3"
+            style="border: 1px dashed #cbd5e1 !important; background-color: #f8fafc;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                  <i class="bi bi-geo-alt-fill me-1"></i>Logistik &amp; Transportasi
+                </span>
+                <span class="small fw-semibold text-dark">Informasi Titik Drop / Tiket Cuti</span>
+              </div>
+              <span class="badge bg-secondary-subtle text-secondary extra-small fw-normal">Opsional / Roster</span>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-5">
+                <label class="form-label small fw-semibold mb-1">
+                  Point of Hire / Titik Drop Off
+                </label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-white"><i class="bi bi-geo-alt text-danger"></i></span>
+                  <input type="text" id="cutiTitikDropOff" list="listTitikDropOff" class="form-control form-control-sm"
+                    placeholder="Contoh: Samarinda, Balikpapan, Mess Site...">
+                </div>
+                <datalist id="listTitikDropOff">
+                  <option value="Samarinda (SRI)"></option>
+                  <option value="Balikpapan (BPN)"></option>
+                  <option value="Mess Site / Camp"></option>
+                  <option value="Banjarmasin (BDJ)"></option>
+                  <option value="Jakarta (CGK/HLP)"></option>
+                  <option value="Surabaya (SUB)"></option>
+                  <option value="Makassar (UPG)"></option>
+                  <option value="Yogyakarta (YIA)"></option>
+                </datalist>
+                <div class="form-text extra-small text-muted">Ketik titik jemput / antar atau pilih dari daftar.</div>
+              </div>
+
+              <div class="col-md-7">
+                <label class="form-label small fw-semibold mb-1 d-flex justify-content-between align-items-center">
+                  <span>Moda Transportasi</span>
+                  <span class="text-primary fw-normal extra-small"><i class="bi bi-check2-all me-1"></i>Bisa pilih lebih
+                    dari 1</span>
+                </label>
+                <div class="d-flex flex-wrap gap-2 pt-1" id="groupModaTransportasi">
+                  <div class="form-check form-check-inline m-0 bg-white border rounded px-2 py-1 shadow-2xs">
+                    <input class="form-check-input check-moda-transport" type="checkbox" id="modaMobilTravel"
+                      value="Mobil Travel">
+                    <label class="form-check-label small" for="modaMobilTravel"><i
+                        class="bi bi-car-front me-1 text-primary"></i>Mobil Travel</label>
+                  </div>
+                  <div class="form-check form-check-inline m-0 bg-white border rounded px-2 py-1 shadow-2xs">
+                    <input class="form-check-input check-moda-transport" type="checkbox" id="modaPesawat"
+                      value="Pesawat">
+                    <label class="form-check-label small" for="modaPesawat"><i
+                        class="bi bi-airplane me-1 text-info"></i>Pesawat</label>
+                  </div>
+                  <div class="form-check form-check-inline m-0 bg-white border rounded px-2 py-1 shadow-2xs">
+                    <input class="form-check-input check-moda-transport" type="checkbox" id="modaSpeedboat"
+                      value="Speedboat / Kapal">
+                    <label class="form-check-label small" for="modaSpeedboat"><i
+                        class="bi bi-water me-1 text-teal"></i>Speedboat / Kapal</label>
+                  </div>
+                  <div class="form-check form-check-inline m-0 bg-white border rounded px-2 py-1 shadow-2xs">
+                    <input class="form-check-input check-moda-transport" type="checkbox" id="modaBus"
+                      value="Bus / Elf Site">
+                    <label class="form-check-label small" for="modaBus"><i
+                        class="bi bi-bus-front me-1 text-warning"></i>Bus / Elf</label>
+                  </div>
+                  <div class="form-check form-check-inline m-0 bg-white border rounded px-2 py-1 shadow-2xs">
+                    <input class="form-check-input check-moda-transport" type="checkbox" id="modaMandiri"
+                      value="Mandiri (Tanpa Tiket)">
+                    <label class="form-check-label small" for="modaMandiri"><i
+                        class="bi bi-person me-1 text-secondary"></i>Mandiri</label>
+                  </div>
+                </div>
+                <div class="form-text extra-small text-muted">Contoh: biasanya mobil travel + pesawat atau speedboat.
+                </div>
+              </div>
+
+              <div class="col-12 mt-2">
+                <label class="form-label extra-small fw-semibold text-muted mb-1">
+                  Catatan Khusus Logistik Tiket / Jam Penjemputan <span class="fw-normal">(Opsional)</span>
+                </label>
+                <input type="text" id="cutiCatatanLogistik" class="form-control form-control-sm"
+                  placeholder="Contoh: Tiket pesawat Balikpapan - Jakarta tgl 20 Okt pagi, travel jemput jam 04:00 WITA di Mess Site...">
+              </div>
+            </div>
+          </div>
+
           <!-- Lampiran / Bukti & Catatan Tambahan -->
           <div class="row g-3 mb-2">
             <div class="col-md-6">
@@ -3958,6 +4046,8 @@
                   id="apprModalMasaOnsite" class="text-dark fw-semibold">-</span></div>
               <div class="col-12"><strong>Alasan:</strong> <span id="apprModalAlasan"
                   class="text-dark fst-italic">-</span></div>
+              <div class="col-12" id="apprModalLogistikRow" style="display: none;"><strong>Logistik &amp;
+                  Tiket:</strong> <span id="apprModalLogistikText" class="text-dark fw-semibold">-</span></div>
             </div>
           </div>
 
@@ -7607,6 +7697,27 @@
         });
       };
 
+      window.getSelectedModaTransportasi = function () {
+        var selected = [];
+        var checkboxes = document.querySelectorAll('.check-moda-transport:checked');
+        checkboxes.forEach(function (cb) {
+          if (cb.value) selected.push(cb.value);
+        });
+        return selected.join(', ');
+      };
+
+      window.setSelectedModaTransportasi = function (transportStr) {
+        var raw = String(transportStr || '');
+        var items = raw.split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
+        var checkboxes = document.querySelectorAll('.check-moda-transport');
+        checkboxes.forEach(function (cb) {
+          var val = cb.value.toLowerCase();
+          cb.checked = items.some(function (item) {
+            return item === val || val.indexOf(item) !== -1 || item.indexOf(val) !== -1;
+          });
+        });
+      };
+
       window.openModalPengajuanCuti = function () {
         var modalEl = document.getElementById('modalPengajuanCuti');
         if (!modalEl) return;
@@ -7728,6 +7839,12 @@
         document.getElementById('cutiKontak').value = item.kontak || '';
         document.getElementById('cutiCatatan').value = item.catatanTambahan || '';
 
+        var inputDrop = document.getElementById('cutiTitikDropOff');
+        if (inputDrop) inputDrop.value = item.titikDropOff || '';
+        setSelectedModaTransportasi(item.modaTransportasi || '');
+        var inputCatatanLog = document.getElementById('cutiCatatanLogistik');
+        if (inputCatatanLog) inputCatatanLog.value = item.catatanLogistik || '';
+
         var fileLampiranEl = document.getElementById('cutiLampiran');
         if (fileLampiranEl) fileLampiranEl.value = '';
 
@@ -7818,6 +7935,12 @@
 
         var inputTglAwalOnsite = document.getElementById('cutiTglAwalOnsite');
         if (inputTglAwalOnsite) inputTglAwalOnsite.value = '';
+
+        var inputDrop = document.getElementById('cutiTitikDropOff');
+        if (inputDrop) inputDrop.value = '';
+        setSelectedModaTransportasi('');
+        var inputCatatanLog = document.getElementById('cutiCatatanLogistik');
+        if (inputCatatanLog) inputCatatanLog.value = '';
         initPengajuanCutiForm();
         document.getElementById('cutiJumlahHari').value = 0;
         document.getElementById('cutiDaysHelper').className = 'form-text extra-small text-muted';
@@ -7863,6 +7986,9 @@
         var alamat = document.getElementById('cutiAlamat').value.trim();
         var kontak = document.getElementById('cutiKontak').value.trim();
         var catatan = document.getElementById('cutiCatatan').value.trim();
+        var titikDropOff = document.getElementById('cutiTitikDropOff') ? document.getElementById('cutiTitikDropOff').value.trim() : '';
+        var modaTransportasi = getSelectedModaTransportasi();
+        var catatanLogistik = document.getElementById('cutiCatatanLogistik') ? document.getElementById('cutiCatatanLogistik').value.trim() : '';
         var fileInput = document.getElementById('cutiLampiran');
 
         if (!jenis) {
@@ -7923,6 +8049,9 @@
               alamatCuti: alamat,
               nomorKontak: kontak,
               catatanTambahan: catatan,
+              titikDropOff: titikDropOff,
+              modaTransportasi: modaTransportasi,
+              catatanLogistik: catatanLogistik,
               lampiranBase64: fileData ? fileData.data : '',
               lampiranName: fileData ? fileData.name : '',
               lampiranMimeType: fileData ? fileData.type : ''
@@ -8394,6 +8523,9 @@
             (item.id && item.id.toLowerCase().indexOf(keyword) !== -1) ||
             (item.jenisCuti && item.jenisCuti.toLowerCase().indexOf(keyword) !== -1) ||
             (item.alasan && item.alasan.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.titikDropOff && item.titikDropOff.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.modaTransportasi && item.modaTransportasi.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.catatanLogistik && item.catatanLogistik.toLowerCase().indexOf(keyword) !== -1) ||
             (item.tanggalMulai && item.tanggalMulai.indexOf(keyword) !== -1) ||
             (item.tanggalSelesai && item.tanggalSelesai.indexOf(keyword) !== -1);
 
@@ -8481,11 +8613,17 @@
             onsiteBadge = '<div class="extra-small text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-geo-alt me-1 text-primary"></i>Onsite: <strong class="text-dark">' + item.totalHariKerjaOnsite + ' hr</strong></div>';
           }
 
+          var transportBadge = '';
+          if (item.titikDropOff || item.modaTransportasi) {
+            var labelT = (item.titikDropOff ? item.titikDropOff : '') + (item.modaTransportasi ? ' (' + item.modaTransportasi + ')' : '');
+            transportBadge = '<div class="extra-small text-truncate mt-1" style="font-size: 0.72rem; max-width: 180px;" title="Drop / Transport: ' + escapeHTML(labelT) + '"><i class="bi bi-geo-alt-fill text-danger me-1"></i><span class="text-secondary">' + escapeHTML(labelT) + '</span></div>';
+          }
+
           html += '<tr>' +
             '<td class="ps-3 py-3 fw-bold text-muted text-center">' + rowNum + '</td>' +
             '<td class="py-3 text-nowrap"><span class="badge bg-light text-primary border font-monospace">' + escapeHTML(item.id) + '</span></td>' +
             '<td class="py-3 fw-semibold text-dark text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</td>' +
-            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + onsiteBadge + '</td>' +
+            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + onsiteBadge + transportBadge + '</td>' +
             '<td class="py-3 small text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</td>' +
             '<td class="py-3 text-center text-nowrap"><span class="badge bg-primary-subtle text-primary fw-bold">' + item.jumlahHari + ' Hari</span></td>' +
             '<td class="py-3 text-truncate" style="max-width: 170px;" title="' + escapeHTML(item.alasan) + '">' + escapeHTML(item.alasan) + '</td>' +
@@ -8618,6 +8756,8 @@
             (item.empId && item.empId.toLowerCase().indexOf(keyword) !== -1) ||
             (item.dept && item.dept.toLowerCase().indexOf(keyword) !== -1) ||
             (item.jenisCuti && item.jenisCuti.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.titikDropOff && item.titikDropOff.toLowerCase().indexOf(keyword) !== -1) ||
+            (item.modaTransportasi && item.modaTransportasi.toLowerCase().indexOf(keyword) !== -1) ||
             (item.alasan && item.alasan.toLowerCase().indexOf(keyword) !== -1);
 
           var matchStatus = true;
@@ -8744,6 +8884,12 @@
             onsiteBadge = '<div class="extra-small text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-geo-alt me-1 text-primary"></i>Onsite: <strong class="text-dark">' + item.totalHariKerjaOnsite + ' hr</strong></div>';
           }
 
+          var transportBadge = '';
+          if (item.titikDropOff || item.modaTransportasi) {
+            var labelT = (item.titikDropOff ? item.titikDropOff : '') + (item.modaTransportasi ? ' (' + item.modaTransportasi + ')' : '');
+            transportBadge = '<div class="extra-small text-truncate mt-1" style="font-size: 0.72rem; max-width: 180px;" title="Drop / Transport: ' + escapeHTML(labelT) + '"><i class="bi bi-geo-alt-fill text-danger me-1"></i><span class="text-secondary">' + escapeHTML(labelT) + '</span></div>';
+          }
+
           var rowHighlight = canApprove ? 'style="background-color: #f0fdf4;"' : '';
 
           html += '<tr ' + rowHighlight + '>' +
@@ -8751,7 +8897,7 @@
             '<td class="py-3 text-nowrap"><span class="badge bg-light text-primary border font-monospace">' + escapeHTML(item.id) + '</span></td>' +
             '<td class="py-3"><span class="fw-bold text-dark d-block">' + escapeHTML(item.namaKaryawan || item.empId) + '</span><small class="text-muted">' + escapeHTML(item.dept || '-') + (item.empId ? ' (' + escapeHTML(item.empId) + ')' : '') + '</small></td>' +
             '<td class="py-3 fw-semibold text-dark text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</td>' +
-            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + onsiteBadge + '</td>' +
+            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + onsiteBadge + transportBadge + '</td>' +
             '<td class="py-3 small text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</td>' +
             '<td class="py-3 text-center text-nowrap"><span class="badge bg-primary-subtle text-primary fw-bold">' + item.jumlahHari + ' Hari</span></td>' +
             '<td class="py-3 text-truncate" style="max-width: 150px;" title="' + escapeHTML(item.alasan) + '">' + escapeHTML(item.alasan) + '</td>' +
@@ -9007,6 +9153,61 @@
           '</div>' +
           '</div>';
 
+        var logistikSection = '';
+        if (item.titikDropOff || item.modaTransportasi || item.catatanLogistik) {
+          var badgesModa = '';
+          if (item.modaTransportasi) {
+            var splitted = item.modaTransportasi.split(',');
+            badgesModa = splitted.map(function (m) {
+              var trimM = m.trim();
+              if (!trimM) return '';
+              var icon = 'bi-car-front';
+              var color = 'bg-primary-subtle text-primary border-primary-subtle';
+              if (trimM.toLowerCase().indexOf('pesawat') !== -1) {
+                icon = 'bi-airplane';
+                color = 'bg-info-subtle text-info-emphasis border-info-subtle';
+              } else if (trimM.toLowerCase().indexOf('speedboat') !== -1 || trimM.toLowerCase().indexOf('kapal') !== -1) {
+                icon = 'bi-water';
+                color = 'bg-teal-subtle text-teal-emphasis border-teal-subtle';
+              } else if (trimM.toLowerCase().indexOf('bus') !== -1 || trimM.toLowerCase().indexOf('elf') !== -1) {
+                icon = 'bi-bus-front';
+                color = 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
+              } else if (trimM.toLowerCase().indexOf('mandiri') !== -1) {
+                icon = 'bi-person';
+                color = 'bg-secondary-subtle text-secondary border-secondary-subtle';
+              }
+              return '<span class="badge ' + color + ' border me-1 mb-1"><i class="bi ' + icon + ' me-1"></i>' + escapeHTML(trimM) + '</span>';
+            }).join('');
+          }
+
+          logistikSection =
+            '<div class="col-12">' +
+            '<div class="p-3 bg-light rounded-3 border" style="border-left: 4px solid #0284c7 !important;">' +
+            '<div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">' +
+            '<span class="extra-small fw-bold text-primary text-uppercase d-flex align-items-center gap-1">' +
+            '<i class="bi bi-geo-alt-fill"></i> Logistik Tiket &amp; Transportasi Cuti' +
+            '</span>' +
+            '<span class="badge bg-light text-muted border extra-small">Roster / Perjalanan</span>' +
+            '</div>' +
+            '<div class="row g-2">' +
+            '<div class="col-sm-5">' +
+            '<span class="extra-small fw-bold text-muted d-block mb-1">TITIK DROP OFF / POINT OF HIRE</span>' +
+            '<span class="small fw-semibold text-dark"><i class="bi bi-geo-alt text-danger me-1"></i>' + (item.titikDropOff ? escapeHTML(item.titikDropOff) : '<span class="text-muted fw-normal fst-italic">-</span>') + '</span>' +
+            '</div>' +
+            '<div class="col-sm-7">' +
+            '<span class="extra-small fw-bold text-muted d-block mb-1">MODA TRANSPORTASI</span>' +
+            '<div>' + (badgesModa || '<span class="text-muted small fst-italic">Tidak ditentukan</span>') + '</div>' +
+            '</div>' +
+            (item.catatanLogistik ?
+              '<div class="col-12 mt-1">' +
+              '<span class="extra-small fw-bold text-muted d-block mb-1">CATATAN LOGISTIK / TIKET</span>' +
+              '<div class="p-2 bg-white rounded border extra-small text-dark">' + escapeHTML(item.catatanLogistik) + '</div>' +
+              '</div>' : '') +
+            '</div>' +
+            '</div>' +
+            '</div>';
+        }
+
         var bodyHtml =
           '<div class="row g-3">' +
           '<div class="col-md-6">' +
@@ -9055,6 +9256,7 @@
           '<label class="extra-small fw-bold text-muted d-block mb-1">NOMOR YANG DAPAT DIHUBUNGI</label>' +
           '<p class="small text-dark mb-0">' + (item.kontak ? escapeHTML(item.kontak) : '<span class="text-muted fst-italic">Tidak dicantumkan</span>') + '</p>' +
           '</div>' +
+          logistikSection +
           '<div class="col-12">' +
           '<label class="extra-small fw-bold text-muted d-block mb-1">CATATAN TAMBAHAN</label>' +
           '<p class="small text-dark mb-0">' + (item.catatanTambahan ? escapeHTML(item.catatanTambahan) : '<span class="text-muted fst-italic">Tidak ada catatan</span>') + '</p>' +
@@ -9281,6 +9483,22 @@
         }
 
         document.getElementById('apprModalAlasan').innerText = item.alasan || '-';
+
+        var elLogistikRow = document.getElementById('apprModalLogistikRow');
+        var elLogistikText = document.getElementById('apprModalLogistikText');
+        if (elLogistikRow && elLogistikText) {
+          if (item.titikDropOff || item.modaTransportasi) {
+            elLogistikRow.style.display = 'block';
+            var parts = [];
+            if (item.titikDropOff) parts.push('<i class="bi bi-geo-alt-fill text-danger me-1"></i>' + escapeHTML(item.titikDropOff));
+            if (item.modaTransportasi) parts.push('<i class="bi bi-airplane-fill text-info me-1"></i>' + escapeHTML(item.modaTransportasi));
+            if (item.catatanLogistik) parts.push('<span class="text-muted fst-italic">(' + escapeHTML(item.catatanLogistik) + ')</span>');
+            elLogistikText.innerHTML = parts.join(' &bull; ');
+          } else {
+            elLogistikRow.style.display = 'none';
+          }
+        }
+
         document.getElementById('apprCatatanText').value = '';
 
         var stageBadge = document.getElementById('apprModalStageBadge');
@@ -10152,6 +10370,9 @@
           '<tr><td class="label-col">Tanggal Masuk Kembali Bekerja</td><td class="colon-col">:</td><td class="value-col"><strong>' + escapeHTML(tglMasukKembali) + '</strong></td></tr>' +
           '<tr><td class="label-col">Keperluan / Alasan Cuti</td><td class="colon-col">:</td><td class="value-col"><em>' + escapeHTML(alasanStr) + '</em></td></tr>' +
           '<tr><td class="label-col">Alamat Selama Cuti</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(alamatStr) + '</td></tr>' +
+          (item.titikDropOff ? '<tr><td class="label-col">Titik Drop / Point of Hire</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(item.titikDropOff) + '</td></tr>' : '') +
+          (item.modaTransportasi ? '<tr><td class="label-col">Kebutuhan Transportasi</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(item.modaTransportasi) + '</td></tr>' : '') +
+          (item.catatanLogistik ? '<tr><td class="label-col">Catatan Tiket / Penjemputan</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(item.catatanLogistik) + '</td></tr>' : '') +
           (catatanStr !== '-' ? '<tr><td class="label-col">Catatan Tambahan</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(catatanStr) + '</td></tr>' : '') +
           '</table>' +
 

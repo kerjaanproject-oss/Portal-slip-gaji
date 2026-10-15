@@ -1647,7 +1647,8 @@ function getOrCreatePengajuanCutiSheet(ss) {
     'Approver 1 Nama', 'Approver 1 Jabatan', 'Approver 1 Tanggal', 'Approver 1 Status', 'Approver 1 Catatan',
     'Approver 2 Nama', 'Approver 2 Jabatan', 'Approver 2 Tanggal', 'Approver 2 Status', 'Approver 2 Catatan',
     'Approver 3 Nama', 'Approver 3 Jabatan', 'Approver 3 Tanggal', 'Approver 3 Status', 'Approver 3 Catatan',
-    'Alasan Penolakan', 'Tanggal Awal Onsite', 'Total Hari Kerja Onsite'
+    'Alasan Penolakan', 'Tanggal Awal Onsite', 'Total Hari Kerja Onsite',
+    'Titik Drop Off', 'Moda Transportasi', 'Catatan Logistik Tiket'
   ];
 
   if (!sheet) {
@@ -1828,6 +1829,9 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
   const tolakAlasanIdx = headers.findIndex(function (h) { return h.includes('alasan penolakan') || h.includes('alasan tolak'); });
   const tglAwalOnsiteIdx = headers.findIndex(function (h) { return h.includes('tanggal awal onsite') || h.includes('awal onsite') || h.includes('tgl awal onsite'); });
   const totalHariOnsiteIdx = headers.findIndex(function (h) { return h.includes('total hari kerja onsite') || h.includes('hari kerja onsite') || h.includes('hari onsite') || h.includes('total hari onsite'); });
+  const titikDropOffIdx = headers.findIndex(function (h) { return h.includes('titik drop') || h.includes('point of hire'); });
+  const modaTransportIdx = headers.findIndex(function (h) { return h.includes('moda transportasi') || h.includes('transportasi'); });
+  const catatanLogistikIdx = headers.findIndex(function (h) { return h.includes('catatan logistik') || h.includes('logistik tiket'); });
 
   const list = [];
   for (let i = 1; i < data.length; i++) {
@@ -1919,7 +1923,10 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
 
       alasanPenolakan: tolakAlasanIdx !== -1 ? String(row[tolakAlasanIdx] || '').trim() : '',
       tglAwalOnsite: tglAwalOnsiteIdx !== -1 && row[tglAwalOnsiteIdx] ? (row[tglAwalOnsiteIdx] instanceof Date ? Utilities.formatDate(row[tglAwalOnsiteIdx], 'Asia/Jakarta', 'yyyy-MM-dd') : String(row[tglAwalOnsiteIdx]).trim()) : '',
-      totalHariKerjaOnsite: totalHariOnsiteIdx !== -1 && row[totalHariOnsiteIdx] !== '' && !isNaN(Number(row[totalHariOnsiteIdx])) ? Number(row[totalHariOnsiteIdx]) : null
+      totalHariKerjaOnsite: totalHariOnsiteIdx !== -1 && row[totalHariOnsiteIdx] !== '' && !isNaN(Number(row[totalHariOnsiteIdx])) ? Number(row[totalHariOnsiteIdx]) : null,
+      titikDropOff: titikDropOffIdx !== -1 && row[titikDropOffIdx] ? String(row[titikDropOffIdx]).trim() : '',
+      modaTransportasi: modaTransportIdx !== -1 && row[modaTransportIdx] ? String(row[modaTransportIdx]).trim() : '',
+      catatanLogistik: catatanLogistikIdx !== -1 && row[catatanLogistikIdx] ? String(row[catatanLogistikIdx]).trim() : ''
     });
   }
 
@@ -2050,6 +2057,10 @@ function submitPengajuanCuti(token, payload) {
     initialCutiStatus = 'Menunggu Persetujuan HRD';
   }
 
+  const titikDropOff = String(payload.titikDropOff || '').trim();
+  const modaTransportasi = String(payload.modaTransportasi || '').trim();
+  const catatanLogistik = String(payload.catatanLogistik || '').trim();
+
   cutiSheet.appendRow([
     cutiId,
     formattedDate,
@@ -2074,7 +2085,10 @@ function submitPengajuanCuti(token, payload) {
     '', '', '', '', '', // Approver 3
     '', // Alasan Penolakan
     tglAwalOnsite,
-    totalHariKerjaOnsite
+    totalHariKerjaOnsite,
+    titikDropOff,
+    modaTransportasi,
+    catatanLogistik
   ]);
 
   return {
@@ -2102,6 +2116,9 @@ function editPengajuanCuti(token, payload) {
   const catatanTambahan = String(payload.catatanTambahan || '').trim();
   const tglAwalOnsite = String(payload.tglAwalOnsite || '').trim();
   const totalHariKerjaOnsite = (payload.totalHariKerjaOnsite !== undefined && payload.totalHariKerjaOnsite !== null && payload.totalHariKerjaOnsite !== '') ? Number(payload.totalHariKerjaOnsite) : '';
+  const titikDropOff = String(payload.titikDropOff || '').trim();
+  const modaTransportasi = String(payload.modaTransportasi || '').trim();
+  const catatanLogistik = String(payload.catatanLogistik || '').trim();
 
   if (!jenisCuti) return { success: false, message: 'Jenis cuti wajib dipilih.' };
   if (!tanggalMulai || !tanggalSelesai) return { success: false, message: 'Tanggal mulai dan tanggal selesai cuti wajib diisi.' };
@@ -2142,6 +2159,9 @@ function editPengajuanCuti(token, payload) {
   const app1StatusIdx = headers.findIndex(function (h) { return h.includes('approver 1 status'); });
   const tglAwalOnsiteIdx = headers.findIndex(function (h) { return h.includes('tanggal awal onsite') || h.includes('tgl awal onsite'); });
   const totalHariOnsiteIdx = headers.findIndex(function (h) { return h.includes('total hari kerja onsite') || h.includes('total hari onsite'); });
+  const titikDropOffIdx = headers.findIndex(function (h) { return h.includes('titik drop') || h.includes('point of hire'); });
+  const modaTransportIdx = headers.findIndex(function (h) { return h.includes('moda transportasi') || h.includes('transportasi'); });
+  const catatanLogistikIdx = headers.findIndex(function (h) { return h.includes('catatan logistik') || h.includes('logistik tiket'); });
 
   const currentUsername = String(session.user.username || '').trim().toLowerCase();
   const userRole = String(session.user.role || '').trim().toLowerCase();
@@ -2225,6 +2245,9 @@ function editPengajuanCuti(token, payload) {
       if (catatanIdx !== -1) cutiSheet.getRange(rowIndex, catatanIdx + 1).setValue(catatanTambahan);
       if (tglAwalOnsiteIdx !== -1) cutiSheet.getRange(rowIndex, tglAwalOnsiteIdx + 1).setValue(tglAwalOnsite);
       if (totalHariOnsiteIdx !== -1) cutiSheet.getRange(rowIndex, totalHariOnsiteIdx + 1).setValue(totalHariKerjaOnsite);
+      if (titikDropOffIdx !== -1) cutiSheet.getRange(rowIndex, titikDropOffIdx + 1).setValue(titikDropOff);
+      if (modaTransportIdx !== -1) cutiSheet.getRange(rowIndex, modaTransportIdx + 1).setValue(modaTransportasi);
+      if (catatanLogistikIdx !== -1) cutiSheet.getRange(rowIndex, catatanLogistikIdx + 1).setValue(catatanLogistik);
 
       return {
         success: true,
