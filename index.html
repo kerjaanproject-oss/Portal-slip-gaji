@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbxeo1TRV66mybl42gesP-zTnwIdPXoZnWp9X_HhaOAJ6KagUa0PBVtACBg0aMiKidhk/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbyTKIXQcXNDyGZb5kGIbciy34MyYxSf0VhGEMjULXA8uCM_HWDMoQ8duCSEzUn4Qh_8/exec";
   </script>
   <!-- Favicon & Ikon Pintasan Layar Depan -->
   <link rel="icon" type="image/png"
@@ -8029,10 +8029,13 @@
         document.getElementById('cutiCatatan').value = item.catatanTambahan || '';
 
         var inputDrop = document.getElementById('cutiTitikDropOff');
-        if (inputDrop) inputDrop.value = item.titikDropOff || '';
-        setSelectedModaTransportasi(item.modaTransportasi || '');
+        var valTitikEdit = item.titikDropOff || item.pointOfHire || item.pointOffHire || item.dropOff || '';
+        if (inputDrop) inputDrop.value = valTitikEdit;
+        var valModaEdit = item.modaTransportasi || item.transportasi || item.transport || '';
+        setSelectedModaTransportasi(valModaEdit);
         var inputCatatanLog = document.getElementById('cutiCatatanLogistik');
-        if (inputCatatanLog) inputCatatanLog.value = item.catatanLogistik || '';
+        var valCatLogEdit = item.catatanLogistik || item.catatanTransportasi || item.catatanTiket || '';
+        if (inputCatatanLog) inputCatatanLog.value = valCatLogEdit;
 
         var fileLampiranEl = document.getElementById('cutiLampiran');
         if (fileLampiranEl) fileLampiranEl.value = '';
@@ -8708,13 +8711,16 @@
         var filterStatus = document.getElementById('filterStatusCuti') ? document.getElementById('filterStatusCuti').value : 'SEMUA';
 
         var filtered = myLeaves.filter(function (item) {
+          var itemTitik = item.titikDropOff || item.pointOfHire || item.pointOffHire || item.dropOff || '';
+          var itemModa = item.modaTransportasi || item.transportasi || item.transport || '';
+          var itemCatLog = item.catatanLogistik || item.catatanTransportasi || item.catatanTiket || '';
           var matchSearch = !keyword ||
             (item.id && item.id.toLowerCase().indexOf(keyword) !== -1) ||
             (item.jenisCuti && item.jenisCuti.toLowerCase().indexOf(keyword) !== -1) ||
             (item.alasan && item.alasan.toLowerCase().indexOf(keyword) !== -1) ||
-            (item.titikDropOff && item.titikDropOff.toLowerCase().indexOf(keyword) !== -1) ||
-            (item.modaTransportasi && item.modaTransportasi.toLowerCase().indexOf(keyword) !== -1) ||
-            (item.catatanLogistik && item.catatanLogistik.toLowerCase().indexOf(keyword) !== -1) ||
+            (itemTitik && itemTitik.toLowerCase().indexOf(keyword) !== -1) ||
+            (itemModa && itemModa.toLowerCase().indexOf(keyword) !== -1) ||
+            (itemCatLog && itemCatLog.toLowerCase().indexOf(keyword) !== -1) ||
             (item.tanggalMulai && item.tanggalMulai.indexOf(keyword) !== -1) ||
             (item.tanggalSelesai && item.tanggalSelesai.indexOf(keyword) !== -1);
 
@@ -8803,8 +8809,10 @@
           }
 
           var transportBadge = '';
-          if (item.titikDropOff || item.modaTransportasi) {
-            var labelT = (item.titikDropOff ? item.titikDropOff : '') + (item.modaTransportasi ? ' (' + item.modaTransportasi + ')' : '');
+          var valTitikRow = item.titikDropOff || item.pointOfHire || item.pointOffHire || item.dropOff || '';
+          var valModaRow = item.modaTransportasi || item.transportasi || item.transport || '';
+          if (valTitikRow || valModaRow) {
+            var labelT = (valTitikRow ? valTitikRow : '') + (valModaRow ? ' (' + valModaRow + ')' : '');
             transportBadge = '<div class="extra-small text-truncate mt-1" style="font-size: 0.72rem; max-width: 180px;" title="Drop / Transport: ' + escapeHTML(labelT) + '"><i class="bi bi-geo-alt-fill text-danger me-1"></i><span class="text-secondary">' + escapeHTML(labelT) + '</span></div>';
           }
 
@@ -8939,14 +8947,18 @@
         var filterStatus = document.getElementById('filterStatusPersetujuanCuti') ? document.getElementById('filterStatusPersetujuanCuti').value : 'SEMUA';
 
         var filtered = subordinateLeaves.filter(function (item) {
+          var itemSubTitik = item.titikDropOff || item.pointOfHire || item.pointOffHire || item.dropOff || '';
+          var itemSubModa = item.modaTransportasi || item.transportasi || item.transport || '';
+          var itemSubCatLog = item.catatanLogistik || item.catatanTransportasi || item.catatanTiket || '';
           var matchSearch = !keyword ||
             (item.id && item.id.toLowerCase().indexOf(keyword) !== -1) ||
             (item.namaKaryawan && item.namaKaryawan.toLowerCase().indexOf(keyword) !== -1) ||
             (item.empId && item.empId.toLowerCase().indexOf(keyword) !== -1) ||
             (item.dept && item.dept.toLowerCase().indexOf(keyword) !== -1) ||
             (item.jenisCuti && item.jenisCuti.toLowerCase().indexOf(keyword) !== -1) ||
-            (item.titikDropOff && item.titikDropOff.toLowerCase().indexOf(keyword) !== -1) ||
-            (item.modaTransportasi && item.modaTransportasi.toLowerCase().indexOf(keyword) !== -1) ||
+            (itemSubTitik && itemSubTitik.toLowerCase().indexOf(keyword) !== -1) ||
+            (itemSubModa && itemSubModa.toLowerCase().indexOf(keyword) !== -1) ||
+            (itemSubCatLog && itemSubCatLog.toLowerCase().indexOf(keyword) !== -1) ||
             (item.alasan && item.alasan.toLowerCase().indexOf(keyword) !== -1);
 
           var matchStatus = true;
@@ -9074,8 +9086,10 @@
           }
 
           var transportBadge = '';
-          if (item.titikDropOff || item.modaTransportasi) {
-            var labelT = (item.titikDropOff ? item.titikDropOff : '') + (item.modaTransportasi ? ' (' + item.modaTransportasi + ')' : '');
+          var valTitikSub = item.titikDropOff || item.pointOfHire || item.pointOffHire || item.dropOff || '';
+          var valModaSub = item.modaTransportasi || item.transportasi || item.transport || '';
+          if (valTitikSub || valModaSub) {
+            var labelT = (valTitikSub ? valTitikSub : '') + (valModaSub ? ' (' + valModaSub + ')' : '');
             transportBadge = '<div class="extra-small text-truncate mt-1" style="font-size: 0.72rem; max-width: 180px;" title="Drop / Transport: ' + escapeHTML(labelT) + '"><i class="bi bi-geo-alt-fill text-danger me-1"></i><span class="text-secondary">' + escapeHTML(labelT) + '</span></div>';
           }
 
@@ -9342,11 +9356,15 @@
           '</div>' +
           '</div>';
 
+        var valTitik = item.titikDropOff || item.pointOfHire || item.pointOffHire || item.dropOff || '';
+        var valModa = item.modaTransportasi || item.transportasi || item.transport || '';
+        var valCatLog = item.catatanLogistik || item.catatanTransportasi || item.catatanTiket || '';
+
         var logistikSection = '';
-        if (item.titikDropOff || item.modaTransportasi || item.catatanLogistik) {
+        if (valTitik || valModa || valCatLog) {
           var badgesModa = '';
-          if (item.modaTransportasi) {
-            var splitted = item.modaTransportasi.split(',');
+          if (valModa) {
+            var splitted = valModa.split(',');
             badgesModa = splitted.map(function (m) {
               var trimM = m.trim();
               if (!trimM) return '';
@@ -9381,16 +9399,16 @@
             '<div class="row g-2">' +
             '<div class="col-sm-5">' +
             '<span class="extra-small fw-bold text-muted d-block mb-1">TITIK DROP OFF / POINT OF HIRE</span>' +
-            '<span class="small fw-semibold text-dark"><i class="bi bi-geo-alt text-danger me-1"></i>' + (item.titikDropOff ? escapeHTML(item.titikDropOff) : '<span class="text-muted fw-normal fst-italic">-</span>') + '</span>' +
+            '<span class="small fw-semibold text-dark"><i class="bi bi-geo-alt text-danger me-1"></i>' + (valTitik ? escapeHTML(valTitik) : '<span class="text-muted fw-normal fst-italic">-</span>') + '</span>' +
             '</div>' +
             '<div class="col-sm-7">' +
             '<span class="extra-small fw-bold text-muted d-block mb-1">TRANSPORTASI</span>' +
             '<div>' + (badgesModa || '<span class="text-muted small fst-italic">Tidak ditentukan</span>') + '</div>' +
             '</div>' +
-            (item.catatanLogistik ?
+            (valCatLog ?
               '<div class="col-12 mt-1">' +
               '<span class="extra-small fw-bold text-muted d-block mb-1">CATATAN LOGISTIK / TIKET</span>' +
-              '<div class="p-2 bg-white rounded border extra-small text-dark">' + escapeHTML(item.catatanLogistik) + '</div>' +
+              '<div class="p-2 bg-white rounded border extra-small text-dark">' + escapeHTML(valCatLog) + '</div>' +
               '</div>' : '') +
             '</div>' +
             '</div>' +
@@ -9676,12 +9694,15 @@
         var elLogistikRow = document.getElementById('apprModalLogistikRow');
         var elLogistikText = document.getElementById('apprModalLogistikText');
         if (elLogistikRow && elLogistikText) {
-          if (item.titikDropOff || item.modaTransportasi) {
+          var valTitikAppr = item.titikDropOff || item.pointOfHire || item.pointOffHire || item.dropOff || '';
+          var valModaAppr = item.modaTransportasi || item.transportasi || item.transport || '';
+          var valCatLogAppr = item.catatanLogistik || item.catatanTransportasi || item.catatanTiket || '';
+          if (valTitikAppr || valModaAppr || valCatLogAppr) {
             elLogistikRow.style.display = 'block';
             var parts = [];
-            if (item.titikDropOff) parts.push('<i class="bi bi-geo-alt-fill text-danger me-1"></i>' + escapeHTML(item.titikDropOff));
-            if (item.modaTransportasi) parts.push('<i class="bi bi-airplane-fill text-info me-1"></i>' + escapeHTML(item.modaTransportasi));
-            if (item.catatanLogistik) parts.push('<span class="text-muted fst-italic">(' + escapeHTML(item.catatanLogistik) + ')</span>');
+            if (valTitikAppr) parts.push('<i class="bi bi-geo-alt-fill text-danger me-1"></i>' + escapeHTML(valTitikAppr));
+            if (valModaAppr) parts.push('<i class="bi bi-airplane-fill text-info me-1"></i>' + escapeHTML(valModaAppr));
+            if (valCatLogAppr) parts.push('<span class="text-muted fst-italic">(' + escapeHTML(valCatLogAppr) + ')</span>');
             elLogistikText.innerHTML = parts.join(' &bull; ');
           } else {
             elLogistikRow.style.display = 'none';
@@ -10559,9 +10580,16 @@
           '<tr><td class="label-col">Tanggal Masuk Kembali Bekerja</td><td class="colon-col">:</td><td class="value-col"><strong>' + escapeHTML(tglMasukKembali) + '</strong></td></tr>' +
           '<tr><td class="label-col">Keperluan / Alasan Cuti</td><td class="colon-col">:</td><td class="value-col"><em>' + escapeHTML(alasanStr) + '</em></td></tr>' +
           '<tr><td class="label-col">Alamat Selama Cuti</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(alamatStr) + '</td></tr>' +
-          (item.titikDropOff ? '<tr><td class="label-col">Titik Drop / Point of Hire</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(item.titikDropOff) + '</td></tr>' : '') +
-          (item.modaTransportasi ? '<tr><td class="label-col">Kebutuhan Transportasi</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(item.modaTransportasi) + '</td></tr>' : '') +
-          (item.catatanLogistik ? '<tr><td class="label-col">Catatan Tiket / Penjemputan</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(item.catatanLogistik) + '</td></tr>' : '') +
+          (function () {
+            var valT = item.titikDropOff || item.pointOfHire || item.pointOffHire || item.dropOff || '';
+            var valM = item.modaTransportasi || item.transportasi || item.transport || '';
+            var valC = item.catatanLogistik || item.catatanTransportasi || item.catatanTiket || '';
+            var out = '';
+            if (valT) out += '<tr><td class="label-col">Titik Drop / Point of Hire</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(valT) + '</td></tr>';
+            if (valM) out += '<tr><td class="label-col">Kebutuhan Transportasi</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(valM) + '</td></tr>';
+            if (valC) out += '<tr><td class="label-col">Catatan Tiket / Penjemputan</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(valC) + '</td></tr>';
+            return out;
+          })() +
           (catatanStr !== '-' ? '<tr><td class="label-col">Catatan Tambahan</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(catatanStr) + '</td></tr>' : '') +
           '</table>' +
 

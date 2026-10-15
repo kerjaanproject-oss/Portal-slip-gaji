@@ -1656,21 +1656,30 @@ function getOrCreatePengajuanCutiSheet(ss) {
     sheet.appendRow(REQUIRED_HEADERS);
     sheet.getRange(1, 1, 1, REQUIRED_HEADERS.length).setFontWeight('bold').setBackground('#e2e8f0');
   } else {
-    // Auto-migrasi header jika sheet lama belum memiliki kolom approval bertingkat
+    // Auto-migrasi header jika sheet lama belum memiliki kolom approval bertingkat atau logistik transportasi
     const lastCol = sheet.getLastColumn();
     if (lastCol > 0) {
       const existingHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) {
         return String(h || '').trim().toLowerCase();
       });
+      const missingHeaders = [];
       REQUIRED_HEADERS.forEach(function (reqH) {
         const found = existingHeaders.some(function (eh) {
-          return eh.toLowerCase() === reqH.toLowerCase();
+          if (eh.toLowerCase() === reqH.toLowerCase()) return true;
+          if (reqH.toLowerCase().includes('titik drop') && (eh.includes('point') || eh.includes('hire') || eh.includes('drop') || eh.includes('poh') || eh.includes('jemput'))) return true;
+          if (reqH.toLowerCase().includes('moda transport') && (eh.includes('transport') || eh.includes('moda') || eh.includes('kendaraan'))) return true;
+          if (reqH.toLowerCase().includes('catatan logistik') && (eh.includes('logistik') || eh.includes('tiket') || (eh.includes('catatan') && (eh.includes('transport') || eh.includes('khusus'))))) return true;
+          return false;
         });
         if (!found) {
-          const newCol = sheet.getLastColumn() + 1;
-          sheet.getRange(1, newCol).setValue(reqH).setFontWeight('bold').setBackground('#e2e8f0');
+          missingHeaders.push(reqH);
         }
       });
+      if (missingHeaders.length > 0) {
+        const startCol = sheet.getLastColumn() + 1;
+        sheet.getRange(1, startCol, 1, missingHeaders.length).setValues([missingHeaders]).setFontWeight('bold').setBackground('#e2e8f0');
+        SpreadsheetApp.flush();
+      }
     }
   }
   return sheet;
@@ -1802,7 +1811,7 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
   const lampNameIdx = headers.findIndex(function (h) { return h.includes('lampiran') || h.includes('file'); });
   const driveUrlIdx = headers.findIndex(function (h) { return h.includes('url') || h.includes('link'); });
   const driveIdIdx = headers.findIndex(function (h) { return h.includes('file id') || h.includes('fileid'); });
-  const catatanIdx = headers.findIndex(function (h) { return h.includes('catatan'); });
+  const catatanIdx = headers.findIndex(function (h) { return h.includes('catatan') && !h.includes('approver') && !h.includes('logistik') && !h.includes('transport') && !h.includes('tiket') && !h.includes('jemput'); });
   const statusIdx = headers.findIndex(function (h) { return h.includes('status'); });
 
   // Approver 1 (Atasan)
@@ -1829,9 +1838,19 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
   const tolakAlasanIdx = headers.findIndex(function (h) { return h.includes('alasan penolakan') || h.includes('alasan tolak'); });
   const tglAwalOnsiteIdx = headers.findIndex(function (h) { return h.includes('tanggal awal onsite') || h.includes('awal onsite') || h.includes('tgl awal onsite'); });
   const totalHariOnsiteIdx = headers.findIndex(function (h) { return h.includes('total hari kerja onsite') || h.includes('hari kerja onsite') || h.includes('hari onsite') || h.includes('total hari onsite'); });
-  const titikDropOffIdx = headers.findIndex(function (h) { return h.includes('titik drop') || h.includes('point of hire'); });
-  const modaTransportIdx = headers.findIndex(function (h) { return h.includes('moda transportasi') || h.includes('transportasi'); });
-  const catatanLogistikIdx = headers.findIndex(function (h) { return h.includes('catatan logistik') || h.includes('logistik tiket'); });
+  const titikDropOffIdx = headers.findIndex(function (h) {
+    return h.includes('titik drop') || h.includes('point of hire') || h.includes('point off hire') ||
+           h.includes('drop') || h.includes('hire') || h.includes('point') || h.includes('poh') ||
+           h.includes('jemput') || h.includes('antar') || h.includes('tujuan');
+  });
+  const modaTransportIdx = headers.findIndex(function (h) {
+    return (h.includes('transport') || h.includes('moda') || h.includes('kendaraan') || h.includes('armada')) &&
+           !h.includes('catatan') && !h.includes('note');
+  });
+  const catatanLogistikIdx = headers.findIndex(function (h) {
+    return h.includes('logistik') || h.includes('tiket') || h.includes('penjemputan') ||
+           (h.includes('catatan') && (h.includes('transport') || h.includes('khusus') || h.includes('tiket') || h.includes('jemput') || h.includes('drop')));
+  });
 
   const list = [];
   for (let i = 1; i < data.length; i++) {
@@ -1879,6 +1898,54 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
     const finalName = applicantDb && applicantDb.fullname ? applicantDb.fullname : (nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : String(row[3] || ''));
     const finalJab = applicantDb && applicantDb.jabatan ? applicantDb.jabatan : (jabIdx !== -1 && row[jabIdx] ? String(row[jabIdx]).trim() : String(row[5] || ''));
 
+    // Resolusi Titik Drop Off / Point of Hire
+    let valTitik = '';
+    if (titikDropOffIdx !== -1 && row[titikDropOffIdx] !== undefined && row[titikDropOffIdx] !== null) {
+      valTitik = String(row[titikDropOffIdx]).trim();
+    }
+    if (!valTitik && row[36] !== undefined && row[36] !== null) {
+      valTitik = String(row[36]).trim();
+    }
+
+    // Resolusi Moda Transportasi
+    let valModa = '';
+    if (modaTransportIdx !== -1 && row[modaTransportIdx] !== undefined && row[modaTransportIdx] !== null) {
+      valModa = String(row[modaTransportIdx]).trim();
+    }
+    if (!valModa && row[37] !== undefined && row[37] !== null) {
+      valModa = String(row[37]).trim();
+    }
+
+    // Resolusi Catatan Logistik / Tiket
+    let valCatLog = '';
+    if (catatanLogistikIdx !== -1 && row[catatanLogistikIdx] !== undefined && row[catatanLogistikIdx] !== null) {
+      valCatLog = String(row[catatanLogistikIdx]).trim();
+    }
+    if (!valCatLog && row[38] !== undefined && row[38] !== null) {
+      valCatLog = String(row[38]).trim();
+    }
+
+    // Heuristik jika valModa atau valTitik masih kosong (misal urutan kolom bergeser)
+    if (!valModa || !valTitik) {
+      const transportKeywords = ['travel', 'pesawat', 'speedboat', 'bus', 'elf', 'mandiri', 'kapal', 'mobil'];
+      for (let c = Math.max(0, row.length - 8); c < row.length; c++) {
+        const cellStr = String(row[c] || '').trim();
+        if (!cellStr) continue;
+        const cellLower = cellStr.toLowerCase();
+        if (!valModa && transportKeywords.some(function (kw) { return cellLower.indexOf(kw) !== -1; })) {
+          valModa = cellStr;
+        } else if (!valTitik && c !== modaTransportIdx && c !== catatanLogistikIdx &&
+                   !cellLower.includes('disetujui') && !cellLower.includes('ditolak') && !cellLower.includes('menunggu') &&
+                   isNaN(Number(cellStr))) {
+          if (cellLower.includes('samarinda') || cellLower.includes('balikpapan') || cellLower.includes('mess') ||
+              cellLower.includes('site') || cellLower.includes('camp') || cellLower.includes('bandara') ||
+              cellLower.includes('berau') || cellLower.includes('jakarta')) {
+            valTitik = cellStr;
+          }
+        }
+      }
+    }
+
     list.push({
       id: idIdx !== -1 && row[idIdx] ? String(row[idIdx]).trim() : String(row[0] || ('CUTI-' + i)),
       tanggalPengajuan: tglAjuStr,
@@ -1924,9 +1991,14 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
       alasanPenolakan: tolakAlasanIdx !== -1 ? String(row[tolakAlasanIdx] || '').trim() : '',
       tglAwalOnsite: tglAwalOnsiteIdx !== -1 && row[tglAwalOnsiteIdx] ? (row[tglAwalOnsiteIdx] instanceof Date ? Utilities.formatDate(row[tglAwalOnsiteIdx], 'Asia/Jakarta', 'yyyy-MM-dd') : String(row[tglAwalOnsiteIdx]).trim()) : '',
       totalHariKerjaOnsite: totalHariOnsiteIdx !== -1 && row[totalHariOnsiteIdx] !== '' && !isNaN(Number(row[totalHariOnsiteIdx])) ? Number(row[totalHariOnsiteIdx]) : null,
-      titikDropOff: titikDropOffIdx !== -1 && row[titikDropOffIdx] ? String(row[titikDropOffIdx]).trim() : '',
-      modaTransportasi: modaTransportIdx !== -1 && row[modaTransportIdx] ? String(row[modaTransportIdx]).trim() : '',
-      catatanLogistik: catatanLogistikIdx !== -1 && row[catatanLogistikIdx] ? String(row[catatanLogistikIdx]).trim() : ''
+      titikDropOff: valTitik,
+      pointOfHire: valTitik,
+      pointOffHire: valTitik,
+      dropOff: valTitik,
+      modaTransportasi: valModa,
+      transportasi: valModa,
+      catatanLogistik: valCatLog,
+      catatanTransportasi: valCatLog
     });
   }
 
@@ -2057,11 +2129,34 @@ function submitPengajuanCuti(token, payload) {
     initialCutiStatus = 'Menunggu Persetujuan HRD';
   }
 
-  const titikDropOff = String(payload.titikDropOff || '').trim();
-  const modaTransportasi = String(payload.modaTransportasi || '').trim();
-  const catatanLogistik = String(payload.catatanLogistik || '').trim();
+  const titikDropOff = String(payload.titikDropOff || payload.pointOfHire || payload.pointOffHire || '').trim();
+  const modaTransportasi = String(payload.modaTransportasi || payload.transportasi || '').trim();
+  const catatanLogistik = String(payload.catatanLogistik || payload.catatanTransportasi || '').trim();
 
-  cutiSheet.appendRow([
+  // Dapatkan header sheet jika sudah ada kolom dinamis
+  const lastCol = cutiSheet.getLastColumn();
+  let headers = [];
+  if (lastCol > 0) {
+    headers = cutiSheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) {
+      return String(h || '').trim().toLowerCase();
+    });
+  }
+
+  const dropIdx = headers.findIndex(function (h) {
+    return h.includes('titik drop') || h.includes('point of hire') || h.includes('point off hire') ||
+           h.includes('drop') || h.includes('hire') || h.includes('point') || h.includes('poh') ||
+           h.includes('jemput') || h.includes('antar') || h.includes('tujuan');
+  });
+  const modaIdx = headers.findIndex(function (h) {
+    return (h.includes('transport') || h.includes('moda') || h.includes('kendaraan') || h.includes('armada')) &&
+           !h.includes('catatan') && !h.includes('note');
+  });
+  const logIdx = headers.findIndex(function (h) {
+    return h.includes('logistik') || h.includes('tiket') || h.includes('penjemputan') ||
+           (h.includes('catatan') && (h.includes('transport') || h.includes('khusus') || h.includes('tiket') || h.includes('jemput') || h.includes('drop')));
+  });
+
+  const rowData = [
     cutiId,
     formattedDate,
     empId,
@@ -2089,7 +2184,19 @@ function submitPengajuanCuti(token, payload) {
     titikDropOff,
     modaTransportasi,
     catatanLogistik
-  ]);
+  ];
+
+  if (headers.length > rowData.length) {
+    while (rowData.length < headers.length) {
+      rowData.push('');
+    }
+  }
+
+  if (dropIdx !== -1) rowData[dropIdx] = titikDropOff;
+  if (modaIdx !== -1) rowData[modaIdx] = modaTransportasi;
+  if (logIdx !== -1) rowData[logIdx] = catatanLogistik;
+
+  cutiSheet.appendRow(rowData);
 
   return {
     success: true,
@@ -2155,13 +2262,23 @@ function editPengajuanCuti(token, payload) {
   const lampiranNameIdx = headers.findIndex(function (h) { return h.includes('nama file lampiran') || h.includes('file lampiran'); });
   const lampiranUrlIdx = headers.findIndex(function (h) { return h.includes('url drive') || h.includes('url lampiran'); });
   const lampiranFileIdIdx = headers.findIndex(function (h) { return h.includes('file id') || h.includes('fileid'); });
-  const catatanIdx = headers.findIndex(function (h) { return h.includes('catatan'); });
+  const catatanIdx = headers.findIndex(function (h) { return h.includes('catatan') && !h.includes('approver') && !h.includes('logistik') && !h.includes('transport') && !h.includes('tiket') && !h.includes('jemput'); });
   const app1StatusIdx = headers.findIndex(function (h) { return h.includes('approver 1 status'); });
   const tglAwalOnsiteIdx = headers.findIndex(function (h) { return h.includes('tanggal awal onsite') || h.includes('tgl awal onsite'); });
   const totalHariOnsiteIdx = headers.findIndex(function (h) { return h.includes('total hari kerja onsite') || h.includes('total hari onsite'); });
-  const titikDropOffIdx = headers.findIndex(function (h) { return h.includes('titik drop') || h.includes('point of hire'); });
-  const modaTransportIdx = headers.findIndex(function (h) { return h.includes('moda transportasi') || h.includes('transportasi'); });
-  const catatanLogistikIdx = headers.findIndex(function (h) { return h.includes('catatan logistik') || h.includes('logistik tiket'); });
+  const titikDropOffIdx = headers.findIndex(function (h) {
+    return h.includes('titik drop') || h.includes('point of hire') || h.includes('point off hire') ||
+           h.includes('drop') || h.includes('hire') || h.includes('point') || h.includes('poh') ||
+           h.includes('jemput') || h.includes('antar') || h.includes('tujuan');
+  });
+  const modaTransportIdx = headers.findIndex(function (h) {
+    return (h.includes('transport') || h.includes('moda') || h.includes('kendaraan') || h.includes('armada')) &&
+           !h.includes('catatan') && !h.includes('note');
+  });
+  const catatanLogistikIdx = headers.findIndex(function (h) {
+    return h.includes('logistik') || h.includes('tiket') || h.includes('penjemputan') ||
+           (h.includes('catatan') && (h.includes('transport') || h.includes('khusus') || h.includes('tiket') || h.includes('jemput') || h.includes('drop')));
+  });
 
   const currentUsername = String(session.user.username || '').trim().toLowerCase();
   const userRole = String(session.user.role || '').trim().toLowerCase();
@@ -2245,9 +2362,13 @@ function editPengajuanCuti(token, payload) {
       if (catatanIdx !== -1) cutiSheet.getRange(rowIndex, catatanIdx + 1).setValue(catatanTambahan);
       if (tglAwalOnsiteIdx !== -1) cutiSheet.getRange(rowIndex, tglAwalOnsiteIdx + 1).setValue(tglAwalOnsite);
       if (totalHariOnsiteIdx !== -1) cutiSheet.getRange(rowIndex, totalHariOnsiteIdx + 1).setValue(totalHariKerjaOnsite);
-      if (titikDropOffIdx !== -1) cutiSheet.getRange(rowIndex, titikDropOffIdx + 1).setValue(titikDropOff);
-      if (modaTransportIdx !== -1) cutiSheet.getRange(rowIndex, modaTransportIdx + 1).setValue(modaTransportasi);
-      if (catatanLogistikIdx !== -1) cutiSheet.getRange(rowIndex, catatanLogistikIdx + 1).setValue(catatanLogistik);
+      const colTitik = titikDropOffIdx !== -1 ? (titikDropOffIdx + 1) : 37;
+      const colModa = modaTransportIdx !== -1 ? (modaTransportIdx + 1) : 38;
+      const colCatLog = catatanLogistikIdx !== -1 ? (catatanLogistikIdx + 1) : 39;
+
+      cutiSheet.getRange(rowIndex, colTitik).setValue(titikDropOff);
+      cutiSheet.getRange(rowIndex, colModa).setValue(modaTransportasi);
+      cutiSheet.getRange(rowIndex, colCatLog).setValue(catatanLogistik);
 
       return {
         success: true,
