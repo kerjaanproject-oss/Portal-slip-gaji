@@ -999,6 +999,159 @@
       }
     }
 
+    /* Transport Option Chips in Cuti Form */
+    .transport-chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: stretch;
+    }
+
+    .transport-chip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 0.55rem;
+      border: 1.5px solid transparent;
+      font-size: 0.815rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.18s ease-in-out;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      margin: 0 !important;
+    }
+
+    .transport-chip .form-check-input {
+      margin: 0 !important;
+      float: none !important;
+      width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 0.28rem;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    /* 1. Mobil Travel (Royal Blue) */
+    .transport-chip-travel {
+      border-color: #bfdbfe;
+      background-color: #eff6ff;
+      color: #1d4ed8;
+    }
+    .transport-chip-travel:hover {
+      background-color: #dbeafe;
+      border-color: #93c5fd;
+    }
+    .transport-chip-travel .form-check-input:checked {
+      background-color: #2563eb;
+      border-color: #2563eb;
+    }
+    .transport-chip-travel.active,
+    .transport-chip-travel:has(.form-check-input:checked) {
+      background-color: #dbeafe;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    }
+
+    /* 2. Pesawat (Cyan / Sky) */
+    .transport-chip-pesawat {
+      border-color: #bae6fd;
+      background-color: #f0f9ff;
+      color: #0369a1;
+    }
+    .transport-chip-pesawat:hover {
+      background-color: #e0f2fe;
+      border-color: #7dd3fc;
+    }
+    .transport-chip-pesawat .form-check-input:checked {
+      background-color: #0284c7;
+      border-color: #0284c7;
+    }
+    .transport-chip-pesawat.active,
+    .transport-chip-pesawat:has(.form-check-input:checked) {
+      background-color: #e0f2fe;
+      border-color: #0284c7;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+    }
+
+    /* 3. Speedboat / Kapal (Teal) */
+    .transport-chip-speedboat {
+      border-color: #99f6e4;
+      background-color: #f0fdfa;
+      color: #0f766e;
+    }
+    .transport-chip-speedboat:hover {
+      background-color: #ccfbf1;
+      border-color: #5eead4;
+    }
+    .transport-chip-speedboat .form-check-input:checked {
+      background-color: #0d9488;
+      border-color: #0d9488;
+    }
+    .transport-chip-speedboat.active,
+    .transport-chip-speedboat:has(.form-check-input:checked) {
+      background-color: #ccfbf1;
+      border-color: #0d9488;
+      box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+    }
+
+    /* 4. Bus / Elf (Amber / Orange) */
+    .transport-chip-bus {
+      border-color: #fde68a;
+      background-color: #fffbeb;
+      color: #b45309;
+    }
+    .transport-chip-bus:hover {
+      background-color: #fef3c7;
+      border-color: #fcd34d;
+    }
+    .transport-chip-bus .form-check-input:checked {
+      background-color: #d97706;
+      border-color: #d97706;
+    }
+    .transport-chip-bus.active,
+    .transport-chip-bus:has(.form-check-input:checked) {
+      background-color: #fef3c7;
+      border-color: #d97706;
+      box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+    }
+
+    /* 5. Mandiri (Cool Slate) */
+    .transport-chip-mandiri {
+      border-color: #e2e8f0;
+      background-color: #f8fafc;
+      color: #475569;
+    }
+    .transport-chip-mandiri:hover {
+      background-color: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+    .transport-chip-mandiri .form-check-input:checked {
+      background-color: #64748b;
+      border-color: #64748b;
+    }
+    .transport-chip-mandiri.active,
+    .transport-chip-mandiri:has(.form-check-input:checked) {
+      background-color: #f1f5f9;
+      border-color: #64748b;
+      box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2);
+    }
+
+    @media (max-width: 576px) {
+      .transport-chip-group {
+        gap: 0.5rem;
+      }
+      .transport-chip {
+        padding: 0.45rem 0.65rem;
+        font-size: 0.775rem;
+        flex: 1 1 calc(50% - 0.5rem);
+        min-width: 130px;
+      }
+    }
+
     /* Team Leave Calendar Styling */
     .calendar-card {
       border-radius: 1rem;
@@ -3433,7 +3586,7 @@
             <div class="row g-3">
               <div class="col-md-5">
                 <label class="form-label small fw-semibold mb-1">
-                  Point of Hire / Titik Drop Off
+                  Point of Hire
                 </label>
                 <div class="input-group input-group-sm">
                   <span class="input-group-text bg-white"><i class="bi bi-geo-alt text-danger"></i></span>
@@ -3455,41 +3608,45 @@
 
               <div class="col-md-7">
                 <label class="form-label small fw-semibold mb-1 d-flex justify-content-between align-items-center">
-                  <span>Moda Transportasi</span>
+                  <span>Transportasi</span>
                   <span class="text-primary fw-normal extra-small"><i class="bi bi-check2-all me-1"></i>Bisa pilih lebih
                     dari 1</span>
                 </label>
-                <div class="d-flex flex-wrap gap-2 pt-1" id="groupModaTransportasi">
-                  <div class="form-check form-check-inline m-0 bg-white border rounded px-2 py-1 shadow-2xs">
+                <div class="transport-chip-group pt-1" id="groupModaTransportasi">
+                  <label class="transport-chip transport-chip-travel" for="modaMobilTravel">
                     <input class="form-check-input check-moda-transport" type="checkbox" id="modaMobilTravel"
                       value="Mobil Travel">
-                    <label class="form-check-label small" for="modaMobilTravel"><i
-                        class="bi bi-car-front me-1 text-primary"></i>Mobil Travel</label>
-                  </div>
-                  <div class="form-check form-check-inline m-0 bg-white border rounded px-2 py-1 shadow-2xs">
+                    <i class="bi bi-car-front-fill fs-6 text-primary"></i>
+                    <span>Mobil Travel</span>
+                  </label>
+
+                  <label class="transport-chip transport-chip-pesawat" for="modaPesawat">
                     <input class="form-check-input check-moda-transport" type="checkbox" id="modaPesawat"
                       value="Pesawat">
-                    <label class="form-check-label small" for="modaPesawat"><i
-                        class="bi bi-airplane me-1 text-info"></i>Pesawat</label>
-                  </div>
-                  <div class="form-check form-check-inline m-0 bg-white border rounded px-2 py-1 shadow-2xs">
+                    <i class="bi bi-airplane-fill fs-6 text-info"></i>
+                    <span>Pesawat</span>
+                  </label>
+
+                  <label class="transport-chip transport-chip-speedboat" for="modaSpeedboat">
                     <input class="form-check-input check-moda-transport" type="checkbox" id="modaSpeedboat"
                       value="Speedboat / Kapal">
-                    <label class="form-check-label small" for="modaSpeedboat"><i
-                        class="bi bi-water me-1 text-teal"></i>Speedboat / Kapal</label>
-                  </div>
-                  <div class="form-check form-check-inline m-0 bg-white border rounded px-2 py-1 shadow-2xs">
+                    <i class="bi bi-water fs-6 text-teal"></i>
+                    <span>Speedboat / Kapal</span>
+                  </label>
+
+                  <label class="transport-chip transport-chip-bus" for="modaBus">
                     <input class="form-check-input check-moda-transport" type="checkbox" id="modaBus"
                       value="Bus / Elf Site">
-                    <label class="form-check-label small" for="modaBus"><i
-                        class="bi bi-bus-front me-1 text-warning"></i>Bus / Elf</label>
-                  </div>
-                  <div class="form-check form-check-inline m-0 bg-white border rounded px-2 py-1 shadow-2xs">
+                    <i class="bi bi-bus-front-fill fs-6 text-warning"></i>
+                    <span>Bus / Elf</span>
+                  </label>
+
+                  <label class="transport-chip transport-chip-mandiri" for="modaMandiri">
                     <input class="form-check-input check-moda-transport" type="checkbox" id="modaMandiri"
                       value="Mandiri (Tanpa Tiket)">
-                    <label class="form-check-label small" for="modaMandiri"><i
-                        class="bi bi-person me-1 text-secondary"></i>Mandiri</label>
-                  </div>
+                    <i class="bi bi-person-fill fs-6 text-secondary"></i>
+                    <span>Mandiri</span>
+                  </label>
                 </div>
                 <div class="form-text extra-small text-muted">Contoh: biasanya mobil travel + pesawat atau speedboat.
                 </div>
@@ -7712,11 +7869,27 @@
         var checkboxes = document.querySelectorAll('.check-moda-transport');
         checkboxes.forEach(function (cb) {
           var val = cb.value.toLowerCase();
-          cb.checked = items.some(function (item) {
+          var isChecked = items.some(function (item) {
             return item === val || val.indexOf(item) !== -1 || item.indexOf(val) !== -1;
           });
+          cb.checked = isChecked;
+          var parentChip = cb.closest('.transport-chip');
+          if (parentChip) {
+            if (isChecked) parentChip.classList.add('active');
+            else parentChip.classList.remove('active');
+          }
         });
       };
+
+      document.addEventListener('change', function (e) {
+        if (e.target && e.target.classList.contains('check-moda-transport')) {
+          var chip = e.target.closest('.transport-chip');
+          if (chip) {
+            if (e.target.checked) chip.classList.add('active');
+            else chip.classList.remove('active');
+          }
+        }
+      });
 
       window.openModalPengajuanCuti = function () {
         var modalEl = document.getElementById('modalPengajuanCuti');
@@ -9195,7 +9368,7 @@
             '<span class="small fw-semibold text-dark"><i class="bi bi-geo-alt text-danger me-1"></i>' + (item.titikDropOff ? escapeHTML(item.titikDropOff) : '<span class="text-muted fw-normal fst-italic">-</span>') + '</span>' +
             '</div>' +
             '<div class="col-sm-7">' +
-            '<span class="extra-small fw-bold text-muted d-block mb-1">MODA TRANSPORTASI</span>' +
+            '<span class="extra-small fw-bold text-muted d-block mb-1">TRANSPORTASI</span>' +
             '<div>' + (badgesModa || '<span class="text-muted small fst-italic">Tidak ditentukan</span>') + '</div>' +
             '</div>' +
             (item.catatanLogistik ?
