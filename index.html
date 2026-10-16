@@ -3118,6 +3118,15 @@
                           placeholder="Cari nama karyawan..." style="min-width: 160px;" oninput="renderKalenderCuti()">
                       </div>
                     </div>
+
+                    <!-- Tombol Reset Filter -->
+                    <div class="col-12 col-sm-auto">
+                      <button type="button" id="btnResetFilterKalender"
+                        class="btn btn-outline-secondary btn-sm fw-semibold w-100 w-sm-auto d-inline-flex align-items-center justify-content-center"
+                        onclick="resetFilterKalenderCuti()" title="Reset Semua Filter Kalender">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Filter
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -10128,6 +10137,26 @@
         renderKalenderCuti();
       };
 
+      window.resetFilterKalenderCuti = function () {
+        var selDept = document.getElementById('filterKalenderDept');
+        if (selDept) {
+          if (Array.from(selDept.options).some(function (o) { return o.value === 'SEMUA'; })) {
+            selDept.value = 'SEMUA';
+          } else if (selDept.options.length > 0) {
+            selDept.selectedIndex = 0;
+          }
+        }
+        var selStatus = document.getElementById('filterKalenderStatus');
+        if (selStatus) {
+          selStatus.value = 'SEMUA';
+        }
+        var sInput = document.getElementById('searchKalenderNama');
+        if (sInput) {
+          sInput.value = '';
+        }
+        renderKalenderCuti();
+      };
+
       window.renderKalenderCuti = function () {
         var gridBody = document.getElementById('calendarGridBody');
         var titleEl = document.getElementById('calMonthYearTitle');
@@ -10147,6 +10176,17 @@
         var filterDept = document.getElementById('filterKalenderDept') ? document.getElementById('filterKalenderDept').value : 'SEMUA';
         var filterStatus = document.getElementById('filterKalenderStatus') ? document.getElementById('filterKalenderStatus').value : 'SEMUA';
         var searchKeyword = (document.getElementById('searchKalenderNama') ? document.getElementById('searchKalenderNama').value : '').toLowerCase().trim();
+
+        // Update indikator aktif pada tombol Reset Filter
+        var isFiltered = (filterDept !== 'SEMUA') || (filterStatus !== 'SEMUA') || (searchKeyword !== '');
+        var btnReset = document.getElementById('btnResetFilterKalender');
+        if (btnReset) {
+          if (isFiltered) {
+            btnReset.classList.add('text-primary', 'border-primary');
+          } else {
+            btnReset.classList.remove('text-primary', 'border-primary');
+          }
+        }
 
         // 1. Filter dasar berdasarkan wewenang pengguna (HRD vs Supervisor)
         var allowedLeaves = dbCutiList.filter(function (item) {
