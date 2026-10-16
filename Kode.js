@@ -3119,7 +3119,7 @@ function saveAnnouncement(token, payload) {
       new Date(),
       createdBy
     ]);
-    return { success: true, message: 'Pengumuman baru berhasil disimpan.' };
+    return { success: true, message: 'Pengumuman baru berhasil disimpan.', id: newId, annId: newId };
   } else {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][0]).trim() === annId) {
@@ -3129,7 +3129,7 @@ function saveAnnouncement(token, payload) {
         sheet.getRange(i + 1, 5).setValue(tanggalMulai);
         sheet.getRange(i + 1, 6).setValue(tanggalSelesai);
         sheet.getRange(i + 1, 7).setValue(status);
-        return { success: true, message: 'Pengumuman berhasil diperbarui.' };
+        return { success: true, message: 'Pengumuman berhasil diperbarui.', id: annId, annId: annId };
       }
     }
     return { success: false, message: 'Pengumuman dengan ID ' + annId + ' tidak ditemukan.' };

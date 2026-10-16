@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbyTKIXQcXNDyGZb5kGIbciy34MyYxSf0VhGEMjULXA8uCM_HWDMoQ8duCSEzUn4Qh_8/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwa4QGIc7x6shHO8LagJiPKMlKTr6lHhA5-MqJ9-ViFqgbOr5zlBU1Frs8kwkQ8TwNu/exec";
   </script>
   <!-- Favicon & Ikon Pintasan Layar Depan -->
   <link rel="icon" type="image/png"
@@ -3398,7 +3398,11 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer bg-light px-4 py-2.5">
+        <div class="modal-footer bg-light px-4 py-2.5 d-flex justify-content-between align-items-center">
+          <button type="button" id="btnSharePengumumanDetail" class="btn btn-success d-flex align-items-center gap-1.5"
+            style="background-color: #25D366; border-color: #25D366;">
+            <i class="bi bi-whatsapp"></i> Bagikan ke WhatsApp
+          </button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
         </div>
       </div>
@@ -5815,6 +5819,7 @@
             '<td class="small text-muted"><i class="bi bi-person me-1"></i>' + escapeHTML(a.dibuatOleh || 'HRD') + (a.tanggalDibuat ? '<div class="extra-small text-black-50">' + escapeHTML(formatDateDDMMYYYY(a.tanggalDibuat)) + '</div>' : '') + '</td>' +
             '<td class="text-center text-nowrap"><div class="action-group">' +
             '<button class="btn btn-sm btn-action btn-action-view" onclick="openDetailAnnouncementModal(\'' + escapeHTML(a.id) + '\')" title="Lihat Detail Pengumuman"><i class="bi bi-eye"></i></button>' +
+            '<button class="btn btn-sm btn-action text-success border-success-subtle bg-success-subtle" onclick="shareAnnouncementToWA(\'' + escapeHTML(a.id) + '\')" title="Bagikan ke WhatsApp"><i class="bi bi-whatsapp"></i> WA</button>' +
             '<button class="btn btn-sm btn-action btn-action-edit" onclick="openEditAnnouncementModal(\'' + escapeHTML(a.id) + '\')" title="Edit Pengumuman"><i class="bi bi-pencil-square"></i>Edit</button>' +
             '<button class="btn btn-sm btn-action btn-action-delete" onclick="handleDeleteAnnouncement(\'' + escapeHTML(a.id) + '\')" title="Hapus Pengumuman"><i class="bi bi-trash"></i>Hapus</button>' +
             '</div></td>';
@@ -5825,6 +5830,77 @@
         renderPaginationControls('paginationPengumuman', filtered.length, currentPagePengumuman, function (newPage) {
           currentPagePengumuman = newPage;
           renderPengumumanTable();
+        });
+      };
+
+      window.generateWhatsAppAnnouncementText = function (item) {
+        if (!item) return '';
+
+        var lowerTipe = (item.tipe || '').toLowerCase();
+        var headerIcon = '📢';
+        var prioritasLabel = '🔵 INFORMASI UMUM';
+
+        if (lowerTipe === 'mendesak' || lowerTipe === 'urgent') {
+          headerIcon = '🚨';
+          prioritasLabel = '🔴 MENDESAK / PERHATIAN KHUSUS';
+        } else if (lowerTipe === 'penting' || lowerTipe === 'warning') {
+          headerIcon = '⚠️';
+          prioritasLabel = '🟡 PENTING';
+        }
+
+        var periodeStr = 'Berlaku Seterusnya';
+        if (item.tanggalMulai && item.tanggalSelesai) {
+          periodeStr = formatDateDDMMYYYY(item.tanggalMulai) + ' s/d ' + formatDateDDMMYYYY(item.tanggalSelesai);
+        } else if (item.tanggalMulai) {
+          periodeStr = 'Mulai ' + formatDateDDMMYYYY(item.tanggalMulai);
+        } else if (item.tanggalSelesai) {
+          periodeStr = 's/d ' + formatDateDDMMYYYY(item.tanggalSelesai);
+        }
+
+        var author = item.dibuatOleh || 'HRD / Manajemen';
+
+        var text =
+          headerIcon + ' *PENGUMUMAN RESMI PERUSAHAAN* ' + headerIcon + '\n' +
+          '*PT. BERKAH BATU BARA*\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+          '📌 *Judul:* ' + (item.judul || '-').trim() + '\n' +
+          '🏷️ *Prioritas:* ' + prioritasLabel + '\n' +
+          '🗓️ *Periode:* ' + periodeStr + '\n' +
+          '✍️ *Diterbitkan Oleh:* ' + author + '\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+          '📢 *Isi Informasi:*\n' +
+          (item.isi || '-').trim() + '\n\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+          '_Pesan ini disiarkan secara resmi melalui Aplikasi Berkah - APP PT. Berkah Batu Bara._';
+
+        return text;
+      };
+
+      window.shareAnnouncementToWA = function (annIdOrItem) {
+        var item = null;
+        if (typeof annIdOrItem === 'object' && annIdOrItem !== null) {
+          item = annIdOrItem;
+        } else {
+          var cleanId = String(annIdOrItem || '').trim();
+          item = (typeof dbPengumuman !== 'undefined' && dbPengumuman) ? dbPengumuman.find(function (a) { return a.id === cleanId; }) : null;
+        }
+
+        if (!item) {
+          Swal.fire('Informasi', 'Data pengumuman tidak ditemukan.', 'info');
+          return;
+        }
+
+        var messageText = generateWhatsAppAnnouncementText(item);
+        var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(messageText);
+
+        window.open(waUrl, '_blank');
+
+        Swal.fire({
+          title: 'Membuka WhatsApp...',
+          html: 'Format pengumuman <strong>' + escapeHTML(item.judul) + '</strong> telah disiapkan.<br><br><span class="small text-muted">Silakan pilih <strong>Grup WhatsApp Kantor</strong> yang dituju, lalu tekan tombol <strong>Kirim</strong> di WhatsApp.</span>',
+          icon: 'success',
+          confirmButtonColor: '#25D366',
+          confirmButtonText: 'Selesai'
         });
       };
 
@@ -5905,6 +5981,13 @@
         periodeEl.innerText = periodeStr;
         authorEl.innerText = (item.dibuatOleh || 'HRD') + (item.tanggalDibuat ? ' (' + formatDateDDMMYYYY(item.tanggalDibuat) + ')' : '');
 
+        var btnShare = document.getElementById('btnSharePengumumanDetail');
+        if (btnShare) {
+          btnShare.onclick = function () {
+            shareAnnouncementToWA(item);
+          };
+        }
+
         bsModalDetailPengumuman.show();
       };
 
@@ -5934,8 +6017,31 @@
           if (handleSessionExpired(res)) return;
           if (res.success) {
             if (bsModalFormPengumuman) bsModalFormPengumuman.hide();
-            Swal.fire('Berhasil', res.message || 'Pengumuman berhasil disimpan.', 'success');
             loadPengumuman();
+            Swal.fire({
+              title: 'Pengumuman Berhasil Disimpan!',
+              text: 'Apakah Anda ingin langsung menyiarkan pengumuman ini ke Grup WhatsApp sekarang?',
+              icon: 'success',
+              showCancelButton: true,
+              confirmButtonText: '<i class="bi bi-whatsapp me-1"></i> Ya, Bagikan ke WA',
+              cancelButtonText: 'Tutup Saja',
+              confirmButtonColor: '#25D366',
+              cancelButtonColor: '#64748b'
+            }).then(function (swalRes) {
+              if (swalRes.isConfirmed) {
+                var annItem = {
+                  id: payload.id || res.id || '',
+                  judul: payload.judul,
+                  isi: payload.isi,
+                  tipe: payload.tipe,
+                  tanggalMulai: payload.tanggalMulai,
+                  tanggalSelesai: payload.tanggalSelesai,
+                  status: payload.status,
+                  dibuatOleh: (Auth.getUser() && Auth.getUser().fullname) ? Auth.getUser().fullname : 'HRD'
+                };
+                shareAnnouncementToWA(annItem);
+              }
+            });
           } else {
             Swal.fire('Gagal', res.message || 'Gagal menyimpan pengumuman.', 'error');
           }
