@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwa4QGIc7x6shHO8LagJiPKMlKTr6lHhA5-MqJ9-ViFqgbOr5zlBU1Frs8kwkQ8TwNu/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0xlhoQ1FcoG6ZMGzk2AU7AOU_m5mAxIXsXrloQojYR6-Ducj8DdN_ss88TZgQWnK8/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -32,7 +32,7 @@
         var savedTheme = localStorage.getItem('berkah_theme');
         var theme = savedTheme ? savedTheme : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         document.documentElement.setAttribute('data-theme', theme);
-      } catch (e) {}
+      } catch (e) { }
     })();
   </script>
   <!-- Favicon & Ikon Pintasan Layar Depan -->
@@ -172,7 +172,8 @@
       }
 
       .auth-card .form-control {
-        font-size: 16px !important; /* Mencegah auto-zoom Safari di iPhone */
+        font-size: 16px !important;
+        /* Mencegah auto-zoom Safari di iPhone */
         padding: 0.6rem 0.75rem;
       }
 
@@ -2166,7 +2167,14 @@
     }
 
     /* Smooth Transition on Theme Switch */
-    body, .card, .topbar, .sidebar, .modal-content, .dropdown-menu, .form-control, .form-select {
+    body,
+    .card,
+    .topbar,
+    .sidebar,
+    .modal-content,
+    .dropdown-menu,
+    .form-control,
+    .form-select {
       transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease, box-shadow 0.25s ease;
     }
 
@@ -2286,13 +2294,13 @@
       border-color: #20334d !important;
     }
 
-    [data-theme="dark"] .table > :not(caption) > * > * {
+    [data-theme="dark"] .table> :not(caption)>*>* {
       background-color: transparent !important;
       color: inherit !important;
       border-bottom-color: #20334d !important;
     }
 
-    [data-theme="dark"] .table-hover > tbody > tr:hover > * {
+    [data-theme="dark"] .table-hover>tbody>tr:hover>* {
       background-color: rgba(96, 165, 250, 0.08) !important;
       color: #f8fafc !important;
     }
@@ -2308,7 +2316,7 @@
       color: #f8fafc !important;
     }
 
-    [data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
+    [data-theme="dark"] .table-striped>tbody>tr:nth-of-type(odd)>* {
       background-color: rgba(255, 255, 255, 0.02) !important;
     }
 
@@ -2698,7 +2706,7 @@
       border-color: #0f172a !important;
     }
 
-    [data-theme="dark"] .surat-cuti-paper .table > :not(caption) > * > * {
+    [data-theme="dark"] .surat-cuti-paper .table> :not(caption)>*>* {
       background-color: #ffffff !important;
       color: #0f172a !important;
       border-color: #0f172a !important;
@@ -2822,6 +2830,15 @@
         </button>
       </form>
 
+      <!-- LINK DAFTAR AKUN BARU (SELF-REGISTRATION) -->
+      <div class="text-center mt-3 pt-2 border-top">
+        <p class="small text-muted mb-1.5">Karyawan baru atau belum punya akun?</p>
+        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-semibold w-100 shadow-sm"
+          onclick="openModalRegister()" title="Pendaftaran akun karyawan mandiri">
+          <i class="bi bi-person-plus-fill me-1.5"></i>Daftar Akun Baru
+        </button>
+      </div>
+
       <!-- NOTICE PENGUMUMAN TERBARU (HANYA MUNCUL JIKA ADA PENGUMUMAN AKTIF) -->
       <div id="loginAnnouncementNotice" class="text-center mt-3 d-none">
         <a href="javascript:void(0)" onclick="openAnnouncementModalFromLogin()"
@@ -2862,6 +2879,14 @@
           <a class="nav-item-custom active" onclick="showPage('karyawan', this)">
             <i class="bi bi-person-gear w-20px"></i>
             <span>Data Karyawan</span>
+          </a>
+        </li>
+        <li class="hrd-only">
+          <a class="nav-item-custom d-flex align-items-center" id="nav-item-persetujuan-pendaftar"
+            onclick="showPage('persetujuan-pendaftar', this)">
+            <i class="bi bi-person-check w-20px"></i>
+            <span class="flex-grow-1">Persetujuan Akun</span>
+            <span class="badge bg-danger rounded-pill extra-small ms-auto d-none" id="badgePendingPendaftar">0</span>
           </a>
         </li>
         <li class="hrd-only">
@@ -3059,6 +3084,86 @@
                 </table>
               </div>
               <div id="paginationKaryawan"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE PERSETUJUAN PENDAFTAR AKUN (HRD ONLY) -->
+        <div id="page-persetujuan-pendaftar" class="app-page d-none hrd-only">
+          <div class="card border-0 shadow-sm">
+            <div
+              class="card-header bg-white py-3 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <h6 class="fw-bold m-0 text-dark"><i class="bi bi-person-check text-primary me-2"></i>Persetujuan
+                  Pendaftaran Akun Karyawan</h6>
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1"
+                  id="badgePendingPendaftarHeader">0 Menunggu</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-primary btn-sm fw-semibold" onclick="loadPendaftarList(true)"
+                  title="Segarkan Data">
+                  <i class="bi bi-arrow-clockwise me-1"></i>Segarkan
+                </button>
+              </div>
+            </div>
+
+            <!-- FILTER & SEARCH BAR -->
+            <div class="p-3 bg-light border-bottom">
+              <div class="row g-2 align-items-center">
+                <div class="col-md-4 col-sm-6">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="searchPendaftar" class="form-control"
+                      placeholder="Cari ID / Nama / Kontak..."
+                      onkeyup="currentPagePendaftar=1; renderPendaftarTable();">
+                  </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                  <select id="filterStatusPendaftar" class="form-select form-select-sm"
+                    onchange="currentPagePendaftar=1; renderPendaftarTable();">
+                    <option value="SEMUA">Semua Status</option>
+                    <option value="Menunggu Persetujuan" selected>Menunggu Persetujuan</option>
+                    <option value="Disetujui">Disetujui</option>
+                    <option value="Ditolak">Ditolak</option>
+                  </select>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                  <select id="filterDeptPendaftar" class="form-select form-select-sm"
+                    onchange="currentPagePendaftar=1; renderPendaftarTable();">
+                    <option value="SEMUA">Semua Departemen</option>
+                  </select>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                  <button class="btn btn-outline-secondary btn-sm w-100 fw-semibold" onclick="resetPendaftarFilters()">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TABLE BODY -->
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem;">
+                  <thead class="text-white text-uppercase extra-small fw-bold">
+                    <tr>
+                      <th class="ps-3" style="width: 140px;">Tanggal Daftar</th>
+                      <th>ID Karyawan</th>
+                      <th>Nama Lengkap</th>
+                      <th>Departemen &amp; Jabatan</th>
+                      <th>No. WA / Email</th>
+                      <th class="text-center" style="width: 150px;">Status</th>
+                      <th class="text-center text-nowrap pe-3" style="width: 160px;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tablePendaftar">
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-4">Memuat data pendaftar...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div id="paginationPendaftar"></div>
             </div>
           </div>
         </div>
@@ -5054,6 +5159,117 @@
     </div>
   </div>
 
+  <!-- MODAL: DAFTAR AKUN BARU (SELF-REGISTRATION) -->
+  <div class="modal fade" id="modalRegister" tabindex="-1" aria-labelledby="modalRegisterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-primary" id="modalRegisterTitle">
+            <i class="bi bi-person-plus-fill me-2"></i>Pendaftaran Akun Karyawan
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <form onsubmit="event.preventDefault(); submitRegister();" id="formRegister">
+          <div class="modal-body p-3 p-sm-4">
+            <div class="alert alert-info py-2 px-3 small mb-3 d-flex align-items-center gap-2">
+              <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 text-info"></i>
+              <div>
+                Pendaftaran akun Anda akan diverifikasi oleh HRD terlebih dahulu sebelum akun aktif untuk login.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">ID Karyawan / NIK <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                <input type="text" id="regIdKaryawan" class="form-control" placeholder="Contoh: EMP001 atau NIK Anda"
+                  required>
+              </div>
+              <div class="form-text extra-small text-muted">ID ini nantinya akan digunakan sebagai username saat login.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Nama Lengkap <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                <input type="text" id="regNamaLengkap" class="form-control" placeholder="Nama lengkap sesuai KTP"
+                  required>
+              </div>
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-sm-6">
+                <label class="form-label small fw-semibold">Departemen <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-diagram-3"></i></span>
+                  <select id="regDepartemen" class="form-select" required>
+                    <option value="">-- Pilih Departemen --</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label small fw-semibold">Jabatan <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-briefcase"></i></span>
+                  <input type="text" id="regJabatan" class="form-control" placeholder="Contoh: Staff Operasional"
+                    required>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">No. WhatsApp / Email <span
+                  class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                <input type="text" id="regKontak" class="form-control"
+                  placeholder="Contoh: 08123456789 atau nama@email.com" required>
+              </div>
+              <div class="form-text extra-small text-muted">Akan digunakan untuk verifikasi dan notifikasi slip gaji.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Buat Password <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                <input type="password" id="regPassword" class="form-control" placeholder="Minimal 6 karakter" required
+                  minlength="6" oninput="checkRegisterPasswordMatch()">
+                <button class="btn btn-outline-secondary" type="button"
+                  onclick="togglePasswordVisibility('regPassword', this)" title="Tampilkan / Sembunyikan Password">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">Konfirmasi Password <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                <input type="password" id="regPasswordConfirm" class="form-control"
+                  placeholder="Ulangi password di atas" required minlength="6" oninput="checkRegisterPasswordMatch()">
+                <button class="btn btn-outline-secondary" type="button"
+                  onclick="togglePasswordVisibility('regPasswordConfirm', this)"
+                  title="Tampilkan / Sembunyikan Password">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div id="regPasswordMatchFeedback" class="form-text extra-small mt-1 fw-semibold" style="display: none;">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top d-flex justify-content-between">
+            <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold shadow-sm" id="btnSubmitRegister">
+              <i class="bi bi-send-check me-1"></i>Kirim Pendaftaran
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: LUPA PASSWORD (EMAIL OTP) -->
   <div class="modal fade" id="modalForgotPassword" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -5688,7 +5904,21 @@
             checkLoginState(true);
           } else {
             hideFullPageLoading();
-            Swal.fire('Gagal Login', res.message || 'ID Karyawan atau Password salah.', 'error');
+            var iconType = 'error';
+            var titleText = 'Gagal Login';
+            if (res.message && res.message.indexOf('MENUNGGU PERSETUJUAN') !== -1) {
+              iconType = 'info';
+              titleText = 'Menunggu Persetujuan HRD';
+            } else if (res.message && res.message.indexOf('DITOLAK') !== -1) {
+              iconType = 'warning';
+              titleText = 'Pendaftaran Akun Ditolak';
+            }
+            Swal.fire({
+              icon: iconType,
+              title: titleText,
+              text: res.message || 'ID Karyawan atau Password salah.',
+              confirmButtonColor: '#0d6efd'
+            });
           }
         }).catch(function () {
           hideFullPageLoading();
@@ -5754,7 +5984,10 @@
           }
           // Ambil status approval di background agar badge navbar & sidebar segera update
           if (user.role === 'Admin' || isAtasan) {
-            setTimeout(function () { loadRiwayatCuti(true); }, 500);
+            setTimeout(function () {
+              loadRiwayatCuti(true);
+              if (user.role === 'Admin') loadPendaftarList(false, true);
+            }, 500);
           }
         } else {
           mainApp.classList.add('d-none');
@@ -5816,6 +6049,7 @@
         var titles = {
           'karyawan': 'Kelola Data Karyawan',
           'master': 'Master Data Departemen',
+          'persetujuan-pendaftar': 'Persetujuan Pendaftaran Akun',
           'upload-slip': 'Upload PDF Slip Gaji Karyawan',
           'slip-saya': 'Daftar Slip Gaji Saya',
           'pengajuan-cuti': 'Formulir Pengajuan Cuti',
@@ -5836,7 +6070,7 @@
 
         showFullPageLoading('Mengambil data...');
 
-        if (pageName === 'karyawan' || pageName === 'master' || pageName === 'upload-slip') {
+        if (pageName === 'karyawan' || pageName === 'master' || pageName === 'upload-slip' || pageName === 'persetujuan-pendaftar') {
           gasRun('getInitialData', token).then(function (res) {
             hideFullPageLoading();
             if (handleSessionExpired(res)) return;
@@ -5846,6 +6080,9 @@
               dbDepartemen = res.departemen || [];
               dbRoster = res.roster || [];
               if (res.cuti) dbCutiList = res.cuti || [];
+              if (res.pendingPendaftarCount !== undefined) {
+                updatePendingPendaftarBadge(res.pendingPendaftarCount);
+              }
               if (pageName === 'karyawan') {
                 populateKaryawanDeptFilter();
                 currentPageKaryawan = 1;
@@ -5854,6 +6091,10 @@
               if (pageName === 'master') {
                 currentPageDepartemen = 1;
                 renderDepartemenTable();
+              }
+              if (pageName === 'persetujuan-pendaftar') {
+                currentPagePendaftar = 1;
+                loadPendaftarList(true);
               }
               if (pageName === 'upload-slip') {
                 populateUploadDeptSelect();
@@ -11671,7 +11912,7 @@
         try {
           var saved = localStorage.getItem('berkah_theme');
           if (saved === 'dark' || saved === 'light') return saved;
-        } catch (e) {}
+        } catch (e) { }
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
           return 'dark';
         }
@@ -11712,7 +11953,7 @@
         document.documentElement.setAttribute('data-theme', targetTheme);
         try {
           localStorage.setItem('berkah_theme', targetTheme);
-        } catch (e) {}
+        } catch (e) { }
         updateThemeToggleUI(targetTheme);
       };
 
@@ -11746,11 +11987,543 @@
                 if (!localStorage.getItem('berkah_theme')) {
                   window.setAppTheme(e.matches ? 'dark' : 'light');
                 }
-              } catch (err) {}
+              } catch (err) { }
             });
-          } catch (e) {}
+          } catch (e) { }
         }
       }
+
+      // ==========================================
+      // FITUR PENDAFTARAN AKUN MANDIRI & PERSETUJUAN HRD
+      // ==========================================
+      var dbPendaftar = [];
+      var currentPagePendaftar = 1;
+      var publicDepartments = [];
+
+      window.openModalRegister = function () {
+        var form = document.getElementById('formRegister');
+        if (form) form.reset();
+
+        var fb = document.getElementById('regPasswordMatchFeedback');
+        if (fb) {
+          fb.style.display = 'none';
+          fb.innerText = '';
+        }
+
+        // Reset visibility icons
+        ['regPassword', 'regPasswordConfirm'].forEach(function (id) {
+          var input = document.getElementById(id);
+          if (input) input.type = 'password';
+        });
+
+        loadPublicDepartments(true);
+
+        var modalEl = document.getElementById('modalRegister');
+        if (modalEl) {
+          var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+          modal.show();
+        }
+      };
+
+      function loadPublicDepartments(forceRefresh) {
+        var sel = document.getElementById('regDepartemen');
+        if (!sel) return;
+
+        if (!forceRefresh && publicDepartments && publicDepartments.length > 0) {
+          populateDeptSelectOptions(sel, publicDepartments);
+          return;
+        }
+
+        sel.innerHTML = '<option value="">Memuat data master departemen...</option>';
+        gasRun('getPublicDepartments').then(function (res) {
+          var list = [];
+          if (res && res.success) {
+            list = res.departemen || res.departments || [];
+          }
+          if (Array.isArray(list) && list.length > 0) {
+            publicDepartments = list;
+            populateDeptSelectOptions(sel, publicDepartments);
+          } else {
+            publicDepartments = [];
+            sel.innerHTML = '<option value="">-- Belum ada master departemen --</option>';
+          }
+        }).catch(function () {
+          publicDepartments = [];
+          sel.innerHTML = '<option value="">Gagal memuat master departemen</option>';
+        });
+      }
+
+      function populateDeptSelectOptions(selectEl, deptList) {
+        if (!selectEl) return;
+        var currentVal = selectEl.value || '';
+        selectEl.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+        deptList.forEach(function (d) {
+          var opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = d;
+          selectEl.appendChild(opt);
+        });
+        if (currentVal && deptList.includes(currentVal)) {
+          selectEl.value = currentVal;
+        }
+      }
+
+      window.checkRegisterPasswordMatch = function () {
+        var p1 = document.getElementById('regPassword') ? document.getElementById('regPassword').value : '';
+        var p2 = document.getElementById('regPasswordConfirm') ? document.getElementById('regPasswordConfirm').value : '';
+        var fb = document.getElementById('regPasswordMatchFeedback');
+        if (!fb) return;
+
+        if (!p2) {
+          fb.style.display = 'none';
+          fb.innerText = '';
+          return;
+        }
+
+        fb.style.display = 'block';
+        if (p1.length < 6) {
+          fb.className = 'form-text extra-small mt-1 fw-semibold text-warning';
+          fb.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Password minimal 6 karakter';
+        } else if (p1 !== p2) {
+          fb.className = 'form-text extra-small mt-1 fw-semibold text-danger';
+          fb.innerHTML = '<i class="bi bi-x-circle me-1"></i>Konfirmasi password tidak cocok!';
+        } else {
+          fb.className = 'form-text extra-small mt-1 fw-semibold text-success';
+          fb.innerHTML = '<i class="bi bi-check-circle me-1"></i>Password cocok!';
+        }
+      };
+
+      window.submitRegister = function () {
+        var idKaryawan = (document.getElementById('regIdKaryawan')?.value || '').trim();
+        var fullname = (document.getElementById('regNamaLengkap')?.value || '').trim();
+        var dept = (document.getElementById('regDepartemen')?.value || '').trim();
+        var jabatan = (document.getElementById('regJabatan')?.value || '').trim();
+        var kontak = (document.getElementById('regKontak')?.value || '').trim();
+        var pass = document.getElementById('regPassword')?.value || '';
+        var passConfirm = document.getElementById('regPasswordConfirm')?.value || '';
+
+        if (!idKaryawan || !fullname || !dept || !jabatan || !kontak || !pass) {
+          Swal.fire('Data Belum Lengkap', 'Mohon lengkapi seluruh kolom yang bertanda bintang (*).', 'warning');
+          return;
+        }
+
+        if (pass.length < 6) {
+          Swal.fire('Password Terlalu Pendek', 'Password minimal 6 karakter demi keamanan akun Anda.', 'warning');
+          return;
+        }
+
+        if (pass !== passConfirm) {
+          Swal.fire('Password Tidak Cocok', 'Konfirmasi password harus persis sama dengan password yang dibuat.', 'warning');
+          return;
+        }
+
+        var btn = document.getElementById('btnSubmitRegister');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Mengirim...';
+        }
+
+        gasRun('registerNewUser', {
+          username: idKaryawan,
+          fullname: fullname,
+          dept: dept,
+          jabatan: jabatan,
+          kontak: kontak,
+          password: pass
+        }).then(function (res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-check me-1"></i>Kirim Pendaftaran';
+          }
+          if (res.success) {
+            var modalEl = document.getElementById('modalRegister');
+            var modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            Swal.fire({
+              icon: 'success',
+              title: 'Pendaftaran Berhasil!',
+              text: res.message,
+              confirmButtonColor: '#0d6efd'
+            });
+
+            // Isi username di halaman login agar user mudah mengingat
+            var loginUserEl = document.getElementById('loginUsername');
+            if (loginUserEl) loginUserEl.value = idKaryawan;
+          } else {
+            Swal.fire('Pendaftaran Gagal', res.message || 'Terjadi kesalahan sistem saat mendaftar.', 'error');
+          }
+        }).catch(function (err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-check me-1"></i>Kirim Pendaftaran';
+          }
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      // --- LOGIKA PERSETUJUAN HRD (APPROVAL) ---
+
+      window.loadPendaftarList = function (forceRefresh, silent) {
+        if (!Auth.isVerified()) return;
+        var token = Auth.getToken();
+        var tbody = document.getElementById('tablePendaftar');
+
+        if (!silent) {
+          showFullPageLoading('Mengambil data pendaftar...');
+        }
+
+        gasRun('getPendaftarList', token).then(function (res) {
+          if (!silent) hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+
+          if (res.success) {
+            dbPendaftar = res.list || [];
+            var pendingCount = 0;
+            dbPendaftar.forEach(function (p) {
+              if (p.status === 'Menunggu Persetujuan') pendingCount++;
+            });
+            updatePendingPendaftarBadge(pendingCount);
+            populatePendaftarDeptFilter();
+            renderPendaftarTable();
+          } else {
+            if (tbody) {
+              tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">' +
+                '<i class="bi bi-exclamation-circle me-1"></i>' + escapeHTML(res.message || 'Gagal memuat data pendaftar.') +
+                '</td></tr>';
+            }
+          }
+        }).catch(function (err) {
+          if (!silent) hideFullPageLoading();
+          if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">' +
+              '<i class="bi bi-exclamation-triangle me-1"></i>Error server: ' + escapeHTML(err.message || err.toString()) +
+              '</td></tr>';
+          }
+        });
+      };
+
+      window.updatePendingPendaftarBadge = function (count) {
+        count = parseInt(count, 10) || 0;
+
+        var bNav = document.getElementById('badgePendingPendaftar');
+        if (bNav) {
+          bNav.innerText = count;
+          if (count > 0) {
+            bNav.classList.remove('d-none');
+          } else {
+            bNav.classList.add('d-none');
+          }
+        }
+
+        var bHead = document.getElementById('badgePendingPendaftarHeader');
+        if (bHead) {
+          bHead.innerText = count + ' Menunggu';
+          if (count > 0) {
+            bHead.className = 'badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1';
+          } else {
+            bHead.className = 'badge bg-secondary-subtle text-muted border border-secondary-subtle rounded-pill px-2.5 py-1';
+          }
+        }
+      };
+
+      window.populatePendaftarDeptFilter = function () {
+        var sel = document.getElementById('filterDeptPendaftar');
+        if (!sel) return;
+        var currentVal = sel.value || 'SEMUA';
+
+        var depts = [];
+        dbPendaftar.forEach(function (p) {
+          if (p.dept && !depts.includes(p.dept)) depts.push(p.dept);
+        });
+        if (Array.isArray(dbDepartemen)) {
+          dbDepartemen.forEach(function (d) {
+            if (d.name && !depts.includes(d.name)) depts.push(d.name);
+          });
+        }
+        depts.sort();
+
+        sel.innerHTML = '<option value="SEMUA">Semua Departemen</option>';
+        depts.forEach(function (d) {
+          var opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = d;
+          sel.appendChild(opt);
+        });
+        sel.value = depts.includes(currentVal) ? currentVal : 'SEMUA';
+      };
+
+      window.resetPendaftarFilters = function () {
+        var search = document.getElementById('searchPendaftar');
+        if (search) search.value = '';
+
+        var status = document.getElementById('filterStatusPendaftar');
+        if (status) status.value = 'SEMUA';
+
+        var dept = document.getElementById('filterDeptPendaftar');
+        if (dept) dept.value = 'SEMUA';
+
+        currentPagePendaftar = 1;
+        renderPendaftarTable();
+      };
+
+      window.renderPendaftarTable = function () {
+        var tbody = document.getElementById('tablePendaftar');
+        if (!tbody) return;
+
+        var searchVal = (document.getElementById('searchPendaftar')?.value || '').toLowerCase().trim();
+        var statusFilter = document.getElementById('filterStatusPendaftar')?.value || 'SEMUA';
+        var deptFilter = document.getElementById('filterDeptPendaftar')?.value || 'SEMUA';
+
+        var filtered = dbPendaftar.filter(function (p) {
+          var matchSearch = true;
+          if (searchVal) {
+            var hay = ((p.idKaryawan || '') + ' ' + (p.name || '') + ' ' + (p.dept || '') + ' ' + (p.jabatan || '') + ' ' + (p.kontak || '')).toLowerCase();
+            matchSearch = hay.includes(searchVal);
+          }
+          var matchStatus = (statusFilter === 'SEMUA') || (p.status === statusFilter);
+          var matchDept = (deptFilter === 'SEMUA') || (p.dept === deptFilter);
+
+          return matchSearch && matchStatus && matchDept;
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">' +
+            '<div class="py-3">' +
+            '<i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>' +
+            '<div class="fw-semibold">Tidak ada data pendaftaran</div>' +
+            '<div class="extra-small text-muted">Belum ada karyawan baru yang mendaftar atau data tidak cocok dengan filter.</div>' +
+            '</div></td></tr>';
+          var pagContainer = document.getElementById('paginationPendaftar');
+          if (pagContainer) pagContainer.innerHTML = '';
+          return;
+        }
+
+        var totalPages = Math.ceil(filtered.length / pageSize) || 1;
+        if (currentPagePendaftar > totalPages) currentPagePendaftar = totalPages;
+        if (currentPagePendaftar < 1) currentPagePendaftar = 1;
+
+        var startIdx = (currentPagePendaftar - 1) * pageSize;
+        var pageItems = filtered.slice(startIdx, startIdx + pageSize);
+
+        var html = '';
+        pageItems.forEach(function (item) {
+          var statusBadge = '';
+          var actions = '';
+
+          if (item.status === 'Menunggu Persetujuan') {
+            statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1">' +
+              '<i class="bi bi-clock me-1"></i>Menunggu</span>';
+            actions = '<div class="d-flex justify-content-center gap-1">' +
+              '<button type="button" class="btn btn-sm btn-success px-2 py-1 fw-semibold extra-small" ' +
+              'onclick="handleApprovePendaftar(\'' + escapeHTML(item.regId) + '\', \'' + escapeHTML(item.name) + '\', \'' + escapeHTML(item.idKaryawan) + '\', \'' + escapeHTML(item.dept) + '\', \'' + escapeHTML(item.jabatan) + '\')" title="Setujui dan Aktifkan Akun">' +
+              '<i class="bi bi-check-lg me-1"></i>Setujui</button>' +
+              '<button type="button" class="btn btn-sm btn-outline-danger px-2 py-1 fw-semibold extra-small" ' +
+              'onclick="handleRejectPendaftar(\'' + escapeHTML(item.regId) + '\', \'' + escapeHTML(item.name) + '\', \'' + escapeHTML(item.idKaryawan) + '\')" title="Tolak Pendaftaran">' +
+              '<i class="bi bi-x-lg me-1"></i>Tolak</button>' +
+              '</div>';
+          } else if (item.status === 'Disetujui') {
+            statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">' +
+              '<i class="bi bi-check-circle me-1"></i>Disetujui</span>';
+            actions = '<div class="d-flex justify-content-center">' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1 extra-small" ' +
+              'onclick="showPendaftarDetail(\'' + escapeHTML(item.regId) + '\')" title="Lihat Detail Riwayat">' +
+              '<i class="bi bi-info-circle me-1"></i>Detail</button>' +
+              '</div>';
+          } else {
+            statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1">' +
+              '<i class="bi bi-x-circle me-1"></i>Ditolak</span>';
+            actions = '<div class="d-flex justify-content-center">' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1 extra-small" ' +
+              'onclick="showPendaftarDetail(\'' + escapeHTML(item.regId) + '\')" title="Lihat Alasan Penolakan">' +
+              '<i class="bi bi-info-circle me-1"></i>Detail</button>' +
+              '</div>';
+          }
+
+          html += '<tr>' +
+            '<td class="ps-3 text-muted extra-small text-nowrap"><i class="bi bi-calendar3 me-1"></i>' + escapeHTML(item.tanggalDaftar) + '</td>' +
+            '<td class="fw-bold text-dark font-monospace">' + escapeHTML(item.idKaryawan) + '</td>' +
+            '<td class="fw-semibold">' + escapeHTML(item.name) + '</td>' +
+            '<td><span class="badge bg-light text-dark border me-1">' + escapeHTML(item.dept) + '</span><span class="extra-small text-muted">' + escapeHTML(item.jabatan) + '</span></td>' +
+            '<td class="small"><i class="bi bi-telephone text-muted me-1"></i>' + escapeHTML(item.kontak) + '</td>' +
+            '<td class="text-center">' + statusBadge + '</td>' +
+            '<td class="text-center pe-3">' + actions + '</td>' +
+            '</tr>';
+        });
+
+        tbody.innerHTML = html;
+        renderPaginationControls('paginationPendaftar', filtered.length, currentPagePendaftar, function (p) {
+          currentPagePendaftar = p;
+          renderPendaftarTable();
+        });
+      };
+
+      window.handleApprovePendaftar = function (regId, name, idKaryawan, dept, jabatan) {
+        var rosterOptions = '<option value="Non-Roster" selected>Non-Roster (Jam Kerja Reguler)</option>';
+        if (dbRoster && dbRoster.length > 0) {
+          dbRoster.forEach(function (r) {
+            if (r.namaPola && r.namaPola !== 'Non-Roster') {
+              rosterOptions += '<option value="' + escapeHTML(r.namaPola) + '">' + escapeHTML(r.namaPola) + (r.keterangan ? ' - ' + escapeHTML(r.keterangan) : '') + '</option>';
+            }
+          });
+        }
+
+        var htmlContent =
+          '<div class="text-start">' +
+          '<div class="alert alert-light border py-2 px-3 small mb-3">' +
+          '<div class="row g-1">' +
+          '<div class="col-4 text-muted">ID Karyawan:</div><div class="col-8 fw-bold text-dark font-monospace">' + escapeHTML(idKaryawan) + '</div>' +
+          '<div class="col-4 text-muted">Nama:</div><div class="col-8 fw-bold text-dark">' + escapeHTML(name) + '</div>' +
+          '<div class="col-4 text-muted">Departemen:</div><div class="col-8">' + escapeHTML(dept) + '</div>' +
+          '<div class="col-4 text-muted">Jabatan:</div><div class="col-8">' + escapeHTML(jabatan) + '</div>' +
+          '</div>' +
+          '</div>' +
+          '<div class="mb-3">' +
+          '<label class="form-label small fw-semibold text-dark">Pilih Pola Roster Kerja</label>' +
+          '<select id="swalApproveRoster" class="form-select form-select-sm">' + rosterOptions + '</select>' +
+          '<div class="form-text extra-small text-muted">Pola kerja roster untuk perhitungan kalender cuti.</div>' +
+          '</div>' +
+          '<div class="mb-2">' +
+          '<label class="form-label small fw-semibold text-dark">Catatan HRD (Opsional)</label>' +
+          '<textarea id="swalApproveCatatan" class="form-control form-control-sm" rows="2" placeholder="Contoh: Disetujui, berkas lengkap"></textarea>' +
+          '</div>' +
+          '</div>';
+
+        Swal.fire({
+          title: 'Setujui Pendaftaran Akun?',
+          html: htmlContent,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: '<i class="bi bi-check-lg me-1"></i>Ya, Setujui Akun',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#198754',
+          cancelButtonColor: '#6c757d',
+          focusConfirm: false,
+          preConfirm: function () {
+            var roster = document.getElementById('swalApproveRoster')?.value || 'Non-Roster';
+            var catatan = (document.getElementById('swalApproveCatatan')?.value || '').trim();
+            return { roster: roster, catatan: catatan };
+          }
+        }).then(function (result) {
+          if (result.isConfirmed && result.value) {
+            showFullPageLoading('Menyetujui pendaftaran dan mengaktifkan akun...');
+            gasRun('processApprovalPendaftar', Auth.getToken(), regId, 'Setujui', result.value.catatan, result.value.roster)
+              .then(function (res) {
+                hideFullPageLoading();
+                if (handleSessionExpired(res)) return;
+                if (res.success) {
+                  Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil Disetujui!',
+                    text: res.message,
+                    confirmButtonColor: '#198754'
+                  });
+                  loadPendaftarList(true);
+                  // Refresh database karyawan agar akun baru langsung tampak di kelola karyawan
+                  gasRun('getInitialData', Auth.getToken()).then(function (initRes) {
+                    if (initRes.success) {
+                      dbKaryawan = initRes.karyawan || [];
+                    }
+                  }).catch(function () { });
+                } else {
+                  Swal.fire('Gagal Menyetujui', res.message || 'Terjadi kesalahan sistem.', 'error');
+                }
+              }).catch(function (err) {
+                hideFullPageLoading();
+                Swal.fire('Error Server', err.message || err.toString(), 'error');
+              });
+          }
+        });
+      };
+
+      window.handleRejectPendaftar = function (regId, name, idKaryawan) {
+        Swal.fire({
+          title: 'Tolak Pendaftaran Akun?',
+          html: '<div class="text-start small mb-2 text-muted">Masukkan alasan penolakan pendaftaran untuk <b>' + escapeHTML(name) + ' (' + escapeHTML(idKaryawan) + ')</b>. Alasan ini akan ditampilkan ke karyawan saat mencoba login:</div>',
+          input: 'textarea',
+          inputPlaceholder: 'Contoh: ID Karyawan tidak terdaftar di sistem HRD / Data duplikat',
+          inputAttributes: {
+            'aria-label': 'Alasan penolakan',
+            'rows': 3
+          },
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: '<i class="bi bi-x-circle me-1"></i>Tolak Pendaftaran',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#dc3545',
+          cancelButtonColor: '#6c757d',
+          inputValidator: function (value) {
+            if (!value || value.trim().length < 5) {
+              return 'Mohon isi alasan penolakan secara jelas (minimal 5 karakter).';
+            }
+          }
+        }).then(function (result) {
+          if (result.isConfirmed && result.value) {
+            var alasan = result.value.trim();
+            showFullPageLoading('Memproses penolakan pendaftaran...');
+            gasRun('processApprovalPendaftar', Auth.getToken(), regId, 'Tolak', alasan, '')
+              .then(function (res) {
+                hideFullPageLoading();
+                if (handleSessionExpired(res)) return;
+                if (res.success) {
+                  Swal.fire({
+                    icon: 'info',
+                    title: 'Pendaftaran Ditolak',
+                    text: res.message,
+                    confirmButtonColor: '#0d6efd'
+                  });
+                  loadPendaftarList(true);
+                } else {
+                  Swal.fire('Gagal Menolak', res.message || 'Terjadi kesalahan sistem.', 'error');
+                }
+              }).catch(function (err) {
+                hideFullPageLoading();
+                Swal.fire('Error Server', err.message || err.toString(), 'error');
+              });
+          }
+        });
+      };
+
+      window.showPendaftarDetail = function (regId) {
+        var item = dbPendaftar.find(function (p) { return p.regId === regId; });
+        if (!item) return;
+
+        var statusBadge = '';
+        if (item.status === 'Disetujui') {
+          statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">Disetujui</span>';
+        } else if (item.status === 'Ditolak') {
+          statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1">Ditolak</span>';
+        } else {
+          statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1">Menunggu Persetujuan</span>';
+        }
+
+        var html =
+          '<div class="text-start small">' +
+          '<div class="table-responsive">' +
+          '<table class="table table-sm table-bordered align-middle mb-0">' +
+          '<tr><th class="bg-light" style="width: 35%;">ID Pendaftaran</th><td><code>' + escapeHTML(item.regId) + '</code></td></tr>' +
+          '<tr><th class="bg-light">ID Karyawan</th><td class="fw-bold font-monospace">' + escapeHTML(item.idKaryawan) + '</td></tr>' +
+          '<tr><th class="bg-light">Nama Lengkap</th><td class="fw-bold">' + escapeHTML(item.name) + '</td></tr>' +
+          '<tr><th class="bg-light">Departemen</th><td>' + escapeHTML(item.dept) + '</td></tr>' +
+          '<tr><th class="bg-light">Jabatan</th><td>' + escapeHTML(item.jabatan) + '</td></tr>' +
+          '<tr><th class="bg-light">No. WA / Email</th><td>' + escapeHTML(item.kontak) + '</td></tr>' +
+          '<tr><th class="bg-light">Tanggal Mendaftar</th><td>' + escapeHTML(item.tanggalDaftar) + '</td></tr>' +
+          '<tr><th class="bg-light">Status Saat Ini</th><td>' + statusBadge + '</td></tr>' +
+          '<tr><th class="bg-light">Tanggal Diproses</th><td>' + escapeHTML(item.tanggalDiproses || '-') + '</td></tr>' +
+          '<tr><th class="bg-light">Diproses Oleh</th><td>' + escapeHTML(item.diprosesOleh || '-') + '</td></tr>' +
+          '<tr><th class="bg-light">Catatan / Alasan</th><td class="text-break">' + escapeHTML(item.catatan || '-') + '</td></tr>' +
+          '</table>' +
+          '</div>' +
+          '</div>';
+
+        Swal.fire({
+          title: 'Detail Pendaftaran Akun',
+          html: html,
+          icon: 'info',
+          confirmButtonText: 'Tutup',
+          confirmButtonColor: '#0d6efd'
+        });
+      };
 
       // --- INITIALIZATION ---
       document.addEventListener('DOMContentLoaded', function () {
