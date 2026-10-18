@@ -199,6 +199,63 @@
       .auth-card>.text-center.mt-3 p {
         font-size: 0.8rem !important;
       }
+
+      /* Responsif Form Pendaftaran Akun Baru & Auth Modals (Mobile Friendly) */
+      #modalRegister .modal-dialog,
+      #modalForgotPassword .modal-dialog {
+        margin: 0.5rem auto !important;
+        width: calc(100% - 1rem) !important;
+        max-width: 500px !important;
+      }
+
+      #modalRegister .modal-content,
+      #modalForgotPassword .modal-content {
+        border-radius: 0.85rem !important;
+        max-height: 92vh !important;
+        max-height: 92dvh !important;
+      }
+
+      #modalRegister .modal-body,
+      #modalForgotPassword .modal-body {
+        padding: 1rem 0.85rem !important;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      #modalRegister .modal-header,
+      #modalForgotPassword .modal-header {
+        padding: 0.75rem 1rem !important;
+      }
+
+      #modalRegister .modal-title,
+      #modalForgotPassword .modal-title {
+        font-size: 1rem !important;
+      }
+
+      #modalRegister .modal-footer,
+      #modalForgotPassword .modal-footer {
+        padding: 0.75rem 1rem !important;
+      }
+
+      #modalRegister .form-control,
+      #modalRegister .form-select,
+      #modalForgotPassword .form-control {
+        font-size: 16px !important; /* Mencegah auto-zoom Safari di iPhone */
+        padding: 0.55rem 0.75rem !important;
+        min-height: 42px;
+      }
+
+      #modalRegister .input-group-text,
+      #modalForgotPassword .input-group-text {
+        font-size: 1rem !important;
+        padding: 0.55rem 0.75rem !important;
+        min-height: 42px;
+      }
+
+      #modalRegister .input-group .btn,
+      #modalForgotPassword .input-group .btn {
+        padding: 0.55rem 0.85rem !important;
+        min-height: 42px;
+      }
     }
 
     /* App Shell Layout */
@@ -2831,12 +2888,11 @@
       </form>
 
       <!-- LINK DAFTAR AKUN BARU (SELF-REGISTRATION) -->
-      <div class="text-center mt-3 pt-2 border-top">
-        <p class="small text-muted mb-1.5">Karyawan baru atau belum punya akun?</p>
-        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-semibold w-100 shadow-sm"
-          onclick="openModalRegister()" title="Pendaftaran akun karyawan mandiri">
-          <i class="bi bi-person-plus-fill me-1.5"></i>Daftar Akun Baru
-        </button>
+      <div class="text-center mt-3 pt-2 border-top extra-small">
+        <span class="text-muted">Belum punya akun?</span>
+        <a href="javascript:void(0)" onclick="openModalRegister()" class="text-primary fw-semibold text-decoration-none ms-1" title="Daftar akun karyawan baru">
+          Daftar Akun
+        </a>
       </div>
 
       <!-- NOTICE PENGUMUMAN TERBARU (HANYA MUNCUL JIKA ADA PENGUMUMAN AKTIF) -->
@@ -5162,9 +5218,9 @@
   <!-- MODAL: DAFTAR AKUN BARU (SELF-REGISTRATION) -->
   <div class="modal fade" id="modalRegister" tabindex="-1" aria-labelledby="modalRegisterTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header border-bottom">
-          <h5 class="modal-title fw-bold text-primary" id="modalRegisterTitle">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header border-bottom py-2.5 px-3 px-sm-4">
+          <h5 class="modal-title fw-bold text-primary fs-6 fs-sm-5" id="modalRegisterTitle">
             <i class="bi bi-person-plus-fill me-2"></i>Pendaftaran Akun Karyawan
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -5173,7 +5229,7 @@
           <div class="modal-body p-3 p-sm-4">
             <div class="alert alert-info py-2 px-3 small mb-3 d-flex align-items-center gap-2">
               <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 text-info"></i>
-              <div>
+              <div class="extra-small">
                 Pendaftaran akun Anda akan diverifikasi oleh HRD terlebih dahulu sebelum akun aktif untuk login.
               </div>
             </div>
@@ -5183,7 +5239,7 @@
               <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
                 <input type="text" id="regIdKaryawan" class="form-control" placeholder="Contoh: EMP001 atau NIK Anda"
-                  required>
+                  required autocomplete="username">
               </div>
               <div class="form-text extra-small text-muted">ID ini nantinya akan digunakan sebagai username saat login.
               </div>
@@ -5194,12 +5250,12 @@
               <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-person"></i></span>
                 <input type="text" id="regNamaLengkap" class="form-control" placeholder="Nama lengkap sesuai KTP"
-                  required>
+                  required autocomplete="name">
               </div>
             </div>
 
             <div class="row g-2 mb-3">
-              <div class="col-sm-6">
+              <div class="col-12 col-sm-6 mb-2 mb-sm-0">
                 <label class="form-label small fw-semibold">Departemen <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text"><i class="bi bi-diagram-3"></i></span>
@@ -5208,7 +5264,7 @@
                   </select>
                 </div>
               </div>
-              <div class="col-sm-6">
+              <div class="col-12 col-sm-6">
                 <label class="form-label small fw-semibold">Jabatan <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text"><i class="bi bi-briefcase"></i></span>
@@ -5224,7 +5280,7 @@
               <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-telephone"></i></span>
                 <input type="text" id="regKontak" class="form-control"
-                  placeholder="Contoh: 08123456789 atau nama@email.com" required>
+                  placeholder="Contoh: 08123456789 atau nama@email.com" required inputmode="email">
               </div>
               <div class="form-text extra-small text-muted">Akan digunakan untuk verifikasi dan notifikasi slip gaji.
               </div>
@@ -5235,7 +5291,7 @@
               <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
                 <input type="password" id="regPassword" class="form-control" placeholder="Minimal 6 karakter" required
-                  minlength="6" oninput="checkRegisterPasswordMatch()">
+                  minlength="6" oninput="checkRegisterPasswordMatch()" autocomplete="new-password">
                 <button class="btn btn-outline-secondary" type="button"
                   onclick="togglePasswordVisibility('regPassword', this)" title="Tampilkan / Sembunyikan Password">
                   <i class="bi bi-eye"></i>
@@ -5248,7 +5304,7 @@
               <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
                 <input type="password" id="regPasswordConfirm" class="form-control"
-                  placeholder="Ulangi password di atas" required minlength="6" oninput="checkRegisterPasswordMatch()">
+                  placeholder="Ulangi password di atas" required minlength="6" oninput="checkRegisterPasswordMatch()" autocomplete="new-password">
                 <button class="btn btn-outline-secondary" type="button"
                   onclick="togglePasswordVisibility('regPasswordConfirm', this)"
                   title="Tampilkan / Sembunyikan Password">
@@ -5259,9 +5315,9 @@
               </div>
             </div>
           </div>
-          <div class="modal-footer border-top d-flex justify-content-between">
-            <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">Batal</button>
-            <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold shadow-sm" id="btnSubmitRegister">
+          <div class="modal-footer border-top py-2.5 px-3 px-sm-4 d-flex justify-content-between align-items-center gap-2">
+            <button type="button" class="btn btn-light btn-sm px-3 flex-shrink-0" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary btn-sm px-3 px-sm-4 fw-semibold shadow-sm flex-grow-1 flex-sm-grow-0" id="btnSubmitRegister">
               <i class="bi bi-send-check me-1"></i>Kirim Pendaftaran
             </button>
           </div>
