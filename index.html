@@ -30,9 +30,11 @@
     (function () {
       try {
         var savedTheme = localStorage.getItem('berkah_theme');
-        var theme = savedTheme ? savedTheme : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        var theme = (savedTheme === 'dark') ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', theme);
-      } catch (e) { }
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
     })();
   </script>
   <!-- Favicon & Ikon Pintasan Layar Depan -->
@@ -11983,9 +11985,6 @@
           var saved = localStorage.getItem('berkah_theme');
           if (saved === 'dark' || saved === 'light') return saved;
         } catch (e) { }
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          return 'dark';
-        }
         return 'light';
       }
 
@@ -12048,19 +12047,8 @@
 
       function initTheme() {
         var initialTheme = getStoredTheme();
-        window.setAppTheme(initialTheme);
-
-        if (window.matchMedia) {
-          try {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-              try {
-                if (!localStorage.getItem('berkah_theme')) {
-                  window.setAppTheme(e.matches ? 'dark' : 'light');
-                }
-              } catch (err) { }
-            });
-          } catch (e) { }
-        }
+        document.documentElement.setAttribute('data-theme', initialTheme);
+        updateThemeToggleUI(initialTheme);
       }
 
       // ==========================================
