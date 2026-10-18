@@ -2993,7 +2993,7 @@
           <div class="input-group">
             <span class="input-group-text login-icon-box login-icon-user"><i class="bi bi-person"></i></span>
             <input type="text" id="loginUsername" class="form-control" placeholder="Masukan ID Karyawan" required
-              autocomplete="username">
+              autocomplete="off">
           </div>
         </div>
         <div class="mb-2.5">
@@ -6356,7 +6356,12 @@
         gasRun('loginUser', u, p).then(function (res) {
           if (res.success) {
             Auth.login(res.token, res.user, authKey, rememberMe);
-            document.getElementById('loginPassword').value = '';
+            var passEl = document.getElementById('loginPassword');
+            if (passEl) passEl.value = '';
+            if (!rememberMe) {
+              var userEl = document.getElementById('loginUsername');
+              if (userEl) userEl.value = '';
+            }
             checkLoginState(true);
           } else {
             hideFullPageLoading();
@@ -6399,6 +6404,19 @@
           gasRun('destroySession', token);
         }
         Auth.clear();
+        var isRemember = Auth.isRememberMeChecked();
+        var userEl = document.getElementById('loginUsername');
+        var passEl = document.getElementById('loginPassword');
+        var chkRemember = document.getElementById('rememberMeCheckbox');
+        if (userEl) {
+          userEl.value = (isRemember && Auth.getSavedUsername()) ? Auth.getSavedUsername() : '';
+        }
+        if (passEl) {
+          passEl.value = '';
+        }
+        if (chkRemember) {
+          chkRemember.checked = isRemember;
+        }
         checkLoginState();
       };
 
@@ -6451,14 +6469,24 @@
           loginPage.classList.remove('d-none');
           if (typeof startLoginAnimation === 'function') startLoginAnimation();
 
+          var isRemember = Auth.isRememberMeChecked();
           var savedUser = Auth.getSavedUsername();
           var userEl = document.getElementById('loginUsername');
+          var passEl = document.getElementById('loginPassword');
           var chkRemember = document.getElementById('rememberMeCheckbox');
-          if (userEl && savedUser) {
-            userEl.value = savedUser;
+
+          if (userEl) {
+            if (isRemember && savedUser) {
+              userEl.value = savedUser;
+            } else {
+              userEl.value = '';
+            }
+          }
+          if (passEl) {
+            passEl.value = '';
           }
           if (chkRemember) {
-            chkRemember.checked = Auth.isRememberMeChecked();
+            chkRemember.checked = isRemember;
             if (!chkRemember.dataset.listenerAttached) {
               chkRemember.dataset.listenerAttached = 'true';
               chkRemember.addEventListener('change', function () {
@@ -6467,6 +6495,8 @@
                     localStorage.removeItem('eslip_saved_username');
                     localStorage.removeItem('eslip_remember_me');
                   } catch (e) { }
+                  var uInput = document.getElementById('loginUsername');
+                  if (uInput) uInput.value = '';
                 }
               });
             }
