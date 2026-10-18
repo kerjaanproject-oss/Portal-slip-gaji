@@ -3321,11 +3321,11 @@ function registerNewUser(payload) {
     return { success: false, message: 'Data pendaftaran tidak valid.' };
   }
 
-  const username = String(payload.id || '').trim();
-  const fullname = String(payload.name || '').trim();
-  const dept = String(payload.dept || '').trim();
+  const username = String(payload.id || payload.username || '').trim();
+  const fullname = String(payload.name || payload.fullname || '').trim();
+  const dept = String(payload.dept || payload.departemen || '').trim();
   const jabatan = String(payload.jabatan || '').trim();
-  const kontak = String(payload.kontak || payload.email || '').trim();
+  const kontak = String(payload.kontak || payload.email || payload.whatsapp || payload.noHp || '').trim();
   const password = String(payload.password || '').trim();
 
   if (!username) return { success: false, message: 'ID Karyawan / NIK wajib diisi.' };

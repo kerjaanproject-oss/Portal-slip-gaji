@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbz0xlhoQ1FcoG6ZMGzk2AU7AOU_m5mAxIXsXrloQojYR6-Ducj8DdN_ss88TZgQWnK8/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbzfoflB8YIHjOTz1lxDgcHaHFRZ02Hih5E7xUcxp0Vb3ClWEm1Kft8slvBudEotTioJ/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -248,7 +248,8 @@
       #modalRegister .form-control,
       #modalRegister .form-select,
       #modalForgotPassword .form-control {
-        font-size: 16px !important; /* Mencegah auto-zoom Safari di iPhone */
+        font-size: 16px !important;
+        /* Mencegah auto-zoom Safari di iPhone */
         padding: 0.55rem 0.75rem !important;
         min-height: 42px;
       }
@@ -2899,7 +2900,8 @@
       <!-- LINK DAFTAR AKUN BARU (SELF-REGISTRATION) -->
       <div class="text-center mt-3 pt-2 border-top extra-small">
         <span class="text-muted">Belum punya akun?</span>
-        <a href="javascript:void(0)" onclick="openModalRegister()" class="text-primary fw-semibold text-decoration-none ms-1" title="Daftar akun karyawan baru">
+        <a href="javascript:void(0)" onclick="openModalRegister()"
+          class="text-primary fw-semibold text-decoration-none ms-1" title="Daftar akun karyawan baru">
           Daftar Akun
         </a>
       </div>
@@ -5260,8 +5262,8 @@
             <label class="form-label small fw-semibold">Nama Lengkap <span class="text-danger">*</span></label>
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-person"></i></span>
-              <input type="text" id="regNamaLengkap" class="form-control" placeholder="Nama lengkap sesuai KTP"
-                required autocomplete="name">
+              <input type="text" id="regNamaLengkap" class="form-control" placeholder="Nama lengkap sesuai KTP" required
+                autocomplete="name">
             </div>
           </div>
 
@@ -5286,8 +5288,7 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label small fw-semibold">No. WhatsApp / Email <span
-                class="text-danger">*</span></label>
+            <label class="form-label small fw-semibold">No. WhatsApp / Email <span class="text-danger">*</span></label>
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-telephone"></i></span>
               <input type="text" id="regKontak" class="form-control"
@@ -5314,11 +5315,10 @@
             <label class="form-label small fw-semibold">Konfirmasi Password <span class="text-danger">*</span></label>
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-              <input type="password" id="regPasswordConfirm" class="form-control"
-                placeholder="Ulangi password di atas" required minlength="6" oninput="checkRegisterPasswordMatch()" autocomplete="new-password">
+              <input type="password" id="regPasswordConfirm" class="form-control" placeholder="Ulangi password di atas"
+                required minlength="6" oninput="checkRegisterPasswordMatch()" autocomplete="new-password">
               <button class="btn btn-outline-secondary" type="button"
-                onclick="togglePasswordVisibility('regPasswordConfirm', this)"
-                title="Tampilkan / Sembunyikan Password">
+                onclick="togglePasswordVisibility('regPasswordConfirm', this)" title="Tampilkan / Sembunyikan Password">
                 <i class="bi bi-eye"></i>
               </button>
             </div>
@@ -5326,9 +5326,12 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer border-top py-2.5 px-3 px-sm-4 d-flex justify-content-between align-items-center gap-2" style="flex-shrink: 0;">
+        <div class="modal-footer border-top py-2.5 px-3 px-sm-4 d-flex justify-content-between align-items-center gap-2"
+          style="flex-shrink: 0;">
           <button type="button" class="btn btn-light btn-sm px-3 flex-shrink-0" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-primary btn-sm px-3 px-sm-4 fw-semibold shadow-sm flex-grow-1 flex-sm-grow-0" id="btnSubmitRegister">
+          <button type="submit"
+            class="btn btn-primary btn-sm px-3 px-sm-4 fw-semibold shadow-sm flex-grow-1 flex-sm-grow-0"
+            id="btnSubmitRegister">
             <i class="bi bi-send-check me-1"></i>Kirim Pendaftaran
           </button>
         </div>
@@ -12190,11 +12193,15 @@
         }
 
         gasRun('registerNewUser', {
+          id: idKaryawan,
           username: idKaryawan,
+          name: fullname,
           fullname: fullname,
           dept: dept,
+          departemen: dept,
           jabatan: jabatan,
           kontak: kontak,
+          email: kontak,
           password: pass
         }).then(function (res) {
           if (btn) {
