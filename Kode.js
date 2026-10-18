@@ -1709,7 +1709,8 @@ function getOrCreatePengajuanCutiSheet(ss) {
     'Approver 2 Nama', 'Approver 2 Jabatan', 'Approver 2 Tanggal', 'Approver 2 Status', 'Approver 2 Catatan',
     'Approver 3 Nama', 'Approver 3 Jabatan', 'Approver 3 Tanggal', 'Approver 3 Status', 'Approver 3 Catatan',
     'Alasan Penolakan', 'Tanggal Awal Onsite', 'Total Hari Kerja Onsite',
-    'Titik Drop Off', 'Moda Transportasi', 'Catatan Logistik Tiket'
+    'Titik Drop Off', 'Moda Transportasi', 'Catatan Logistik Tiket',
+    'Lokasi Kerja'
   ];
 
   if (!sheet) {
@@ -1730,6 +1731,7 @@ function getOrCreatePengajuanCutiSheet(ss) {
           if (reqH.toLowerCase().includes('titik drop') && (eh.includes('point') || eh.includes('hire') || eh.includes('drop') || eh.includes('poh') || eh.includes('jemput'))) return true;
           if (reqH.toLowerCase().includes('moda transport') && (eh.includes('transport') || eh.includes('moda') || eh.includes('kendaraan'))) return true;
           if (reqH.toLowerCase().includes('catatan logistik') && (eh.includes('logistik') || eh.includes('tiket') || (eh.includes('catatan') && (eh.includes('transport') || eh.includes('khusus'))))) return true;
+          if (reqH.toLowerCase().includes('lokasi kerja') && (eh.includes('lokasi') || eh.includes('jobsite') || eh === 'site')) return true;
           return false;
         });
         if (!found) {
@@ -1912,6 +1914,9 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
     return h.includes('logistik') || h.includes('tiket') || h.includes('penjemputan') ||
            (h.includes('catatan') && (h.includes('transport') || h.includes('khusus') || h.includes('tiket') || h.includes('jemput') || h.includes('drop')));
   });
+  const lokasiKerjaIdx = headers.findIndex(function (h) {
+    return h.includes('lokasi') || h.includes('jobsite') || h === 'site';
+  });
 
   const list = [];
   for (let i = 1; i < data.length; i++) {
@@ -2059,7 +2064,8 @@ function parseCutiDataFromSheet(cutiSheet, sessionUser) {
       modaTransportasi: valModa,
       transportasi: valModa,
       catatanLogistik: valCatLog,
-      catatanTransportasi: valCatLog
+      catatanTransportasi: valCatLog,
+      lokasiKerja: lokasiKerjaIdx !== -1 && row[lokasiKerjaIdx] ? String(row[lokasiKerjaIdx]).trim() : (row[39] ? String(row[39]).trim() : 'TRIOP')
     });
   }
 
@@ -2193,6 +2199,7 @@ function submitPengajuanCuti(token, payload) {
   const titikDropOff = String(payload.titikDropOff || payload.pointOfHire || payload.pointOffHire || '').trim();
   const modaTransportasi = String(payload.modaTransportasi || payload.transportasi || '').trim();
   const catatanLogistik = String(payload.catatanLogistik || payload.catatanTransportasi || '').trim();
+  const lokasiKerja = String(payload.lokasiKerja || payload.jobsite || 'TRIOP').trim() || 'TRIOP';
 
   // Dapatkan header sheet jika sudah ada kolom dinamis
   const lastCol = cutiSheet.getLastColumn();
@@ -2215,6 +2222,9 @@ function submitPengajuanCuti(token, payload) {
   const logIdx = headers.findIndex(function (h) {
     return h.includes('logistik') || h.includes('tiket') || h.includes('penjemputan') ||
            (h.includes('catatan') && (h.includes('transport') || h.includes('khusus') || h.includes('tiket') || h.includes('jemput') || h.includes('drop')));
+  });
+  const lokasiIdx = headers.findIndex(function (h) {
+    return h.includes('lokasi') || h.includes('jobsite') || h === 'site';
   });
 
   const rowData = [
@@ -2244,7 +2254,8 @@ function submitPengajuanCuti(token, payload) {
     totalHariKerjaOnsite,
     titikDropOff,
     modaTransportasi,
-    catatanLogistik
+    catatanLogistik,
+    lokasiKerja
   ];
 
   if (headers.length > rowData.length) {
@@ -2256,6 +2267,7 @@ function submitPengajuanCuti(token, payload) {
   if (dropIdx !== -1) rowData[dropIdx] = titikDropOff;
   if (modaIdx !== -1) rowData[modaIdx] = modaTransportasi;
   if (logIdx !== -1) rowData[logIdx] = catatanLogistik;
+  if (lokasiIdx !== -1) rowData[lokasiIdx] = lokasiKerja;
 
   cutiSheet.appendRow(rowData);
 
@@ -2339,6 +2351,9 @@ function editPengajuanCuti(token, payload) {
   const catatanLogistikIdx = headers.findIndex(function (h) {
     return h.includes('logistik') || h.includes('tiket') || h.includes('penjemputan') ||
            (h.includes('catatan') && (h.includes('transport') || h.includes('khusus') || h.includes('tiket') || h.includes('jemput') || h.includes('drop')));
+  });
+  const lokasiKerjaIdx = headers.findIndex(function (h) {
+    return h.includes('lokasi') || h.includes('jobsite') || h === 'site';
   });
 
   const currentUsername = String(session.user.username || '').trim().toLowerCase();
@@ -2426,10 +2441,12 @@ function editPengajuanCuti(token, payload) {
       const colTitik = titikDropOffIdx !== -1 ? (titikDropOffIdx + 1) : 37;
       const colModa = modaTransportIdx !== -1 ? (modaTransportIdx + 1) : 38;
       const colCatLog = catatanLogistikIdx !== -1 ? (catatanLogistikIdx + 1) : 39;
+      const colLokasi = lokasiKerjaIdx !== -1 ? (lokasiKerjaIdx + 1) : 40;
 
       cutiSheet.getRange(rowIndex, colTitik).setValue(titikDropOff);
       cutiSheet.getRange(rowIndex, colModa).setValue(modaTransportasi);
       cutiSheet.getRange(rowIndex, colCatLog).setValue(catatanLogistik);
+      cutiSheet.getRange(rowIndex, colLokasi).setValue(String(payload.lokasiKerja || payload.jobsite || 'TRIOP').trim() || 'TRIOP');
 
       return {
         success: true,

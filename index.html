@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbxpD6WyHGnHtIsFunEHO7nboCmyznU5VNbidJhV8aKHF953tEYnlwM4bwQB6WGFi_63/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycby0rppbC54fvpWOg3fKBT-2Bx4FbPUuphC2nyKSPAmvRnYnVDrePMU5Cfmh8oAbFEVO/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -4290,8 +4290,20 @@
             </div>
           </div>
 
-          <!-- Rincian Cuti -->
+          <!-- Rincian Cuti & Lokasi Kerja -->
           <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Lokasi Kerja / Jobsite <span
+                  class="text-danger">*</span></label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-geo-alt-fill text-danger"></i></span>
+                <select id="cutiLokasiKerja" class="form-select form-select-sm" required>
+                  <option value="">-- Pilih Lokasi Kerja / Jobsite --</option>
+                  <option value="TRIOP" selected>TRIOP</option>
+                </select>
+              </div>
+              <div class="form-text extra-small text-muted">Lokasi kerja/jobsite penugasan pemohon cuti.</div>
+            </div>
             <div class="col-md-6">
               <label class="form-label small fw-semibold">Jenis Cuti <span class="text-danger">*</span></label>
               <select id="cutiJenis" class="form-select form-select-sm" required onchange="handleJenisCutiChange()">
@@ -9092,6 +9104,9 @@
         if (inputSelesai) inputSelesai.value = item.tanggalSelesai ? parseDateToYMD(item.tanggalSelesai) || item.tanggalSelesai : '';
         if (inputJumlah) inputJumlah.value = item.jumlahHari || 0;
 
+        var inputLokasi = document.getElementById('cutiLokasiKerja');
+        if (inputLokasi) inputLokasi.value = item.lokasiKerja || 'TRIOP';
+
         document.getElementById('cutiAlasan').value = item.alasan || '';
         document.getElementById('cutiAlamat').value = item.alamat || '';
         document.getElementById('cutiKontak').value = item.kontak || '';
@@ -9146,6 +9161,8 @@
           document.getElementById('cutiIdKaryawan').value = user.username || '';
           document.getElementById('cutiDept').value = user.dept || '-';
           document.getElementById('cutiJabatan').value = user.jabatan || '-';
+          var inputLokasi = document.getElementById('cutiLokasiKerja');
+          if (inputLokasi && !inputLokasi.value) inputLokasi.value = 'TRIOP';
           renderRosterStatusCard(user);
 
           // Auto-populate Tanggal Awal Masuk Site / Onsite Terakhir
@@ -9181,6 +9198,9 @@
         document.getElementById('formPengajuanCuti').reset();
         var editIdEl = document.getElementById('editCutiId');
         if (editIdEl) editIdEl.value = '';
+
+        var inputLokasi = document.getElementById('cutiLokasiKerja');
+        if (inputLokasi) inputLokasi.value = 'TRIOP';
 
         var noticeEl = document.getElementById('editCutiNotice');
         if (noticeEl) noticeEl.classList.add('d-none');
@@ -9219,6 +9239,7 @@
       };
 
       window.handleSavePengajuanCuti = function () {
+        var lokasiKerja = document.getElementById('cutiLokasiKerja') ? document.getElementById('cutiLokasiKerja').value.trim() : 'TRIOP';
         var jenis = document.getElementById('cutiJenis').value;
         if (jenis === 'Lainnya') {
           var lainnyaVal = document.getElementById('cutiJenisLainnya').value.trim();
@@ -9252,6 +9273,10 @@
         var catatanLogistik = document.getElementById('cutiCatatanLogistik') ? document.getElementById('cutiCatatanLogistik').value.trim() : '';
         var fileInput = document.getElementById('cutiLampiran');
 
+        if (!lokasiKerja) {
+          Swal.fire('Peringatan', 'Silakan pilih lokasi kerja / jobsite.', 'warning');
+          return;
+        }
         if (!jenis) {
           Swal.fire('Peringatan', 'Silakan pilih jenis cuti.', 'warning');
           return;
@@ -9299,6 +9324,7 @@
           var processUpload = function (fileData) {
             var payload = {
               cutiId: editId,
+              lokasiKerja: lokasiKerja,
               jenisCuti: jenis,
               polaRoster: polaRoster,
               tglAwalOnsite: tglAwalOnsite,
@@ -9872,6 +9898,8 @@
           var detailBtn = '<button type="button" class="btn btn-sm btn-action btn-action-view" title="Lihat Detail Pengajuan" onclick="viewDetailCuti(\'' + escapeHTML(item.id) + '\')">' +
             '<i class="bi bi-eye"></i>Detail</button>';
 
+          var siteBadge = '<div class="extra-small text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-geo-alt-fill me-1 text-danger"></i>Jobsite: <strong class="text-dark">' + escapeHTML(item.lokasiKerja || 'TRIOP') + '</strong></div>';
+
           var onsiteBadge = '';
           if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
             onsiteBadge = '<div class="extra-small text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-geo-alt me-1 text-primary"></i>Onsite: <strong class="text-dark">' + item.totalHariKerjaOnsite + ' hr</strong></div>';
@@ -9889,7 +9917,7 @@
             '<td class="ps-3 py-3 fw-bold text-muted text-center">' + rowNum + '</td>' +
             '<td class="py-3 text-nowrap"><span class="badge bg-light text-primary border font-monospace">' + escapeHTML(item.id) + '</span></td>' +
             '<td class="py-3 fw-semibold text-dark text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</td>' +
-            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + onsiteBadge + transportBadge + '</td>' +
+            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + siteBadge + onsiteBadge + transportBadge + '</td>' +
             '<td class="py-3 small text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</td>' +
             '<td class="py-3 text-center text-nowrap"><span class="badge bg-primary-subtle text-primary fw-bold">' + item.jumlahHari + ' Hari</span></td>' +
             '<td class="py-3 text-truncate" style="max-width: 170px;" title="' + escapeHTML(item.alasan) + '">' + escapeHTML(item.alasan) + '</td>' +
@@ -10149,6 +10177,8 @@
               '<i class="bi bi-trash3"></i>Hapus</button>';
           }
 
+          var siteBadgeSub = '<div class="extra-small text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-geo-alt-fill me-1 text-danger"></i>Jobsite: <strong class="text-dark">' + escapeHTML(item.lokasiKerja || 'TRIOP') + '</strong></div>';
+
           var onsiteBadge = '';
           if (item.totalHariKerjaOnsite !== undefined && item.totalHariKerjaOnsite !== null && item.totalHariKerjaOnsite !== '') {
             onsiteBadge = '<div class="extra-small text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-geo-alt me-1 text-primary"></i>Onsite: <strong class="text-dark">' + item.totalHariKerjaOnsite + ' hr</strong></div>';
@@ -10169,7 +10199,7 @@
             '<td class="py-3 text-nowrap"><span class="badge bg-light text-primary border font-monospace">' + escapeHTML(item.id) + '</span></td>' +
             '<td class="py-3"><span class="fw-bold text-dark d-block">' + escapeHTML(item.namaKaryawan || item.empId) + '</span><small class="text-muted">' + escapeHTML(item.dept || '-') + (item.empId ? ' (' + escapeHTML(item.empId) + ')' : '') + '</small></td>' +
             '<td class="py-3 fw-semibold text-dark text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalPengajuan, true)) + '</td>' +
-            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + onsiteBadge + transportBadge + '</td>' +
+            '<td class="py-3 fw-semibold text-dark">' + escapeHTML(item.jenisCuti) + siteBadgeSub + onsiteBadge + transportBadge + '</td>' +
             '<td class="py-3 small text-nowrap">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' <span class="text-muted">s/d</span> ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</td>' +
             '<td class="py-3 text-center text-nowrap"><span class="badge bg-primary-subtle text-primary fw-bold">' + item.jumlahHari + ' Hari</span></td>' +
             '<td class="py-3 text-truncate" style="max-width: 150px;" title="' + escapeHTML(item.alasan) + '">' + escapeHTML(item.alasan) + '</td>' +
@@ -10504,15 +10534,19 @@
           '<div class="col-12">' +
           '<div class="p-3 bg-light rounded-3 border">' +
           '<div class="row g-2">' +
-          '<div class="col-sm-4">' +
+          '<div class="col-sm-3">' +
+          '<span class="extra-small fw-bold text-muted d-block">LOKASI KERJA</span>' +
+          '<span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1"><i class="bi bi-geo-alt-fill text-danger me-1"></i>' + escapeHTML(item.lokasiKerja || 'TRIOP') + '</span>' +
+          '</div>' +
+          '<div class="col-sm-3">' +
           '<span class="extra-small fw-bold text-muted d-block">JENIS CUTI</span>' +
           '<span class="fw-semibold text-dark small">' + escapeHTML(item.jenisCuti) + '</span>' +
           '</div>' +
-          '<div class="col-sm-4">' +
+          '<div class="col-sm-3">' +
           '<span class="extra-small fw-bold text-muted d-block">PERIODE CUTI</span>' +
           '<span class="fw-semibold text-dark small">' + escapeHTML(formatDateDMY(item.tanggalMulai)) + ' s/d ' + escapeHTML(formatDateDMY(item.tanggalSelesai)) + '</span>' +
           '</div>' +
-          '<div class="col-sm-4">' +
+          '<div class="col-sm-3">' +
           '<span class="extra-small fw-bold text-muted d-block">DURASI CUTI</span>' +
           '<span class="badge bg-primary fw-bold">' + item.jumlahHari + ' Hari Kalender</span>' +
           '</div>' +
@@ -10741,7 +10775,7 @@
 
         document.getElementById('apprModalId').innerText = item.id;
         document.getElementById('apprModalNama').innerText = item.namaKaryawan || item.empId;
-        document.getElementById('apprModalDeptJab').innerText = (item.jabatan || '-') + ' • ' + (item.dept || '-');
+        document.getElementById('apprModalDeptJab').innerText = (item.jabatan || '-') + ' • ' + (item.dept || '-') + ' • Jobsite: ' + (item.lokasiKerja || 'TRIOP');
         document.getElementById('apprModalJenis').innerText = item.jenisCuti;
         document.getElementById('apprModalDurasi').innerText = item.jumlahHari + ' Hari';
         document.getElementById('apprModalPeriode').innerText = formatDateDMY(item.tanggalMulai) + ' s/d ' + formatDateDMY(item.tanggalSelesai);
@@ -11386,7 +11420,7 @@
               '</div>' +
               '<div>' +
               '<h6 class="fw-bold text-dark mb-0">' + escapeHTML(item.namaKaryawan || item.empId) + '</h6>' +
-              '<small class="text-muted">' + escapeHTML(item.dept || '-') + ' • ' + escapeHTML(item.jabatan || 'Karyawan') + ' (' + escapeHTML(item.empId || '-') + ')</small>' +
+              '<small class="text-muted">' + escapeHTML(item.dept || '-') + ' • ' + escapeHTML(item.jabatan || 'Karyawan') + ' • Site: ' + escapeHTML(item.lokasiKerja || 'TRIOP') + ' (' + escapeHTML(item.empId || '-') + ')</small>' +
               '</div>' +
               '</div>' +
               '<span class="badge ' + statusInfo.cls + ' extra-small"><i class="bi ' + statusInfo.icon + ' me-1"></i>' + escapeHTML(statusInfo.label) + '</span>' +
@@ -11668,6 +11702,7 @@
           '<tr><td class="label-col">NIP / ID Karyawan</td><td class="colon-col">:</td><td class="value-col font-monospace">' + escapeHTML(empId) + '</td></tr>' +
           '<tr><td class="label-col">Departemen / Divisi</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(dept) + '</td></tr>' +
           '<tr><td class="label-col">Jabatan</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(jabatan) + '</td></tr>' +
+          '<tr><td class="label-col">Lokasi Kerja / Jobsite</td><td class="colon-col">:</td><td class="value-col font-monospace fw-bold">' + escapeHTML(item.lokasiKerja || 'TRIOP') + '</td></tr>' +
           '<tr><td class="label-col">Nomor Kontak / Telepon</td><td class="colon-col">:</td><td class="value-col">' + escapeHTML(kontak) + '</td></tr>' +
           '</table>' +
 
