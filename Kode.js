@@ -3431,7 +3431,7 @@ function getPendaftarList(token) {
       let tglDaftar = '-';
       if (data[i][7]) {
         try {
-          tglDaftar = Utilities.formatDate(new Date(data[i][7]), Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd HH:mm');
+          tglDaftar = Utilities.formatDate(new Date(data[i][7]), Session.getScriptTimeZone() || 'Asia/Jakarta', 'dd/MM/yyyy');
         } catch (e) {
           tglDaftar = String(data[i][7]);
         }
@@ -3440,7 +3440,7 @@ function getPendaftarList(token) {
       let tglProses = '-';
       if (data[i][9]) {
         try {
-          tglProses = Utilities.formatDate(new Date(data[i][9]), Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd HH:mm');
+          tglProses = Utilities.formatDate(new Date(data[i][9]), Session.getScriptTimeZone() || 'Asia/Jakarta', 'dd/MM/yyyy');
         } catch (e) {
           tglProses = String(data[i][9]);
         }

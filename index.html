@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbzfoflB8YIHjOTz1lxDgcHaHFRZ02Hih5E7xUcxp0Vb3ClWEm1Kft8slvBudEotTioJ/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbxpD6WyHGnHtIsFunEHO7nboCmyznU5VNbidJhV8aKHF953tEYnlwM4bwQB6WGFi_63/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -3214,18 +3214,19 @@
                 <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem;">
                   <thead class="text-white text-uppercase extra-small fw-bold">
                     <tr>
-                      <th class="ps-3" style="width: 140px;">Tanggal Daftar</th>
-                      <th>ID Karyawan</th>
+                      <th class="ps-3" style="width: 130px;">Tanggal Daftar</th>
+                      <th style="width: 120px;">ID Karyawan</th>
                       <th>Nama Lengkap</th>
-                      <th>Departemen &amp; Jabatan</th>
+                      <th>Departemen</th>
+                      <th>Jabatan</th>
                       <th>No. WA / Email</th>
-                      <th class="text-center" style="width: 150px;">Status</th>
+                      <th class="text-center" style="width: 140px;">Status</th>
                       <th class="text-center text-nowrap pe-3" style="width: 160px;">Aksi</th>
                     </tr>
                   </thead>
                   <tbody id="tablePendaftar">
                     <tr>
-                      <td colspan="7" class="text-center text-muted py-4">Memuat data pendaftar...</td>
+                      <td colspan="8" class="text-center text-muted py-4">Memuat data pendaftar...</td>
                     </tr>
                   </tbody>
                 </table>
@@ -12340,6 +12341,32 @@
         renderPendaftarTable();
       };
 
+      function formatDateDMY(val) {
+        if (!val || val === '-') return '-';
+        var s = String(val).trim();
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+        try {
+          var d = new Date(s);
+          if (!isNaN(d.getTime())) {
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            var year = d.getFullYear();
+            return day + '/' + month + '/' + year;
+          }
+          var parts = s.split(/[\sT]+/)[0].split(/[-/]/);
+          if (parts.length === 3) {
+            if (parts[0].length === 4) { // yyyy-mm-dd
+              return parts[2].padStart(2, '0') + '/' + parts[1].padStart(2, '0') + '/' + parts[0];
+            } else if (parts[2].length === 4) { // dd-mm-yyyy
+              return parts[0].padStart(2, '0') + '/' + parts[1].padStart(2, '0') + '/' + parts[2];
+            }
+          }
+          return s;
+        } catch (e) {
+          return s;
+        }
+      }
+
       window.renderPendaftarTable = function () {
         var tbody = document.getElementById('tablePendaftar');
         if (!tbody) return;
@@ -12361,7 +12388,7 @@
         });
 
         if (filtered.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">' +
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted">' +
             '<div class="py-3">' +
             '<i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>' +
             '<div class="fw-semibold">Tidak ada data pendaftaran</div>' +
@@ -12387,11 +12414,11 @@
           if (item.status === 'Menunggu Persetujuan') {
             statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1">' +
               '<i class="bi bi-clock me-1"></i>Menunggu</span>';
-            actions = '<div class="d-flex justify-content-center gap-1">' +
-              '<button type="button" class="btn btn-sm btn-success px-2 py-1 fw-semibold extra-small" ' +
+            actions = '<div class="d-flex justify-content-center gap-1.5">' +
+              '<button type="button" class="btn btn-sm btn-success text-white px-2.5 py-1 fw-semibold extra-small shadow-sm" ' +
               'onclick="handleApprovePendaftar(\'' + escapeHTML(item.regId) + '\', \'' + escapeHTML(item.name) + '\', \'' + escapeHTML(item.idKaryawan) + '\', \'' + escapeHTML(item.dept) + '\', \'' + escapeHTML(item.jabatan) + '\')" title="Setujui dan Aktifkan Akun">' +
               '<i class="bi bi-check-lg me-1"></i>Setujui</button>' +
-              '<button type="button" class="btn btn-sm btn-outline-danger px-2 py-1 fw-semibold extra-small" ' +
+              '<button type="button" class="btn btn-sm btn-danger text-white px-2.5 py-1 fw-semibold extra-small shadow-sm" ' +
               'onclick="handleRejectPendaftar(\'' + escapeHTML(item.regId) + '\', \'' + escapeHTML(item.name) + '\', \'' + escapeHTML(item.idKaryawan) + '\')" title="Tolak Pendaftaran">' +
               '<i class="bi bi-x-lg me-1"></i>Tolak</button>' +
               '</div>';
@@ -12399,7 +12426,7 @@
             statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">' +
               '<i class="bi bi-check-circle me-1"></i>Disetujui</span>';
             actions = '<div class="d-flex justify-content-center">' +
-              '<button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1 extra-small" ' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary px-2.5 py-1 extra-small" ' +
               'onclick="showPendaftarDetail(\'' + escapeHTML(item.regId) + '\')" title="Lihat Detail Riwayat">' +
               '<i class="bi bi-info-circle me-1"></i>Detail</button>' +
               '</div>';
@@ -12407,17 +12434,20 @@
             statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1">' +
               '<i class="bi bi-x-circle me-1"></i>Ditolak</span>';
             actions = '<div class="d-flex justify-content-center">' +
-              '<button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1 extra-small" ' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary px-2.5 py-1 extra-small" ' +
               'onclick="showPendaftarDetail(\'' + escapeHTML(item.regId) + '\')" title="Lihat Alasan Penolakan">' +
               '<i class="bi bi-info-circle me-1"></i>Detail</button>' +
               '</div>';
           }
 
+          var tglDisplay = formatDateDMY(item.tanggalDaftar);
+
           html += '<tr>' +
-            '<td class="ps-3 text-muted extra-small text-nowrap"><i class="bi bi-calendar3 me-1"></i>' + escapeHTML(item.tanggalDaftar) + '</td>' +
+            '<td class="ps-3 text-muted extra-small text-nowrap"><i class="bi bi-calendar3 me-1"></i>' + escapeHTML(tglDisplay) + '</td>' +
             '<td class="fw-bold text-dark font-monospace">' + escapeHTML(item.idKaryawan) + '</td>' +
             '<td class="fw-semibold">' + escapeHTML(item.name) + '</td>' +
-            '<td><span class="badge bg-light text-dark border me-1">' + escapeHTML(item.dept) + '</span><span class="extra-small text-muted">' + escapeHTML(item.jabatan) + '</span></td>' +
+            '<td><span class="badge bg-light text-dark border px-2 py-1">' + escapeHTML(item.dept) + '</span></td>' +
+            '<td class="small text-secondary fw-semibold">' + escapeHTML(item.jabatan) + '</td>' +
             '<td class="small"><i class="bi bi-telephone text-muted me-1"></i>' + escapeHTML(item.kontak) + '</td>' +
             '<td class="text-center">' + statusBadge + '</td>' +
             '<td class="text-center pe-3">' + actions + '</td>' +
@@ -12580,9 +12610,9 @@
           '<tr><th class="bg-light">Departemen</th><td>' + escapeHTML(item.dept) + '</td></tr>' +
           '<tr><th class="bg-light">Jabatan</th><td>' + escapeHTML(item.jabatan) + '</td></tr>' +
           '<tr><th class="bg-light">No. WA / Email</th><td>' + escapeHTML(item.kontak) + '</td></tr>' +
-          '<tr><th class="bg-light">Tanggal Mendaftar</th><td>' + escapeHTML(item.tanggalDaftar) + '</td></tr>' +
+          '<tr><th class="bg-light">Tanggal Mendaftar</th><td>' + escapeHTML(formatDateDMY(item.tanggalDaftar)) + '</td></tr>' +
           '<tr><th class="bg-light">Status Saat Ini</th><td>' + statusBadge + '</td></tr>' +
-          '<tr><th class="bg-light">Tanggal Diproses</th><td>' + escapeHTML(item.tanggalDiproses || '-') + '</td></tr>' +
+          '<tr><th class="bg-light">Tanggal Diproses</th><td>' + escapeHTML(formatDateDMY(item.tanggalDiproses)) + '</td></tr>' +
           '<tr><th class="bg-light">Diproses Oleh</th><td>' + escapeHTML(item.diprosesOleh || '-') + '</td></tr>' +
           '<tr><th class="bg-light">Catatan / Alasan</th><td class="text-break">' + escapeHTML(item.catatan || '-') + '</td></tr>' +
           '</table>' +
