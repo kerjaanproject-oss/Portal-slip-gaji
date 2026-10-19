@@ -3153,7 +3153,7 @@
         <p class="text-muted small">Masukan ID Karyawan & Password Anda</p>
       </div>
 
-      <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+      <form id="loginForm" novalidate onsubmit="event.preventDefault(); handleLogin();">
         <div class="mb-2.5">
           <label class="form-label small fw-semibold">ID Karyawan / Username</label>
           <div class="input-group">
@@ -4436,7 +4436,7 @@
   <div class="modal fade" id="modalFormPengumuman" tabindex="-1" aria-labelledby="modalFormPengumumanTitle"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable my-2 my-sm-4" style="max-width: 600px;">
-      <form id="formPengumuman" class="modal-content border-0 shadow"
+      <form id="formPengumuman" novalidate class="modal-content border-0 shadow"
         onsubmit="event.preventDefault(); handleSaveAnnouncement();">
         <div class="modal-header text-white py-3 px-4"
           style="background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);">
@@ -4550,7 +4550,7 @@
   <div class="modal fade" id="modalPengajuanCuti" tabindex="-1" aria-labelledby="modalPengajuanCutiTitle"
     aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable my-2 my-sm-4">
-      <form id="formPengajuanCuti" class="modal-content border-0 shadow"
+      <form id="formPengajuanCuti" novalidate class="modal-content border-0 shadow"
         style="border-radius: 1rem; overflow: hidden; max-height: calc(100dvh - 1.5rem); display: flex; flex-direction: column;"
         onsubmit="event.preventDefault(); handleSavePengajuanCuti();">
         <div class="modal-header text-white py-3 px-4"
@@ -4669,7 +4669,7 @@
                 <label class="form-label extra-small fw-semibold text-secondary mb-1">
                   Tanggal Awal Masuk Site / Onsite Terakhir <span class="text-danger">*</span>
                 </label>
-                <input type="date" id="cutiTglAwalOnsite" class="form-control form-control-sm bg-white"
+                <input type="date" id="cutiTglAwalOnsite" class="form-control form-control-sm bg-white" required
                   onchange="calculateOnsiteWorkingDays()">
                 <div class="form-text extra-small text-muted" style="font-size: 0.7rem;">
                   Otomatis terisi dari kepulangan cuti terakhir / tanggal mulai kerja site.
@@ -4723,20 +4723,19 @@
               placeholder="Jelaskan alasan atau keperluan pengajuan cuti Anda..." required></textarea>
           </div>
 
-          <!-- Alamat & Nomor Kontak (Opsional) -->
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold">Alamat Selama Cuti <span
-                  class="text-muted fw-normal">(Opsional)</span></label>
-              <input type="text" id="cutiAlamat" class="form-control form-control-sm"
-                placeholder="Alamat tinggal/keberadaan selama masa cuti...">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold">Nomor yang Dapat Dihubungi <span
-                  class="text-muted fw-normal">(Opsional)</span></label>
-              <input type="tel" id="cutiKontak" class="form-control form-control-sm"
-                placeholder="No. HP / WhatsApp (Contoh: 08123456789)">
-            </div>
+          <!-- Alamat Selama Cuti -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Alamat Selama Cuti <span class="text-danger">*</span></label>
+            <textarea id="cutiAlamat" class="form-control form-control-sm" rows="3"
+              placeholder="Alamat lengkap tempat tinggal / keberadaan selama masa cuti..." required></textarea>
+          </div>
+
+          <!-- Nomor Kontak (Opsional) -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nomor yang Dapat Dihubungi <span
+                class="text-muted fw-normal">(Opsional)</span></label>
+            <input type="tel" id="cutiKontak" class="form-control form-control-sm"
+              placeholder="No. HP / WhatsApp (Contoh: 08123456789)">
           </div>
 
           <!-- Informasi Titik Drop / Logistik Tiket Cuti Roster (Opsional) -->
@@ -4877,7 +4876,7 @@
           <h5 class="modal-title fw-bold" id="modalKaryawanTitle">Tambah Karyawan Baru</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <form id="formKaryawan" onsubmit="event.preventDefault(); handleSaveKaryawan();">
+        <form id="formKaryawan" novalidate onsubmit="event.preventDefault(); handleSaveKaryawan();">
           <div class="modal-body">
             <input type="hidden" id="editIsNew" value="true">
             <input type="hidden" id="editOldId" value="">
@@ -4963,7 +4962,7 @@
           <h5 class="modal-title fw-bold" id="modalDepartemenTitle">Tambah Departemen</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <form id="formDepartemen" onsubmit="event.preventDefault(); handleSaveDepartemen();">
+        <form id="formDepartemen" novalidate onsubmit="event.preventDefault(); handleSaveDepartemen();">
           <div class="modal-body">
             <input type="hidden" id="deptId" value="">
             <div class="mb-3">
@@ -4996,7 +4995,7 @@
           <h5 class="modal-title fw-bold" id="modalRosterTitle">Tambah Pola Roster</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <form id="formRoster" onsubmit="event.preventDefault(); handleSaveRoster();">
+        <form id="formRoster" novalidate onsubmit="event.preventDefault(); handleSaveRoster();">
           <div class="modal-body">
             <input type="hidden" id="rosterId" value="">
             <div class="mb-3">
@@ -5053,7 +5052,7 @@
             (Excel)</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <form id="formImportKaryawan" onsubmit="event.preventDefault(); handleImportKaryawanExcel();">
+        <form id="formImportKaryawan" novalidate onsubmit="event.preventDefault(); handleImportKaryawanExcel();">
           <div class="modal-body">
             <div class="alert alert-info small mb-3">
               <i class="bi bi-info-circle me-1"></i>Format kolom file Excel (<code>.xlsx</code> / <code>.xls</code> /
@@ -5091,7 +5090,7 @@
           <h5 class="modal-title fw-bold" id="modalUploadPdfTitle">Upload File PDF Slip Gaji</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <form id="formUploadPdf" onsubmit="event.preventDefault(); handleSaveSlipPdf();">
+        <form id="formUploadPdf" novalidate onsubmit="event.preventDefault(); handleSaveSlipPdf();">
           <div class="modal-body">
             <input type="hidden" id="uploadSlipId" value="">
             <div class="row g-2 mb-3">
@@ -5556,7 +5555,7 @@
   <!-- MODAL: DAFTAR AKUN BARU (SELF-REGISTRATION) -->
   <div class="modal fade" id="modalRegister" tabindex="-1" aria-labelledby="modalRegisterTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable my-2 my-sm-4">
-      <form id="formRegister" class="modal-content border-0 shadow-lg"
+      <form id="formRegister" novalidate class="modal-content border-0 shadow-lg"
         style="border-radius: 1rem; overflow: hidden; max-height: calc(100dvh - 1.5rem); display: flex; flex-direction: column;"
         onsubmit="event.preventDefault(); submitRegister();">
         <div class="modal-header border-bottom py-2.5 px-3 px-sm-4" style="flex-shrink: 0;">
@@ -5678,7 +5677,7 @@
 
         <!-- STEP 1: REQUEST OTP -->
         <div id="otpStep1">
-          <form onsubmit="event.preventDefault(); handleRequestOtp();">
+          <form novalidate onsubmit="event.preventDefault(); handleRequestOtp();">
             <div class="modal-body p-4">
               <p class="text-muted small mb-3">Masukkan ID Karyawan atau Email terdaftar Anda. Kami akan mengirimkan 6
                 digit kode OTP ke email Anda.</p>
@@ -5702,7 +5701,7 @@
 
         <!-- STEP 2: VERIFY OTP & NEW PASSWORD -->
         <div id="otpStep2" class="d-none">
-          <form onsubmit="event.preventDefault(); handleVerifyAndResetPassword();">
+          <form novalidate onsubmit="event.preventDefault(); handleVerifyAndResetPassword();">
             <div class="modal-body p-4">
               <div class="alert alert-info py-2 small mb-3" id="otpSentAlert">
                 <i class="bi bi-info-circle-fill me-1"></i> Kode OTP 6-digit telah dikirim ke email Anda.
@@ -5766,7 +5765,7 @@
           <h5 class="modal-title fw-bold text-primary"><i class="bi bi-key-fill me-2"></i>Ubah Password Saya</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <form onsubmit="event.preventDefault(); handleSaveOwnPassword();">
+        <form novalidate onsubmit="event.preventDefault(); handleSaveOwnPassword();">
           <div class="modal-body p-4">
             <div class="mb-3">
               <label class="form-label small fw-semibold">Password Saat Ini (Lama)</label>
@@ -6020,6 +6019,33 @@
         return div.innerHTML;
       }
 
+      function showFormValidationWarning(elementOrId, message, title) {
+        var el = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
+        Swal.fire({
+          icon: 'warning',
+          title: title || 'Data Belum Lengkap',
+          text: message,
+          confirmButtonColor: '#2563eb'
+        }).then(function () {
+          if (el) {
+            try {
+              if (typeof el.scrollIntoView === 'function') {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+              el.focus();
+              el.classList.add('is-invalid');
+              var removeInvalid = function () {
+                el.classList.remove('is-invalid');
+                el.removeEventListener('input', removeInvalid);
+                el.removeEventListener('change', removeInvalid);
+              };
+              el.addEventListener('input', removeInvalid);
+              el.addEventListener('change', removeInvalid);
+            } catch (e) {}
+          }
+        });
+      }
+
       function handleSessionExpired(res) {
         if (res && res.sessionExpired) {
           logout();
@@ -6164,7 +6190,10 @@
 
       window.handleRequestOtp = function () {
         var inputVal = document.getElementById('forgotUsername').value.trim();
-        if (!inputVal) return;
+        if (!inputVal) {
+          showFormValidationWarning('forgotUsername', 'ID Karyawan atau Email terdaftar wajib diisi.');
+          return;
+        }
 
         showFullPageLoading('Mengirim kode OTP ke Email...');
 
@@ -6189,18 +6218,24 @@
         var newPass = document.getElementById('otpNewPassword').value.trim();
         var confirmPass = document.getElementById('otpConfirmPassword').value.trim();
 
-        if (!otpCode || !newPass || !confirmPass) {
-          Swal.fire('Peringatan', 'Semua kolom wajib diisi.', 'warning');
+        if (!otpCode) {
+          showFormValidationWarning('otpCodeInput', 'Kode OTP 6 digit wajib diisi.');
           return;
         }
-
-        if (newPass !== confirmPass) {
-          Swal.fire('Peringatan', 'Konfirmasi password baru tidak cocok.', 'warning');
+        if (!newPass) {
+          showFormValidationWarning('otpNewPassword', 'Password baru wajib diisi.');
           return;
         }
-
         if (newPass.length < 6) {
-          Swal.fire('Peringatan', 'Password minimal 6 karakter.', 'warning');
+          showFormValidationWarning('otpNewPassword', 'Password baru minimal 6 karakter.');
+          return;
+        }
+        if (!confirmPass) {
+          showFormValidationWarning('otpConfirmPassword', 'Konfirmasi password baru wajib diisi.');
+          return;
+        }
+        if (newPass !== confirmPass) {
+          showFormValidationWarning('otpConfirmPassword', 'Konfirmasi password baru tidak cocok.');
           return;
         }
 
@@ -6252,18 +6287,24 @@
         var newPass = document.getElementById('selfNewPassword').value.trim();
         var confirmPass = document.getElementById('selfConfirmPassword').value.trim();
 
-        if (!oldPass || !newPass || !confirmPass) {
-          Swal.fire('Peringatan', 'Semua kolom password wajib diisi.', 'warning');
+        if (!oldPass) {
+          showFormValidationWarning('selfOldPassword', 'Password saat ini (lama) wajib diisi.');
           return;
         }
-
-        if (newPass !== confirmPass) {
-          Swal.fire('Peringatan', 'Konfirmasi password baru tidak cocok.', 'warning');
+        if (!newPass) {
+          showFormValidationWarning('selfNewPassword', 'Password baru wajib diisi.');
           return;
         }
-
         if (newPass.length < 6) {
-          Swal.fire('Peringatan', 'Password baru minimal 6 karakter.', 'warning');
+          showFormValidationWarning('selfNewPassword', 'Password baru minimal 6 karakter.');
+          return;
+        }
+        if (!confirmPass) {
+          showFormValidationWarning('selfConfirmPassword', 'Konfirmasi password baru wajib diisi.');
+          return;
+        }
+        if (newPass !== confirmPass) {
+          showFormValidationWarning('selfConfirmPassword', 'Konfirmasi password baru tidak cocok.');
           return;
         }
 
@@ -6289,7 +6330,14 @@
         var p = document.getElementById('loginPassword').value.trim();
         var rememberMe = document.getElementById('rememberMeCheckbox') ? document.getElementById('rememberMeCheckbox').checked : false;
 
-        if (!u || !p) return;
+        if (!u) {
+          showFormValidationWarning('loginUsername', 'ID Karyawan / Username wajib diisi.');
+          return;
+        }
+        if (!p) {
+          showFormValidationWarning('loginPassword', 'Password login wajib diisi.');
+          return;
+        }
 
         showFullPageLoading('Verifikasi akun login...');
 
@@ -6687,6 +6735,11 @@
           note: document.getElementById('deptNote').value.trim()
         };
 
+        if (!payload.name) {
+          showFormValidationWarning('deptName', 'Nama departemen wajib diisi.');
+          return;
+        }
+
         showFullPageLoading('Menyimpan departemen...');
         gasRun('saveDepartemen', Auth.getToken(), payload).then(function (res) {
           hideFullPageLoading();
@@ -6834,15 +6887,15 @@
         };
 
         if (!payload.name) {
-          Swal.fire('Peringatan', 'Nama pola roster wajib diisi.', 'warning');
+          showFormValidationWarning('rosterName', 'Nama pola roster wajib diisi.');
           return;
         }
         if (!payload.workDays || isNaN(payload.workDays) || Number(payload.workDays) <= 0) {
-          Swal.fire('Peringatan', 'Jumlah hari kerja harus berupa angka positif.', 'warning');
+          showFormValidationWarning('rosterWorkDays', 'Jumlah hari kerja wajib diisi dengan angka positif.');
           return;
         }
         if (!payload.leaveDays || isNaN(payload.leaveDays) || Number(payload.leaveDays) <= 0) {
-          Swal.fire('Peringatan', 'Jumlah jatah cuti harus berupa angka positif.', 'warning');
+          showFormValidationWarning('rosterLeaveDays', 'Jumlah jatah cuti wajib diisi dengan angka positif.');
           return;
         }
 
@@ -7320,11 +7373,19 @@
         };
 
         if (!payload.judul) {
-          Swal.fire('Peringatan', 'Judul pengumuman wajib diisi.', 'warning');
+          showFormValidationWarning('announcementJudul', 'Judul pengumuman wajib diisi.');
+          return;
+        }
+        if (!payload.tipe) {
+          showFormValidationWarning('announcementTipe', 'Tipe pengumuman wajib dipilih.');
+          return;
+        }
+        if (!payload.status) {
+          showFormValidationWarning('announcementStatus', 'Status pengumuman wajib dipilih.');
           return;
         }
         if (!payload.isi) {
-          Swal.fire('Peringatan', 'Isi pengumuman wajib diisi.', 'warning');
+          showFormValidationWarning('announcementIsi', 'Isi pengumuman wajib diisi.');
           return;
         }
 
@@ -7667,6 +7728,27 @@
           tglMulaiKerja: document.getElementById('empTglMulaiKerja').value || ''
         };
 
+        if (!payload.id) {
+          showFormValidationWarning('empId', 'ID Karyawan wajib diisi.');
+          return;
+        }
+        if (!payload.name) {
+          showFormValidationWarning('empName', 'Nama lengkap karyawan wajib diisi.');
+          return;
+        }
+        if (!payload.jabatan) {
+          showFormValidationWarning('empJabatan', 'Jabatan karyawan wajib diisi.');
+          return;
+        }
+        if (!payload.dept) {
+          showFormValidationWarning('empDept', 'Departemen wajib dipilih.');
+          return;
+        }
+        if (isNew && !payload.pass) {
+          showFormValidationWarning('empPass', 'Password login wajib diisi untuk akun karyawan baru.');
+          return;
+        }
+
         showFullPageLoading('Menyimpan data karyawan...');
 
         gasRun('saveKaryawan', Auth.getToken(), payload).then(function (res) {
@@ -7849,12 +7931,22 @@
         var catatan = document.getElementById('uploadCatatan').value.trim();
 
         if (!dept) {
-          Swal.fire('Peringatan', 'Silakan pilih departemen terlebih dahulu.', 'warning');
+          showFormValidationWarning('uploadDept', 'Silakan pilih departemen terlebih dahulu.');
           return;
         }
 
         if (!empId) {
-          Swal.fire('Peringatan', 'Silakan pilih karyawan.', 'warning');
+          showFormValidationWarning('uploadEmpId', 'Silakan pilih karyawan penerima slip gaji.');
+          return;
+        }
+
+        if (!bulan) {
+          showFormValidationWarning('uploadBulan', 'Silakan pilih bulan periode slip gaji.');
+          return;
+        }
+
+        if (!tahun) {
+          showFormValidationWarning('uploadTahun', 'Silakan pilih tahun periode slip gaji.');
           return;
         }
 
@@ -7863,7 +7955,7 @@
         var hasNewResiFile = resiFileInput && resiFileInput.files && resiFileInput.files.length > 0;
 
         if (isNew && !hasNewSlipFile) {
-          Swal.fire('Peringatan', 'Pilih file PDF slip gaji.', 'warning');
+          showFormValidationWarning('uploadFilePdf', 'Silakan pilih berkas PDF slip gaji.');
           return;
         }
 
@@ -8599,7 +8691,7 @@
       window.handleImportKaryawanExcel = function () {
         var fileInput = document.getElementById('importFileExcel');
         if (!fileInput.files || fileInput.files.length === 0) {
-          Swal.fire('Peringatan', 'Pilih file Excel atau CSV terlebih dahulu.', 'warning');
+          showFormValidationWarning('importFileExcel', 'Silakan pilih file Excel (.xlsx / .xls / .csv) terlebih dahulu.');
           return;
         }
 
@@ -9550,7 +9642,7 @@
         if (jenis === 'Lainnya') {
           var lainnyaVal = document.getElementById('cutiJenisLainnya').value.trim();
           if (!lainnyaVal) {
-            Swal.fire('Peringatan', 'Silakan sebutkan jenis cuti lainnya.', 'warning');
+            showFormValidationWarning('cutiJenisLainnya', 'Silakan sebutkan jenis cuti lainnya.');
             return;
           }
           jenis = 'Lainnya: ' + lainnyaVal;
@@ -9560,7 +9652,7 @@
         if (jenis === 'Cuti Roster') {
           polaRoster = document.getElementById('cutiPolaRoster').value.trim();
           if (!polaRoster) {
-            Swal.fire('Peringatan', 'Silakan pilih pola roster yang berlaku.', 'warning');
+            showFormValidationWarning('cutiPolaRoster', 'Silakan pilih pola roster yang berlaku.');
             return;
           }
         }
@@ -9580,25 +9672,49 @@
         var fileInput = document.getElementById('cutiLampiran');
 
         if (!lokasiKerja) {
-          Swal.fire('Peringatan', 'Silakan pilih lokasi kerja / jobsite.', 'warning');
+          showFormValidationWarning('cutiLokasiKerja', 'Lokasi kerja / jobsite wajib dipilih.');
           return;
         }
         if (!jenis) {
-          Swal.fire('Peringatan', 'Silakan pilih jenis cuti.', 'warning');
+          showFormValidationWarning('cutiJenis', 'Jenis cuti wajib dipilih.');
           return;
         }
-        if (!tglMulai || !tglSelesai || jmlHari <= 0) {
-          Swal.fire('Peringatan', 'Rentang tanggal cuti belum valid.', 'warning');
+        if (!tglAwalOnsite) {
+          showFormValidationWarning('cutiTglAwalOnsite', 'Tanggal awal masuk site / onsite terakhir wajib diisi.');
+          return;
+        }
+        if (!tglMulai) {
+          showFormValidationWarning('cutiTanggalMulai', 'Data tanggal mulai cuti wajib diisi.');
+          return;
+        }
+        if (new Date(tglMulai) < new Date(tglAwalOnsite)) {
+          showFormValidationWarning('cutiTglAwalOnsite', 'Tanggal awal masuk site tidak boleh sesudah tanggal mulai cuti.');
+          return;
+        }
+        if (!tglSelesai) {
+          showFormValidationWarning('cutiTanggalSelesai', 'Data tanggal selesai cuti wajib diisi.');
+          return;
+        }
+        if (new Date(tglSelesai) < new Date(tglMulai)) {
+          showFormValidationWarning('cutiTanggalSelesai', 'Tanggal selesai cuti tidak boleh mendahului tanggal mulai cuti.');
+          return;
+        }
+        if (!jmlHari || jmlHari <= 0 || isNaN(jmlHari)) {
+          showFormValidationWarning('cutiTanggalMulai', 'Rentang tanggal cuti belum valid.');
           return;
         }
         if (!alasan) {
-          Swal.fire('Peringatan', 'Alasan cuti wajib diisi.', 'warning');
+          showFormValidationWarning('cutiAlasan', 'Alasan permohonan cuti wajib diisi.');
+          return;
+        }
+        if (!alamat) {
+          showFormValidationWarning('cutiAlamat', 'Alamat selama cuti wajib diisi.');
           return;
         }
 
         var file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
         if (file && file.size > 5242880) {
-          Swal.fire('Peringatan', 'Ukuran berkas lampiran maksimal 5 MB.', 'warning');
+          showFormValidationWarning('cutiLampiran', 'Ukuran berkas lampiran maksimal 5 MB.');
           return;
         }
 
@@ -12504,18 +12620,40 @@
         var pass = document.getElementById('regPassword')?.value || '';
         var passConfirm = document.getElementById('regPasswordConfirm')?.value || '';
 
-        if (!idKaryawan || !fullname || !dept || !jabatan || !kontak || !pass) {
-          Swal.fire('Data Belum Lengkap', 'Mohon lengkapi seluruh kolom yang bertanda bintang (*).', 'warning');
+        if (!idKaryawan) {
+          showFormValidationWarning('regIdKaryawan', 'ID Karyawan / NIK wajib diisi.');
           return;
         }
-
+        if (!fullname) {
+          showFormValidationWarning('regNamaLengkap', 'Nama lengkap sesuai KTP wajib diisi.');
+          return;
+        }
+        if (!dept) {
+          showFormValidationWarning('regDepartemen', 'Departemen wajib dipilih.');
+          return;
+        }
+        if (!jabatan) {
+          showFormValidationWarning('regJabatan', 'Jabatan karyawan wajib diisi.');
+          return;
+        }
+        if (!kontak) {
+          showFormValidationWarning('regKontak', 'Email karyawan wajib diisi.');
+          return;
+        }
+        if (!pass) {
+          showFormValidationWarning('regPassword', 'Password akun wajib diisi.');
+          return;
+        }
         if (pass.length < 6) {
-          Swal.fire('Password Terlalu Pendek', 'Password minimal 6 karakter demi keamanan akun Anda.', 'warning');
+          showFormValidationWarning('regPassword', 'Password minimal 6 karakter demi keamanan akun Anda.');
           return;
         }
-
+        if (!passConfirm) {
+          showFormValidationWarning('regPasswordConfirm', 'Konfirmasi password wajib diisi.');
+          return;
+        }
         if (pass !== passConfirm) {
-          Swal.fire('Password Tidak Cocok', 'Konfirmasi password harus persis sama dengan password yang dibuat.', 'warning');
+          showFormValidationWarning('regPasswordConfirm', 'Konfirmasi password harus persis sama dengan password yang dibuat.');
           return;
         }
 
