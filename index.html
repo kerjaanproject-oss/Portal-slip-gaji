@@ -1238,6 +1238,167 @@
       }
     }
 
+    /* ==========================================================================
+       MODAL DETAIL PENGAJUAN CUTI & APPROVAL RESPONSIVE ENHANCEMENTS
+       ========================================================================== */
+    .modal-detail-cuti-content {
+      border-radius: 1rem !important;
+      overflow: hidden;
+      max-height: calc(100dvh - 1.5rem);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #modalDetailCuti .modal-body,
+    #modalApprovalCuti .modal-body {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      -webkit-overflow-scrolling: touch !important;
+      touch-action: pan-y !important;
+      overscroll-behavior-y: contain;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .modal-detail-cuti-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .modal-detail-status-wrap {
+      flex: 0 0 auto;
+    }
+
+    .modal-detail-actions-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 767.98px) {
+      #modalDetailCuti .modal-dialog,
+      #modalApprovalCuti .modal-dialog {
+        margin: 0.5rem auto !important;
+        max-width: calc(100% - 1rem) !important;
+        width: calc(100% - 1rem) !important;
+      }
+
+      #modalDetailCuti .modal-content,
+      #modalApprovalCuti .modal-content {
+        max-height: calc(100dvh - 1rem) !important;
+        border-radius: 0.85rem !important;
+        overflow: hidden;
+      }
+
+      #modalDetailCuti .modal-header,
+      #modalApprovalCuti .modal-header {
+        padding: 0.75rem 1rem !important;
+      }
+
+      #modalDetailCuti .modal-title,
+      #modalApprovalCuti .modal-title {
+        font-size: 1rem !important;
+      }
+
+      #modalDetailCuti .modal-body,
+      #modalApprovalCuti .modal-body {
+        padding: 0.75rem !important;
+        max-height: calc(100dvh - 180px) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+      }
+
+      /* Stack footer vertically on mobile */
+      #modalDetailCuti .modal-detail-cuti-footer {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+        padding: 0.75rem 0.85rem !important;
+      }
+
+      #modalDetailCuti .modal-detail-status-wrap {
+        width: 100% !important;
+      }
+
+      #modalDetailCuti .modal-detail-status-wrap .badge {
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.45rem 0.65rem !important;
+        font-size: 0.8rem !important;
+        white-space: normal !important;
+        border-radius: 0.5rem !important;
+      }
+
+      #modalDetailCuti .modal-detail-actions-wrap {
+        width: 100% !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.45rem !important;
+      }
+
+      #modalDetailCuti .modal-detail-actions-wrap > button {
+        width: 100% !important;
+        margin: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.55rem 0.45rem !important;
+        font-size: 0.785rem !important;
+        font-weight: 600 !important;
+        min-height: 40px !important;
+        border-radius: 0.5rem !important;
+        white-space: normal !important;
+        text-align: center !important;
+      }
+
+      /* If only 1 button (e.g. Tutup), span 2 columns */
+      #modalDetailCuti .modal-detail-actions-wrap > button:only-child {
+        grid-column: span 2 !important;
+      }
+
+      /* If 3 buttons, the last button (Tutup) spans 2 columns */
+      #modalDetailCuti .modal-detail-actions-wrap > button:last-child:nth-child(odd) {
+        grid-column: span 2 !important;
+      }
+
+      /* Responsive footer for modalApprovalCuti */
+      #modalApprovalCuti .modal-footer {
+        padding: 0.75rem 0.85rem !important;
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+      }
+
+      #modalApprovalCuti .modal-footer > button[data-bs-dismiss="modal"] {
+        order: 2;
+        width: 100% !important;
+        min-height: 38px !important;
+      }
+
+      #modalApprovalCuti .modal-footer > div {
+        order: 1;
+        width: 100% !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+      }
+
+      #modalApprovalCuti .modal-footer > div > button {
+        width: 100% !important;
+        min-height: 40px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 0.825rem !important;
+      }
+    }
+
     /* Transport Option Chips in Cuti Form */
     .transport-chip-group {
       display: flex;
@@ -1417,17 +1578,22 @@
 
     .calendar-grid-header {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(7, minmax(0, 1fr));
       background-color: #f8fafc;
       border-bottom: 1px solid #e2e8f0;
       font-weight: 700;
       font-size: 0.8rem;
       color: #64748b;
       text-align: center;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .calendar-grid-header-col {
       padding: 0.75rem 0.25rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .calendar-grid-header-col.weekend {
@@ -1436,9 +1602,11 @@
 
     .calendar-grid-body {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(7, minmax(0, 1fr));
       background-color: #e2e8f0;
       gap: 1px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .calendar-day-cell {
@@ -1450,6 +1618,9 @@
       position: relative;
       cursor: pointer;
       transition: background-color 0.15s ease-in-out;
+      min-width: 0;
+      overflow: hidden;
+      box-sizing: border-box;
     }
 
     .calendar-day-cell:hover {
@@ -1542,21 +1713,96 @@
       margin-top: 0.15rem;
     }
 
+    @media (min-width: 576px) {
+      .cal-filter-select {
+        min-width: 155px;
+      }
+      #searchKalenderNama {
+        min-width: 160px;
+      }
+    }
+
     @media (max-width: 768px) {
+      .calendar-grid-header,
+      .calendar-grid-body {
+        grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+        width: 100% !important;
+      }
+
+      .calendar-grid-header-col {
+        padding: 0.5rem 0.1rem !important;
+        font-size: 0.72rem !important;
+      }
+
       .calendar-day-cell {
-        min-height: 80px;
-        padding: 0.3rem 0.2rem;
+        min-height: 66px !important;
+        padding: 0.25rem 0.15rem !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+      }
+
+      .calendar-day-header {
+        margin-bottom: 0.2rem !important;
+        align-items: center !important;
+        gap: 0.15rem !important;
+        min-width: 0 !important;
       }
 
       .calendar-day-num {
-        font-size: 0.75rem;
-        width: 20px;
-        height: 20px;
+        font-size: 0.72rem !important;
+        width: 20px !important;
+        height: 20px !important;
+        flex-shrink: 0 !important;
+      }
+
+      .cal-badge-mobile {
+        font-size: 0.58rem !important;
+        padding: 0.1rem 0.25rem !important;
+        line-height: 1 !important;
+        border-radius: 0.25rem !important;
+        flex-shrink: 0 !important;
+      }
+
+      .calendar-leave-items {
+        gap: 0.15rem !important;
+        min-width: 0 !important;
+        width: 100% !important;
       }
 
       .calendar-leave-chip {
-        font-size: 0.62rem;
-        padding: 0.15rem 0.25rem;
+        font-size: 0.58rem !important;
+        padding: 0.12rem 0.2rem !important;
+        border-radius: 0.25rem !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.15rem !important;
+        line-height: 1.1 !important;
+      }
+
+      .calendar-leave-chip i {
+        font-size: 0.55rem !important;
+        flex-shrink: 0 !important;
+      }
+
+      .calendar-leave-chip span {
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        min-width: 0 !important;
+        font-size: 0.58rem !important;
+      }
+
+      .calendar-leave-more {
+        font-size: 0.58rem !important;
+        padding: 0.08rem 0.2rem !important;
+        margin-top: 0.08rem !important;
+      }
+
+      .cal-legend-container {
+        font-size: 0.72rem !important;
+        gap: 0.4rem 0.75rem !important;
       }
     }
 
@@ -3886,20 +4132,20 @@
         <!-- PAGE 5C: KALENDER CUTI TIM & DEPARTEMEN -->
         <div id="page-kalender-cuti" class="app-page d-none atasan-hrd-only">
           <!-- Banner Header -->
-          <div class="card border-0 shadow-sm mb-4"
+          <div class="card border-0 shadow-sm mb-3 mb-md-4"
             style="background: linear-gradient(135deg, #4338ca 0%, #0284c7 100%); color: white; border-radius: 1rem;">
-            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="card-body p-3 p-md-4 d-flex align-items-center justify-content-between flex-wrap gap-2 gap-md-3">
               <div>
-                <h4 class="fw-bold mb-1 text-white">Kalender Cuti Tim &amp; Departemen</h4>
-                <p class="mb-0 text-white-50 small">Pantau visual jadwal cuti seluruh anggota tim secara bulanan untuk
+                <h5 class="fw-bold mb-1 text-white fs-6 fs-md-4">Kalender Cuti Tim &amp; Departemen</h5>
+                <p class="mb-0 text-white-50 extra-small d-none d-sm-block">Pantau visual jadwal cuti seluruh anggota tim secara bulanan untuk
                   mengantisipasi kekosongan operasional.</p>
               </div>
-              <div class="d-flex align-items-center gap-2">
-                <button type="button" class="btn btn-light btn-sm fw-semibold px-3 py-2 text-primary shadow-sm"
+              <div class="d-flex align-items-center gap-2 w-100 w-sm-auto justify-content-end">
+                <button type="button" class="btn btn-light btn-sm fw-semibold px-2.5 py-1.5 px-md-3 py-md-2 text-primary shadow-sm flex-fill flex-sm-grow-0"
                   onclick="showPage('persetujuan-cuti', document.getElementById('subitem-persetujuan-cuti'))">
                   <i class="bi bi-shield-check me-1"></i>Persetujuan Cuti
                 </button>
-                <button type="button" class="btn btn-outline-light btn-sm fw-semibold px-3 py-2 shadow-sm"
+                <button type="button" class="btn btn-outline-light btn-sm fw-semibold px-2.5 py-1.5 px-md-3 py-md-2 shadow-sm flex-fill flex-sm-grow-0"
                   onclick="loadKalenderCuti()">
                   <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                 </button>
@@ -3908,50 +4154,53 @@
           </div>
 
           <!-- Metrik Ringkasan Kalender -->
-          <div class="row g-3 mb-4">
-            <div class="col-12 col-sm-6 col-xl-4">
-              <div class="card border-0 shadow-sm p-3 h-100"
-                style="border-radius: 1rem; border-left: 4px solid #2563eb !important;">
+          <div class="row g-2 g-md-3 mb-3 mb-md-4">
+            <div class="col-4 col-md-4">
+              <div class="card border-0 shadow-sm p-2 p-md-3 h-100"
+                style="border-radius: 0.85rem; border-left: 4px solid #2563eb !important;">
                 <div class="d-flex align-items-center justify-content-between">
                   <div>
-                    <div class="text-muted extra-small fw-bold text-uppercase">Karyawan Cuti Bulan Ini</div>
-                    <h4 class="fw-bold text-dark mt-1 mb-0" id="metricCalTotalKaryawan">0 Karyawan</h4>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-none d-sm-block">Karyawan Cuti Bulan Ini</div>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-sm-none" style="font-size: 0.65rem;">Karyawan</div>
+                    <h5 class="fw-bold text-dark mt-1 mb-0 fs-6 fs-md-5" id="metricCalTotalKaryawan">0 Karyawan</h5>
                   </div>
                   <div
-                    class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
-                    style="width: 44px; height: 44px;">
+                    class="rounded-circle bg-primary-subtle text-primary d-none d-sm-flex align-items-center justify-content-center"
+                    style="width: 40px; height: 40px; flex-shrink: 0;">
                     <i class="bi bi-people-fill fs-5"></i>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-4">
-              <div class="card border-0 shadow-sm p-3 h-100"
-                style="border-radius: 1rem; border-left: 4px solid #16a34a !important;">
+            <div class="col-4 col-md-4">
+              <div class="card border-0 shadow-sm p-2 p-md-3 h-100"
+                style="border-radius: 0.85rem; border-left: 4px solid #16a34a !important;">
                 <div class="d-flex align-items-center justify-content-between">
                   <div>
-                    <div class="text-muted extra-small fw-bold text-uppercase">Total Hari Cuti Terjadwal</div>
-                    <h4 class="fw-bold text-dark mt-1 mb-0" id="metricCalTotalHari">0 Hari</h4>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-none d-sm-block">Total Hari Cuti Terjadwal</div>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-sm-none" style="font-size: 0.65rem;">Total Hari</div>
+                    <h5 class="fw-bold text-dark mt-1 mb-0 fs-6 fs-md-5" id="metricCalTotalHari">0 Hari</h5>
                   </div>
                   <div
-                    class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center"
-                    style="width: 44px; height: 44px;">
+                    class="rounded-circle bg-success-subtle text-success d-none d-sm-flex align-items-center justify-content-center"
+                    style="width: 40px; height: 40px; flex-shrink: 0;">
                     <i class="bi bi-calendar-check-fill fs-5"></i>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-4">
-              <div class="card border-0 shadow-sm p-3 h-100"
-                style="border-radius: 1rem; border-left: 4px solid #ca8a04 !important;">
+            <div class="col-4 col-md-4">
+              <div class="card border-0 shadow-sm p-2 p-md-3 h-100"
+                style="border-radius: 0.85rem; border-left: 4px solid #ca8a04 !important;">
                 <div class="d-flex align-items-center justify-content-between">
                   <div>
-                    <div class="text-muted extra-small fw-bold text-uppercase">Menunggu Persetujuan</div>
-                    <h4 class="fw-bold text-dark mt-1 mb-0" id="metricCalMenunggu">0 Permohonan</h4>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-none d-sm-block">Menunggu Persetujuan</div>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-sm-none" style="font-size: 0.65rem;">Menunggu</div>
+                    <h5 class="fw-bold text-dark mt-1 mb-0 fs-6 fs-md-5" id="metricCalMenunggu">0 Permohonan</h5>
                   </div>
                   <div
-                    class="rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center"
-                    style="width: 44px; height: 44px;">
+                    class="rounded-circle bg-warning-subtle text-warning d-none d-sm-flex align-items-center justify-content-center"
+                    style="width: 40px; height: 40px; flex-shrink: 0;">
                     <i class="bi bi-hourglass-split fs-5"></i>
                   </div>
                 </div>
@@ -3962,16 +4211,16 @@
           <!-- Main Calendar Card -->
           <div class="card border-0 shadow-sm mb-4" style="border-radius: 1rem;">
             <!-- Header Toolbar -->
-            <div class="card-header bg-white border-bottom p-3 p-md-4">
-              <div class="row g-3 align-items-center justify-content-between">
+            <div class="card-header bg-white border-bottom p-2.5 p-sm-3 p-md-4">
+              <div class="row g-2 g-md-3 align-items-center justify-content-between">
                 <!-- Month & Year Navigation -->
-                <div class="col-12 col-lg-auto d-flex align-items-center gap-2 flex-wrap">
+                <div class="col-12 col-lg-auto d-flex align-items-center justify-content-between justify-content-lg-start gap-2 flex-wrap">
                   <div class="btn-group shadow-xs">
                     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="navKalenderMonth(-1)"
                       title="Bulan Sebelumnya">
                       <i class="bi bi-chevron-left"></i>
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 fw-bold"
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-2.5 px-md-3 fw-bold"
                       onclick="navKalenderToday()" title="Bulan Sekarang">
                       Hari Ini
                     </button>
@@ -3980,31 +4229,31 @@
                       <i class="bi bi-chevron-right"></i>
                     </button>
                   </div>
-                  <h5 class="fw-bold text-dark m-0 ps-2" id="calMonthYearTitle">September 2026</h5>
+                  <h5 class="fw-bold text-dark m-0 ps-1 ps-md-2 fs-6 fs-md-5" id="calMonthYearTitle">September 2026</h5>
                 </div>
 
                 <!-- Filters & Controls -->
                 <div class="col-12 col-lg-auto">
                   <div class="row g-2 align-items-center">
                     <!-- Filter Departemen -->
-                    <div class="col-12 col-sm-auto" id="colFilterCalDept">
+                    <div class="col-6 col-sm-auto" id="colFilterCalDept">
                       <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white text-muted border-end-0"><i
                             class="bi bi-building"></i></span>
-                        <select id="filterKalenderDept" class="form-select border-start-0 ps-0"
-                          style="min-width: 170px;" onchange="renderKalenderCuti()">
+                        <select id="filterKalenderDept" class="form-select border-start-0 ps-0 cal-filter-select"
+                          onchange="renderKalenderCuti()">
                           <option value="SEMUA">Semua Departemen</option>
                         </select>
                       </div>
                     </div>
 
                     <!-- Filter Status Cuti -->
-                    <div class="col-12 col-sm-auto">
+                    <div class="col-6 col-sm-auto">
                       <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white text-muted border-end-0"><i
                             class="bi bi-funnel"></i></span>
-                        <select id="filterKalenderStatus" class="form-select border-start-0 ps-0"
-                          style="min-width: 150px;" onchange="renderKalenderCuti()">
+                        <select id="filterKalenderStatus" class="form-select border-start-0 ps-0 cal-filter-select"
+                          onchange="renderKalenderCuti()">
                           <option value="SEMUA">Semua Status</option>
                           <option value="Disetujui">Hanya Disetujui</option>
                           <option value="Menunggu">Menunggu Approval</option>
@@ -4018,7 +4267,7 @@
                         <span class="input-group-text bg-white text-muted border-end-0"><i
                             class="bi bi-search"></i></span>
                         <input type="text" id="searchKalenderNama" class="form-control border-start-0 ps-0"
-                          placeholder="Cari nama karyawan..." style="min-width: 160px;" oninput="renderKalenderCuti()">
+                          placeholder="Cari nama karyawan..." oninput="renderKalenderCuti()">
                       </div>
                     </div>
 
@@ -4035,25 +4284,25 @@
               </div>
 
               <!-- Legenda Warna Status -->
-              <div class="d-flex align-items-center gap-3 flex-wrap mt-3 pt-3 border-top extra-small text-muted">
+              <div class="d-flex align-items-center gap-2 gap-md-3 flex-wrap mt-2.5 pt-2.5 border-top extra-small text-muted cal-legend-container">
                 <span class="fw-bold text-dark me-1"><i
                     class="bi bi-info-circle me-1 text-primary"></i>Keterangan:</span>
                 <span class="d-inline-flex align-items-center gap-1">
                   <span class="rounded-circle d-inline-block"
-                    style="width: 10px; height: 10px; background-color: #16a34a;"></span>
-                  <strong>Disetujui (Approved)</strong>
+                    style="width: 9px; height: 9px; background-color: #16a34a; flex-shrink: 0;"></span>
+                  <strong>Disetujui</strong>
                 </span>
                 <span class="d-inline-flex align-items-center gap-1">
                   <span class="rounded-circle d-inline-block"
-                    style="width: 10px; height: 10px; background-color: #ca8a04;"></span>
-                  <strong>Menunggu Approval</strong>
+                    style="width: 9px; height: 9px; background-color: #ca8a04; flex-shrink: 0;"></span>
+                  <strong>Menunggu</strong>
                 </span>
                 <span class="d-inline-flex align-items-center gap-1">
                   <span class="rounded-circle d-inline-block"
-                    style="width: 10px; height: 10px; background-color: #2563eb;"></span>
+                    style="width: 9px; height: 9px; background-color: #2563eb; flex-shrink: 0;"></span>
                   <strong>Hari Ini</strong>
                 </span>
-                <span class="ms-auto text-muted fst-italic">*Klik pada kotak tanggal untuk melihat detail karyawan yang
+                <span class="w-100 d-block mt-1 text-muted fst-italic cal-legend-note">*Klik pada kotak tanggal untuk melihat detail karyawan yang
                   cuti.</span>
               </div>
             </div>
@@ -4063,13 +4312,13 @@
               <div class="calendar-card border-0">
                 <!-- Day of Week Headers -->
                 <div class="calendar-grid-header">
-                  <div class="calendar-grid-header-col">Senin</div>
-                  <div class="calendar-grid-header-col">Selasa</div>
-                  <div class="calendar-grid-header-col">Rabu</div>
-                  <div class="calendar-grid-header-col">Kamis</div>
-                  <div class="calendar-grid-header-col">Jumat</div>
-                  <div class="calendar-grid-header-col weekend">Sabtu</div>
-                  <div class="calendar-grid-header-col weekend">Minggu</div>
+                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Senin</span><span class="d-sm-none">Sen</span></div>
+                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Selasa</span><span class="d-sm-none">Sel</span></div>
+                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Rabu</span><span class="d-sm-none">Rab</span></div>
+                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Kamis</span><span class="d-sm-none">Kam</span></div>
+                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Jumat</span><span class="d-sm-none">Jum</span></div>
+                  <div class="calendar-grid-header-col weekend"><span class="d-none d-sm-inline">Sabtu</span><span class="d-sm-none">Sab</span></div>
+                  <div class="calendar-grid-header-col weekend"><span class="d-none d-sm-inline">Minggu</span><span class="d-sm-none">Min</span></div>
                 </div>
                 <!-- 7x5 or 7x6 Day Cells Body -->
                 <div class="calendar-grid-body" id="calendarGridBody">
@@ -5120,21 +5369,21 @@
 
   <!-- MODAL: DETAIL PENGAJUAN CUTI -->
   <div class="modal fade" id="modalDetailCuti" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
-        <div class="modal-header bg-light py-3 px-4 border-bottom">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable my-2 my-sm-4">
+      <div class="modal-content border-0 shadow-lg modal-detail-cuti-content">
+        <div class="modal-header bg-light py-2.5 px-3 py-sm-3 px-sm-4 border-bottom">
           <div class="d-flex align-items-center gap-2">
             <i class="bi bi-calendar-event text-primary fs-5"></i>
-            <h6 class="modal-title fw-bold text-dark" id="modalDetailCutiTitle">Detail Pengajuan Cuti</h6>
+            <h6 class="modal-title fw-bold text-dark mb-0" id="modalDetailCutiTitle">Detail Pengajuan Cuti</h6>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body p-4" id="modalDetailCutiBody">
+        <div class="modal-body p-3 p-sm-4" id="modalDetailCutiBody">
           <!-- Populated dynamically via JS -->
         </div>
-        <div class="modal-footer bg-light py-2 px-4 justify-content-between">
-          <span id="modalDetailStatusBadge"></span>
-          <div class="d-flex align-items-center gap-2" id="modalDetailFooterActions">
+        <div class="modal-footer bg-light py-2 px-3 py-sm-2 px-sm-4 modal-detail-cuti-footer">
+          <div id="modalDetailStatusBadge" class="modal-detail-status-wrap"></div>
+          <div class="modal-detail-actions-wrap" id="modalDetailFooterActions">
             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
           </div>
         </div>
@@ -5144,12 +5393,12 @@
 
   <!-- MODAL: PROSES APPROVAL CUTI BERTINGKAT -->
   <div class="modal fade" id="modalApprovalCuti" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
-        <div class="modal-header bg-light py-3 px-4 border-bottom">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable my-2 my-sm-4">
+      <div class="modal-content border-0 shadow-lg modal-detail-cuti-content">
+        <div class="modal-header bg-light py-2.5 px-3 py-sm-3 px-sm-4 border-bottom">
           <div class="d-flex align-items-center gap-2">
             <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
-              style="width: 38px; height: 38px;">
+              style="width: 36px; height: 36px; flex-shrink: 0;">
               <i class="bi bi-shield-check fs-5"></i>
             </div>
             <div>
@@ -5159,7 +5408,7 @@
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body p-4">
+        <div class="modal-body p-3 p-sm-4">
           <!-- Info ringkas pengajuan -->
           <div class="p-3 bg-light rounded-3 border mb-3">
             <div class="d-flex justify-content-between align-items-start mb-2">
@@ -5206,7 +5455,7 @@
             <span id="apprGuideText">Keputusan Anda akan memperbarui tahapan persetujuan pengajuan cuti ini.</span>
           </div>
         </div>
-        <div class="modal-footer bg-light py-2 px-4 justify-content-between">
+        <div class="modal-footer bg-light py-2 px-3 py-sm-2 px-sm-4 justify-content-between">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
           <div class="d-flex gap-2">
             <button type="button" class="btn btn-outline-danger btn-sm fw-semibold" id="btnRejectCuti"
@@ -11027,11 +11276,11 @@
         var footerActionsEl = document.getElementById('modalDetailFooterActions');
         if (footerActionsEl) {
           var canApprove = canUserApproveCuti(item);
-          var actionBtnHtml = '<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>';
+          var actionBtnHtml = '<button type="button" class="btn btn-secondary btn-sm fw-semibold" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Tutup</button>';
           if (item.status === 'Disetujui') {
             actionBtnHtml =
               '<button type="button" class="btn btn-primary btn-sm fw-semibold shadow-sm" onclick="openCetakSuratFromModal(\'' + escapeHTML(item.id) + '\', document.getElementById(\'modalDetailCuti\'))">' +
-              '<i class="bi bi-printer me-1"></i>Cetak Surat Cuti' +
+              '<i class="bi bi-printer me-1"></i>Cetak Surat' +
               '</button>' +
               actionBtnHtml;
           }
@@ -11051,7 +11300,7 @@
           }
           if (canUserDeleteCuti(item)) {
             actionBtnHtml =
-              '<button type="button" class="btn btn-outline-danger btn-sm fw-semibold shadow-sm me-auto" onclick="openHapusFromModal(\'' + escapeHTML(item.id) + '\', document.getElementById(\'modalDetailCuti\'))">' +
+              '<button type="button" class="btn btn-outline-danger btn-sm fw-semibold shadow-sm me-md-auto me-0" onclick="openHapusFromModal(\'' + escapeHTML(item.id) + '\', document.getElementById(\'modalDetailCuti\'))">' +
               '<i class="bi bi-trash3 me-1"></i>Hapus Pengajuan' +
               '</button>' +
               actionBtnHtml;
@@ -11662,7 +11911,10 @@
           html += '<div class="' + cellCls + '" onclick="openDetailKalenderHarian(\'' + cellYMD + '\')">' +
             '<div class="calendar-day-header">' +
             '<span class="calendar-day-num">' + cellDay + '</span>' +
-            (leavesOnDate.length > 0 ? '<span class="badge bg-primary-subtle text-primary extra-small fw-bold" style="font-size:0.65rem;">' + leavesOnDate.length + ' Cuti</span>' : '') +
+            (leavesOnDate.length > 0 ?
+              '<span class="badge bg-primary-subtle text-primary extra-small fw-bold cal-badge-desktop d-none d-sm-inline" style="font-size:0.65rem;">' + leavesOnDate.length + ' Cuti</span>' +
+              '<span class="badge bg-primary-subtle text-primary extra-small fw-bold cal-badge-mobile d-sm-none">' + leavesOnDate.length + '</span>'
+              : '') +
             '</div>';
 
           // Tampilkan chip karyawan cuti (maksimal 2 agar tidak sesak, sisanya +N)
