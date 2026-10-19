@@ -2821,13 +2821,18 @@ function getCutiKaryawan(token) {
   const targetU = String(session.user.username || '').trim().toLowerCase();
   for (let i = 1; i < uData.length; i++) {
     if (String(uData[i][0] || '').trim().toLowerCase() === targetU) {
+      const tglMulai = uData[i][9] instanceof Date
+        ? Utilities.formatDate(uData[i][9], 'Asia/Jakarta', 'yyyy-MM-dd')
+        : String(uData[i][9] || '').trim();
       freshUser = {
         username: String(uData[i][0] || '').trim(),
         fullname: String(uData[i][1] || '').trim(),
         jabatan: String(uData[i][2] || '').trim(),
         dept: String(uData[i][3] || '').trim(),
         role: String(uData[i][5] || '').trim(),
-        email: String(uData[i][6] || '').trim()
+        email: String(uData[i][6] || '').trim(),
+        polaRoster: String(uData[i][8] || 'Non-Roster').trim() || 'Non-Roster',
+        tglMulaiKerja: tglMulai
       };
       break;
     }
@@ -2837,10 +2842,17 @@ function getCutiKaryawan(token) {
   const freshRole = String(freshUser.role || '').trim().toLowerCase();
   const isHRD = (freshRole === 'admin' || freshRole === 'hrd' || cleanDept(freshUser.dept) === 'hrd');
   const isSupervisor = isJobAtasan(freshUser.role, freshUser.jabatan);
+  let rosterData = [];
+  try {
+    const rRes = getRosterList(token);
+    if (rRes && rRes.success && rRes.roster) rosterData = rRes.roster;
+  } catch (e) { }
+
   return {
     success: true,
     list: list,
     cuti: list,
+    roster: rosterData,
     currentUserProfile: freshUser,
     debugInfo: {
       username: targetU,

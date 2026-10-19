@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwPNBzNlMgtg12Cf_5Akz73kmREIq93mJovBxQ4qbPWX3BHJAuIX8RDDY3ldflvmiOm/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwwJz4euan_1dYtpWdryktqv0vNTA0DNXLqeezvZ6cqmNfy_UppVNnVVyqT_P_T-qb0/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -3162,14 +3162,13 @@
 
     /* ELEGANT MODAL ANIMATIONS & SMOOTH CLOSING */
     .modal.fade {
-      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      transition: opacity 0.22s ease-out !important;
     }
 
     .modal.fade .modal-dialog {
-      transform: scale(0.96) translateY(12px) !important;
+      transform: scale(0.97) translateY(8px) !important;
       opacity: 0;
-      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease !important;
-      will-change: transform, opacity;
+      transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease !important;
     }
 
     .modal.show .modal-dialog {
@@ -3177,16 +3176,17 @@
       opacity: 1 !important;
     }
 
-    /* BACKDROP BLUR & SEAMLESS FADE */
+    /* CLEAN CRISP MODAL BACKDROP (PREVENTS GHOSTING / SHADOW ARTIFACTS ON IOS & MOBILE) */
     .modal-backdrop.fade {
       opacity: 0;
-      transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.28s ease !important;
+      transition: opacity 0.22s ease !important;
     }
 
     .modal-backdrop.show {
-      opacity: 0.65 !important;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
+      opacity: 0.72 !important;
+      background-color: #0f172a !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
 
     /* CLOSE BUTTON HOVER & CLICK MICRO-INTERACTION */
@@ -3194,10 +3194,12 @@
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
       opacity: 0.65;
     }
+
     .modal .btn-close:hover {
       opacity: 1;
       transform: rotate(90deg) scale(1.1);
     }
+
     .modal .btn-close:active {
       transform: rotate(90deg) scale(0.92);
     }
@@ -3220,18 +3222,22 @@
       transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       pointer-events: none;
     }
+
     .logout-overlay.show {
       opacity: 1;
       pointer-events: auto;
     }
+
     .logout-overlay-content {
       text-align: center;
       transform: scale(0.92) translateY(8px);
       transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
     .logout-overlay.show .logout-overlay-content {
       transform: scale(1) translateY(0);
     }
+
     .logout-spinner-ring {
       position: relative;
       width: 72px;
@@ -3241,6 +3247,7 @@
       justify-content: center;
       align-items: center;
     }
+
     .logout-icon-center {
       position: absolute;
       font-size: 1.35rem;
@@ -3250,18 +3257,22 @@
     [data-theme="dark"] .modal-title-logout {
       color: #f8fafc !important;
     }
+
     [data-theme="dark"] .modal-desc-logout {
       color: #94a3b8 !important;
     }
+
     [data-theme="dark"] #modalLogout .modal-content {
       background-color: #132238 !important;
       border: 1px solid #20334d !important;
     }
+
     [data-theme="dark"] #modalLogout .btn-light {
       background-color: #1e293b !important;
       border-color: #334155 !important;
       color: #cbd5e1 !important;
     }
+
     [data-theme="dark"] #modalLogout .btn-light:hover {
       background-color: #334155 !important;
       color: #ffffff !important;
@@ -3315,7 +3326,8 @@
   <div id="logoutOverlay" class="logout-overlay" style="display: none;">
     <div class="logout-overlay-content">
       <div class="logout-spinner-ring">
-        <div class="spinner-border text-danger" role="status" style="width: 3.25rem; height: 3.25rem; border-width: 3.5px;"></div>
+        <div class="spinner-border text-danger" role="status"
+          style="width: 3.25rem; height: 3.25rem; border-width: 3.5px;"></div>
         <div class="logout-icon-center"><i class="bi bi-shield-lock-fill text-danger"></i></div>
       </div>
       <h5 class="fw-bold text-white mb-1 mt-3">Mengakhiri Sesi...</h5>
@@ -5724,18 +5736,23 @@
     <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
       <div class="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
         <div class="modal-body p-4 text-center">
-          <div class="d-inline-flex justify-content-center align-items-center mb-3 rounded-circle bg-danger-subtle text-danger" style="width: 64px; height: 64px;">
+          <div
+            class="d-inline-flex justify-content-center align-items-center mb-3 rounded-circle bg-danger-subtle text-danger"
+            style="width: 64px; height: 64px;">
             <i class="bi bi-box-arrow-right fs-2"></i>
           </div>
           <h5 class="fw-bold modal-title-logout mb-2">Konfirmasi Keluar</h5>
           <p class="text-secondary modal-desc-logout small mb-4">
-            Apakah Anda yakin ingin keluar dari aplikasi? Sesi login Anda akan diakhiri dan data akun Anda akan diamankan.
+            Apakah Anda yakin ingin keluar dari aplikasi? Sesi login Anda akan diakhiri dan data akun Anda akan
+            diamankan.
           </p>
           <div class="d-flex gap-2 justify-content-center">
-            <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-semibold small flex-grow-1" data-bs-dismiss="modal">
+            <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-semibold small flex-grow-1"
+              data-bs-dismiss="modal">
               Batal
             </button>
-            <button type="button" class="btn btn-danger px-4 py-2 rounded-3 fw-semibold small shadow-sm flex-grow-1" id="btnConfirmLogoutAction" onclick="performLogout()">
+            <button type="button" class="btn btn-danger px-4 py-2 rounded-3 fw-semibold small shadow-sm flex-grow-1"
+              id="btnConfirmLogoutAction" onclick="performLogout()">
               <i class="bi bi-box-arrow-right me-1"></i>Ya, Keluar
             </button>
           </div>
@@ -7441,8 +7458,36 @@
             Swal.fire('Error Server', err.message || err.toString(), 'error');
           });
         } else if (pageName === 'pengajuan-cuti') {
-          hideFullPageLoading();
-          initPengajuanCutiForm();
+          gasRun('getInitialData', token).then(function (res) {
+            hideFullPageLoading();
+            if (handleSessionExpired(res)) return;
+            if (res && res.success) {
+              dbKaryawan = res.karyawan || [];
+              dbSlips = res.slips || [];
+              dbDepartemen = res.departemen || [];
+              dbRoster = res.roster || [];
+              if (res.cuti) dbCutiList = res.cuti || [];
+
+              var me = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) {
+                return String(k.id || '').toLowerCase() === String(Auth.getUser().username || '').toLowerCase();
+              }) : null;
+              if (me) {
+                var currentUser = Auth.getUser();
+                currentUser.polaRoster = me.polaRoster;
+                currentUser.tglMulaiKerja = me.tglMulaiKerja;
+                currentUser.dept = me.dept;
+                currentUser.jabatan = me.jabatan;
+                currentUser.fullname = me.name;
+                Auth.setUser(currentUser);
+              }
+            }
+            initPengajuanCutiForm();
+            populateCutiRosterSelect();
+          }).catch(function () {
+            hideFullPageLoading();
+            initPengajuanCutiForm();
+            populateCutiRosterSelect();
+          });
         } else if (pageName === 'riwayat-cuti') {
           hideFullPageLoading();
           loadRiwayatCuti();
@@ -8601,6 +8646,15 @@
           if (res.success) {
             bsModalKaryawan.hide();
             Swal.fire('Berhasil', 'Data karyawan telah disimpan.', 'success');
+            var loggedInUser = Auth.getUser();
+            if (loggedInUser && (String(loggedInUser.username || '').toLowerCase() === String(payload.id || '').toLowerCase() || String(loggedInUser.username || '').toLowerCase() === String(payload.oldId || '').toLowerCase())) {
+              loggedInUser.polaRoster = payload.polaRoster;
+              loggedInUser.tglMulaiKerja = payload.tglMulaiKerja;
+              loggedInUser.dept = payload.dept;
+              loggedInUser.jabatan = payload.jabatan;
+              loggedInUser.fullname = payload.name;
+              Auth.setUser(loggedInUser);
+            }
             loadPageData('karyawan');
           } else {
             Swal.fire('Gagal', res.message || 'Gagal menyimpan.', 'error');
@@ -9979,11 +10033,41 @@
       };
 
       window.renderRosterStatusCard = function (user) {
+        if (!user) user = Auth.getUser();
         if (!user) return;
         var card = document.getElementById('cardRosterStatus');
         if (!card) return;
 
-        var empFromDb = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) { return k.id === user.username; }) : null;
+        // Jika dbKaryawan atau dbRoster belum ada, fetch otomatis di background
+        if ((!dbKaryawan || dbKaryawan.length === 0 || !dbRoster || dbRoster.length === 0) && !window._fetchingInitialRosterData) {
+          window._fetchingInitialRosterData = true;
+          gasRun('getInitialData', Auth.getToken()).then(function (res) {
+            window._fetchingInitialRosterData = false;
+            if (res && res.success) {
+              dbKaryawan = res.karyawan || [];
+              dbRoster = res.roster || [];
+              if (res.cuti) dbCutiList = res.cuti || [];
+              var me = dbKaryawan.find(function (k) {
+                return String(k.id || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+              });
+              if (me) {
+                user.polaRoster = me.polaRoster;
+                user.tglMulaiKerja = me.tglMulaiKerja;
+                user.dept = me.dept;
+                user.jabatan = me.jabatan;
+                user.fullname = me.name;
+                Auth.setUser(user);
+              }
+              renderRosterStatusCard(user);
+            }
+          }).catch(function () {
+            window._fetchingInitialRosterData = false;
+          });
+        }
+
+        var empFromDb = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) {
+          return String(k.id || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+        }) : null;
         var pola = (empFromDb && empFromDb.polaRoster) ? empFromDb.polaRoster : (user.polaRoster || 'Non-Roster');
         var tglMulai = (empFromDb && empFromDb.tglMulaiKerja) ? empFromDb.tglMulaiKerja : (user.tglMulaiKerja || '');
 
@@ -10465,6 +10549,16 @@
       window.initPengajuanCutiForm = function () {
         var user = Auth.getUser();
         if (user) {
+          var empFromDb = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) {
+            return String(k.id || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+          }) : null;
+          if (empFromDb) {
+            user.fullname = empFromDb.name || user.fullname;
+            user.dept = empFromDb.dept || user.dept;
+            user.jabatan = empFromDb.jabatan || user.jabatan;
+            user.polaRoster = empFromDb.polaRoster || user.polaRoster;
+            user.tglMulaiKerja = empFromDb.tglMulaiKerja || user.tglMulaiKerja;
+          }
           document.getElementById('cutiNamaKaryawan').value = user.fullname || '';
           document.getElementById('cutiIdKaryawan').value = user.username || '';
           document.getElementById('cutiDept').value = user.dept || '-';
@@ -10476,9 +10570,9 @@
           // Auto-populate Tanggal Awal Masuk Site / Onsite Terakhir
           var inputTglAwalOnsite = document.getElementById('cutiTglAwalOnsite');
           if (inputTglAwalOnsite && !inputTglAwalOnsite.value) {
-            var myEmpId = String(user.username || '').toLowerCase();
+            var myEmpId = String(user.username || '').trim().toLowerCase();
             var latestCutiRoster = (dbCutiList && dbCutiList.length) ? dbCutiList.find(function (c) {
-              var isMe = (c.empId && String(c.empId).toLowerCase() === myEmpId);
+              var isMe = (c.empId && String(c.empId).trim().toLowerCase() === myEmpId);
               var isRoster = c.jenisCuti && String(c.jenisCuti).toLowerCase().indexOf('roster') !== -1;
               var notRejected = c.status !== 'Ditolak' && c.status !== 'Ditolak Atasan' && c.status !== 'Ditolak HRD';
               return isMe && isRoster && notRejected;
@@ -10491,7 +10585,6 @@
                 inputTglAwalOnsite.value = toDateInputString(dEndLast);
               }
             } else {
-              var empFromDb = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) { return k.id === user.username; }) : null;
               var tglMasukKerja = (empFromDb && empFromDb.tglMulaiKerja) ? empFromDb.tglMulaiKerja : (user.tglMulaiKerja || '');
               if (tglMasukKerja) {
                 inputTglAwalOnsite.value = parseDateToYMD(tglMasukKerja) || tglMasukKerja;
@@ -13319,13 +13412,13 @@
 
         splash.classList.add('splash-fade-out');
         setTimeout(function () {
-          splash.style.display = 'none';
+          splash.style.setProperty('display', 'none', 'important');
           if (window._pendingAnnouncementModal) {
             var pending = window._pendingAnnouncementModal;
             window._pendingAnnouncementModal = null;
             renderAndShowLoginAnnouncementModal(pending);
           }
-        }, 650);
+        }, immediate ? 50 : 500);
       };
 
       function initSplashScreen() {
