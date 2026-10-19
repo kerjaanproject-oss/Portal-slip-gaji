@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycby0rppbC54fvpWOg3fKBT-2Bx4FbPUuphC2nyKSPAmvRnYnVDrePMU5Cfmh8oAbFEVO/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwPNBzNlMgtg12Cf_5Akz73kmREIq93mJovBxQ4qbPWX3BHJAuIX8RDDY3ldflvmiOm/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -3095,6 +3095,70 @@
     .theme-toggle-btn:active {
       transform: translateY(0);
     }
+
+    /* PIN DIGIT BOXES & SECURITY MODAL */
+    .pin-digit-box {
+      width: 46px !important;
+      height: 54px !important;
+      font-size: 1.5rem !important;
+      font-weight: 700 !important;
+      text-align: center !important;
+      border-radius: 12px !important;
+      border: 2px solid #cbd5e1 !important;
+      background-color: #f8fafc;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 0 !important;
+      color: #0f172a;
+    }
+
+    .pin-digit-box:focus {
+      border-color: #dc2626 !important;
+      background-color: #ffffff;
+      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15) !important;
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .pin-digit-box.is-invalid {
+      border-color: #ef4444 !important;
+      background-color: #fef2f2 !important;
+    }
+
+    @keyframes pinShakeAnim {
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      20%,
+      60% {
+        transform: translateX(-8px);
+      }
+
+      40%,
+      80% {
+        transform: translateX(8px);
+      }
+    }
+
+    .pin-shake {
+      animation: pinShakeAnim 0.4s ease-in-out;
+    }
+
+    [data-theme="dark"] .pin-digit-box,
+    [data-bs-theme="dark"] .pin-digit-box {
+      background-color: #1e293b !important;
+      border-color: #334155 !important;
+      color: #f8fafc !important;
+    }
+
+    [data-theme="dark"] .pin-digit-box:focus,
+    [data-bs-theme="dark"] .pin-digit-box:focus {
+      background-color: #0f172a !important;
+      border-color: #f87171 !important;
+      box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.2) !important;
+    }
   </style>
 </head>
 
@@ -3376,6 +3440,11 @@
               <li>
                 <a class="dropdown-item text-dark" href="javascript:void(0)" onclick="openChangePasswordSelfModal()">
                   <i class="bi bi-key-fill text-primary me-2"></i>Ubah Password Saya
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item text-dark" href="javascript:void(0)" onclick="openManageSlipPinModal()">
+                  <i class="bi bi-shield-lock-fill text-success me-2"></i>Kelola PIN Slip Gaji
                 </a>
               </li>
               <li>
@@ -5817,6 +5886,221 @@
     </div>
   </div>
 
+  <!-- MODAL: VERIFIKASI PIN SLIP GAJI -->
+  <div class="modal fade" id="modalVerifySlipPin" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+      <div class="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+        <div class="modal-header border-0 pb-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle p-2 rounded-circle fs-5">
+              <i class="bi bi-shield-lock-fill"></i>
+            </span>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0 fs-6">Keamanan Akses Slip Gaji</h5>
+              <small class="text-muted extra-small">Kerahasiaan data gaji Anda terlindungi</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body p-4 text-center">
+          <p class="text-secondary small mb-4">
+            Masukkan <strong>6 digit PIN keamanan</strong> Anda untuk melihat dokumen slip gaji ini.
+          </p>
+
+          <form id="formVerifySlipPin" novalidate onsubmit="event.preventDefault(); submitVerifySlipPin();">
+            <div class="d-flex justify-content-center gap-2 mb-3 pin-input-wrapper" id="verifyPinBoxes">
+              <input type="password" inputmode="numeric" maxlength="1" class="form-control text-center pin-digit-box"
+                data-idx="0" autocomplete="off">
+              <input type="password" inputmode="numeric" maxlength="1" class="form-control text-center pin-digit-box"
+                data-idx="1" autocomplete="off">
+              <input type="password" inputmode="numeric" maxlength="1" class="form-control text-center pin-digit-box"
+                data-idx="2" autocomplete="off">
+              <input type="password" inputmode="numeric" maxlength="1" class="form-control text-center pin-digit-box"
+                data-idx="3" autocomplete="off">
+              <input type="password" inputmode="numeric" maxlength="1" class="form-control text-center pin-digit-box"
+                data-idx="4" autocomplete="off">
+              <input type="password" inputmode="numeric" maxlength="1" class="form-control text-center pin-digit-box"
+                data-idx="5" autocomplete="off">
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+              <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted p-0 extra-small"
+                onclick="togglePinBoxesVisibility('verifyPinBoxes', this)">
+                <i class="bi bi-eye me-1"></i>Tampilkan Angka
+              </button>
+              <a href="javascript:void(0)" class="text-decoration-none text-primary extra-small fw-semibold"
+                onclick="openResetSlipPinFromVerify()">
+                Lupa PIN?
+              </a>
+            </div>
+
+            <div id="verifyPinAlert" class="alert alert-danger py-2 px-3 small d-none mb-3" role="alert"></div>
+
+            <button type="submit" class="btn btn-danger w-100 py-2 fw-semibold rounded-3 shadow-sm"
+              id="btnSubmitVerifyPin">
+              <i class="bi bi-unlock-fill me-1"></i> Buka Slip Gaji
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ATUR / UBAH PIN SLIP GAJI -->
+  <div class="modal fade" id="modalSetupSlipPin" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+      <div class="modal-content shadow-lg border-0 rounded-4">
+        <div class="modal-header border-0 pb-0 pt-4 px-4">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle p-2 rounded-circle fs-5">
+              <i class="bi bi-shield-check"></i>
+            </span>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0 fs-6" id="setupPinTitle">Atur PIN Keamanan Slip Gaji</h5>
+              <small class="text-muted extra-small">Kunci brankas khusus untuk membuka slip gaji</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="formSetupSlipPin" novalidate onsubmit="event.preventDefault(); handleSaveSlipPin();">
+          <div class="modal-body p-4">
+            <p class="text-secondary small mb-3" id="setupPinDesc">
+              Demi menjaga privasi Anda, buatlah 6 digit PIN angka yang mudah diingat namun sulit ditebak orang lain.
+            </p>
+
+            <div id="setupOldPinGroup" class="mb-3 d-none">
+              <label class="form-label small fw-semibold">PIN Saat Ini (Lama)</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock-fill text-muted"></i></span>
+                <input type="password" id="setupOldPin" class="form-control" maxlength="6" inputmode="numeric"
+                  placeholder="6 digit angka lama">
+                <button class="btn btn-outline-secondary" type="button"
+                  onclick="togglePasswordVisibility('setupOldPin', this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">PIN Baru (6 Digit Angka) <span
+                  class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-shield-lock-fill text-primary"></i></span>
+                <input type="password" id="setupNewPin" class="form-control" maxlength="6" inputmode="numeric"
+                  placeholder="Contoh: 123456" required>
+                <button class="btn btn-outline-secondary" type="button"
+                  onclick="togglePasswordVisibility('setupNewPin', this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="form-text extra-small text-muted">Wajib tepat 6 angka (0-9).</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Konfirmasi PIN Baru <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-shield-check text-success"></i></span>
+                <input type="password" id="setupConfirmPin" class="form-control" maxlength="6" inputmode="numeric"
+                  placeholder="Ulangi 6 digit angka baru" required>
+                <button class="btn btn-outline-secondary" type="button"
+                  onclick="togglePasswordVisibility('setupConfirmPin', this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0 pb-4 px-4">
+            <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold shadow-sm" id="btnSubmitSetupPin">
+              <i class="bi bi-check-circle me-1"></i>Simpan PIN Keamanan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RESET PIN VIA OTP EMAIL -->
+  <div class="modal fade" id="modalResetSlipPinOtp" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+      <div class="modal-content shadow-lg border-0 rounded-4">
+        <div class="modal-header border-0 pb-0 pt-4 px-4">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle p-2 rounded-circle fs-5">
+              <i class="bi bi-envelope-shield"></i>
+            </span>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0 fs-6">Reset PIN via Email OTP</h5>
+              <small class="text-muted extra-small">Pemulihan PIN aman melalui kode verifikasi</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- STEP 1: Request OTP -->
+          <div id="resetPinStep1">
+            <p class="text-secondary small mb-3">
+              Sistem akan mengirimkan <strong>6 digit kode OTP</strong> ke email terdaftar akun Anda untuk memverifikasi
+              kepemilikan akun sebelum membuat PIN baru.
+            </p>
+            <button type="button" class="btn btn-primary w-100 py-2 fw-semibold" id="btnSendResetPinOtp"
+              onclick="sendResetSlipPinOtp()">
+              <i class="bi bi-send-fill me-1"></i> Kirim Kode OTP ke Email Saya
+            </button>
+          </div>
+
+          <!-- STEP 2: Verify OTP & Enter New PIN -->
+          <div id="resetPinStep2" class="d-none">
+            <div class="alert alert-success py-2 px-3 small mb-3">
+              <i class="bi bi-check-circle-fill me-1"></i> Kode OTP telah dikirim ke email Anda. Silakan cek kotak masuk
+              atau folder spam.
+            </div>
+
+            <form id="formResetSlipPinOtp" novalidate onsubmit="event.preventDefault(); submitVerifyAndResetSlipPin();">
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Kode OTP 6-Digit <span class="text-danger">*</span></label>
+                <input type="text" id="resetPinOtpCode" class="form-control text-center fs-4 fw-bold" maxlength="6"
+                  inputmode="numeric" placeholder="123456" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">PIN Baru (6 Digit Angka) <span
+                    class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-shield-lock text-primary"></i></span>
+                  <input type="password" id="resetPinNew" class="form-control" maxlength="6" inputmode="numeric"
+                    placeholder="6 digit angka baru" required>
+                  <button class="btn btn-outline-secondary" type="button"
+                    onclick="togglePasswordVisibility('resetPinNew', this)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Konfirmasi PIN Baru <span
+                    class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-shield-check text-success"></i></span>
+                  <input type="password" id="resetPinConfirm" class="form-control" maxlength="6" inputmode="numeric"
+                    placeholder="Ulangi 6 digit angka baru" required>
+                  <button class="btn btn-outline-secondary" type="button"
+                    onclick="togglePasswordVisibility('resetPinConfirm', this)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-success w-100 py-2 fw-semibold" id="btnSubmitResetPinOtp">
+                <i class="bi bi-check-circle-fill me-1"></i> Verifikasi OTP & Simpan PIN Baru
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap & SweetAlert Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.all.min.js"></script>
@@ -6041,7 +6325,7 @@
               };
               el.addEventListener('input', removeInvalid);
               el.addEventListener('change', removeInvalid);
-            } catch (e) {}
+            } catch (e) { }
           }
         });
       }
@@ -6325,6 +6609,394 @@
         });
       };
 
+      // --- SLIP SECURITY PIN STATE & CONTROLLER ---
+      var _verifiedSlipPin = null;
+      var _verifiedSlipPinUntil = 0;
+      var _pendingSlipIdToOpen = null;
+      var _onPinSuccessCallback = null;
+      var bsModalVerifySlipPin = null;
+      var bsModalSetupSlipPin = null;
+      var bsModalResetSlipPinOtp = null;
+
+      function isSlipPinSessionValid() {
+        return Boolean(_verifiedSlipPin && Date.now() < _verifiedSlipPinUntil);
+      }
+
+      function setSlipPinSessionVerified(pin) {
+        _verifiedSlipPin = pin;
+        _verifiedSlipPinUntil = Date.now() + (5 * 60 * 1000); // 5 Menit sesi buka kunci
+      }
+
+      function clearSlipPinSession() {
+        _verifiedSlipPin = null;
+        _verifiedSlipPinUntil = 0;
+      }
+
+      function initPinBoxesEvents() {
+        var container = document.getElementById('verifyPinBoxes');
+        if (!container) return;
+        var inputs = container.querySelectorAll('.pin-digit-box');
+
+        inputs.forEach(function (inp, idx) {
+          inp.addEventListener('input', function () {
+            var val = inp.value.replace(/\D/g, '');
+            inp.value = val ? val[val.length - 1] : '';
+            if (inp.value && idx < inputs.length - 1) {
+              inputs[idx + 1].focus();
+            }
+            var fullPin = getVerifyBoxesPin();
+            if (fullPin.length === 6) {
+              submitVerifySlipPin();
+            }
+          });
+
+          inp.addEventListener('keydown', function (e) {
+            if (e.key === 'Backspace' && !inp.value && idx > 0) {
+              inputs[idx - 1].focus();
+            }
+          });
+
+          inp.addEventListener('paste', function (e) {
+            e.preventDefault();
+            var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+            if (pasted.length >= 6) {
+              for (var i = 0; i < 6; i++) {
+                inputs[i].value = pasted[i];
+              }
+              inputs[5].focus();
+              submitVerifySlipPin();
+            } else if (pasted.length > 0) {
+              for (var j = 0; j < Math.min(pasted.length, 6); j++) {
+                inputs[j].value = pasted[j];
+              }
+              if (pasted.length < 6) inputs[pasted.length].focus();
+            }
+          });
+        });
+      }
+
+      function getVerifyBoxesPin() {
+        var container = document.getElementById('verifyPinBoxes');
+        if (!container) return '';
+        var inputs = container.querySelectorAll('.pin-digit-box');
+        var pin = '';
+        inputs.forEach(function (inp) { pin += inp.value; });
+        return pin;
+      }
+
+      function clearVerifyBoxes() {
+        var container = document.getElementById('verifyPinBoxes');
+        if (!container) return;
+        var inputs = container.querySelectorAll('.pin-digit-box');
+        inputs.forEach(function (inp) { inp.value = ''; inp.classList.remove('is-invalid'); });
+        var alertEl = document.getElementById('verifyPinAlert');
+        if (alertEl) alertEl.classList.add('d-none');
+        if (inputs.length > 0) inputs[0].focus();
+      }
+
+      window.togglePinBoxesVisibility = function (wrapperId, btn) {
+        var container = document.getElementById(wrapperId);
+        if (!container) return;
+        var inputs = container.querySelectorAll('.pin-digit-box');
+        if (inputs.length === 0) return;
+        var isPass = inputs[0].type === 'password';
+        inputs.forEach(function (inp) { inp.type = isPass ? 'text' : 'password'; });
+        if (btn) {
+          btn.innerHTML = isPass ? '<i class="bi bi-eye-slash me-1"></i>Sembunyikan Angka' : '<i class="bi bi-eye me-1"></i>Tampilkan Angka';
+        }
+      };
+
+      window.openVerifySlipPinModal = function (slipId, onSuccessCb) {
+        _pendingSlipIdToOpen = slipId;
+        _onPinSuccessCallback = onSuccessCb || null;
+
+        var modalEl = document.getElementById('modalVerifySlipPin');
+        if (!modalEl) return;
+        if (!bsModalVerifySlipPin && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          bsModalVerifySlipPin = new bootstrap.Modal(modalEl);
+        }
+        clearVerifyBoxes();
+        if (bsModalVerifySlipPin) {
+          bsModalVerifySlipPin.show();
+          setTimeout(function () {
+            var firstBox = modalEl.querySelector('.pin-digit-box');
+            if (firstBox) firstBox.focus();
+          }, 350);
+        }
+      };
+
+      window.submitVerifySlipPin = function () {
+        var pin = getVerifyBoxesPin();
+        var alertEl = document.getElementById('verifyPinAlert');
+        var container = document.getElementById('verifyPinBoxes');
+
+        if (pin.length < 6) {
+          if (alertEl) {
+            alertEl.classList.remove('d-none');
+            alertEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>Masukkan 6 digit angka PIN lengkap.';
+          }
+          return;
+        }
+
+        var btn = document.getElementById('btnSubmitVerifyPin');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Memverifikasi...';
+        }
+
+        gasRun('verifyUserSlipPin', Auth.getToken(), pin).then(function (res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-unlock-fill me-1"></i> Buka Slip Gaji';
+          }
+          if (handleSessionExpired(res)) return;
+
+          if (res && res.success) {
+            setSlipPinSessionVerified(pin);
+            if (bsModalVerifySlipPin) bsModalVerifySlipPin.hide();
+
+            // Eksekusi callback atau buka slip
+            if (_onPinSuccessCallback) {
+              var cb = _onPinSuccessCallback;
+              _onPinSuccessCallback = null;
+              cb(pin);
+            } else if (_pendingSlipIdToOpen) {
+              var sId = _pendingSlipIdToOpen;
+              _pendingSlipIdToOpen = null;
+              openPdfModal(sId, pin);
+            }
+          } else {
+            // Tampilkan error & efek getar
+            if (container) {
+              container.classList.add('pin-shake');
+              setTimeout(function () { container.classList.remove('pin-shake'); }, 500);
+              var boxes = container.querySelectorAll('.pin-digit-box');
+              boxes.forEach(function (b) { b.classList.add('is-invalid'); });
+            }
+            if (alertEl) {
+              alertEl.classList.remove('d-none');
+              alertEl.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i>' + (res.message || 'PIN salah.');
+            }
+            setTimeout(function () {
+              clearVerifyBoxes();
+            }, 600);
+          }
+        }).catch(function (err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-unlock-fill me-1"></i> Buka Slip Gaji';
+          }
+          if (alertEl) {
+            alertEl.classList.remove('d-none');
+            alertEl.innerHTML = '<i class="bi bi-wifi-off me-1"></i>' + (err.message || err.toString());
+          }
+        });
+      };
+
+      window.openManageSlipPinModal = function () {
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        var modalEl = document.getElementById('modalSetupSlipPin');
+        if (!modalEl) return;
+
+        if (!bsModalSetupSlipPin && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          bsModalSetupSlipPin = new bootstrap.Modal(modalEl);
+        }
+
+        var oldPinGroup = document.getElementById('setupOldPinGroup');
+        var oldPinInput = document.getElementById('setupOldPin');
+        var titleEl = document.getElementById('setupPinTitle');
+        var descEl = document.getElementById('setupPinDesc');
+        var btnSubmit = document.getElementById('btnSubmitSetupPin');
+
+        document.getElementById('setupNewPin').value = '';
+        document.getElementById('setupConfirmPin').value = '';
+        if (oldPinInput) oldPinInput.value = '';
+
+        var hasPin = user && user.hasSlipPin;
+        if (hasPin) {
+          if (oldPinGroup) oldPinGroup.classList.remove('d-none');
+          if (titleEl) titleEl.innerText = 'Ubah PIN Keamanan Slip Gaji';
+          if (descEl) descEl.innerText = 'Silakan masukkan PIN lama Anda dan tentukan 6 digit PIN baru.';
+          if (btnSubmit) btnSubmit.innerHTML = '<i class="bi bi-check-circle me-1"></i>Perbarui PIN Keamanan';
+        } else {
+          if (oldPinGroup) oldPinGroup.classList.add('d-none');
+          if (titleEl) titleEl.innerText = 'Buat PIN Keamanan Slip Gaji';
+          if (descEl) descEl.innerText = 'Demi menjaga kerahasiaan nominal gaji Anda, silakan buat 6 digit PIN keamanan untuk membuka slip gaji.';
+          if (btnSubmit) btnSubmit.innerHTML = '<i class="bi bi-shield-lock-fill me-1"></i>Simpan PIN Keamanan';
+        }
+
+        if (bsModalSetupSlipPin) bsModalSetupSlipPin.show();
+      };
+
+      window.handleSaveSlipPin = function () {
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        var hasPin = user && user.hasSlipPin;
+        var oldPin = hasPin && document.getElementById('setupOldPin') ? document.getElementById('setupOldPin').value.trim() : '';
+        var newPin = document.getElementById('setupNewPin').value.trim();
+        var confirmPin = document.getElementById('setupConfirmPin').value.trim();
+
+        if (hasPin && !oldPin) {
+          showFormValidationWarning('setupOldPin', 'PIN saat ini (lama) wajib diisi.');
+          return;
+        }
+        if (!newPin) {
+          showFormValidationWarning('setupNewPin', 'PIN baru 6 digit wajib diisi.');
+          return;
+        }
+        if (!/^\d{6}$/.test(newPin)) {
+          showFormValidationWarning('setupNewPin', 'PIN harus berupa 6 digit angka (0-9).');
+          return;
+        }
+        if (!confirmPin) {
+          showFormValidationWarning('setupConfirmPin', 'Konfirmasi PIN baru wajib diisi.');
+          return;
+        }
+        if (newPin !== confirmPin) {
+          showFormValidationWarning('setupConfirmPin', 'Konfirmasi PIN baru tidak cocok.');
+          return;
+        }
+
+        showFullPageLoading('Menyimpan PIN Keamanan Slip Gaji...');
+
+        gasRun('setUserSlipPin', Auth.getToken(), newPin, oldPin).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+
+          if (res && res.success) {
+            if (user) user.hasSlipPin = true;
+            setSlipPinSessionVerified(newPin);
+
+            if (bsModalSetupSlipPin) bsModalSetupSlipPin.hide();
+            Swal.fire({
+              icon: 'success',
+              title: 'PIN Berhasil Disimpan!',
+              text: res.message || 'PIN Keamanan Slip Gaji Anda telah aktif.',
+              confirmButtonText: 'OK'
+            }).then(function () {
+              if (_pendingSlipIdToOpen) {
+                var sId = _pendingSlipIdToOpen;
+                _pendingSlipIdToOpen = null;
+                openPdfModal(sId, newPin);
+              }
+            });
+          } else {
+            Swal.fire('Gagal Menyimpan PIN', res.message || 'Terjadi kesalahan saat menyimpan PIN.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.openResetSlipPinFromVerify = function () {
+        if (bsModalVerifySlipPin) bsModalVerifySlipPin.hide();
+        openResetSlipPinOtpModal();
+      };
+
+      window.openResetSlipPinOtpModal = function () {
+        var modalEl = document.getElementById('modalResetSlipPinOtp');
+        if (!modalEl) return;
+        if (!bsModalResetSlipPinOtp && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          bsModalResetSlipPinOtp = new bootstrap.Modal(modalEl);
+        }
+        document.getElementById('resetPinStep1').classList.remove('d-none');
+        document.getElementById('resetPinStep2').classList.add('d-none');
+        document.getElementById('resetPinOtpCode').value = '';
+        document.getElementById('resetPinNew').value = '';
+        document.getElementById('resetPinConfirm').value = '';
+
+        if (bsModalResetSlipPinOtp) bsModalResetSlipPinOtp.show();
+      };
+
+      window.sendResetSlipPinOtp = function () {
+        var btn = document.getElementById('btnSendResetPinOtp');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Mengirim OTP...';
+        }
+
+        gasRun('requestResetSlipPinOtp', Auth.getToken()).then(function (res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Kirim Kode OTP ke Email Saya';
+          }
+          if (handleSessionExpired(res)) return;
+
+          if (res && res.success) {
+            document.getElementById('resetPinStep1').classList.add('d-none');
+            document.getElementById('resetPinStep2').classList.remove('d-none');
+            Swal.fire('OTP Terkirim!', res.message || 'Silakan cek email Anda.', 'success');
+          } else {
+            Swal.fire('Gagal Kirim OTP', res.message || 'Terjadi kesalahan.', 'error');
+          }
+        }).catch(function (err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Kirim Kode OTP ke Email Saya';
+          }
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.submitVerifyAndResetSlipPin = function () {
+        var otp = document.getElementById('resetPinOtpCode').value.trim();
+        var newPin = document.getElementById('resetPinNew').value.trim();
+        var confirmPin = document.getElementById('resetPinConfirm').value.trim();
+
+        if (!otp) {
+          showFormValidationWarning('resetPinOtpCode', 'Kode OTP 6 digit wajib diisi.');
+          return;
+        }
+        if (!newPin) {
+          showFormValidationWarning('resetPinNew', 'PIN baru 6 digit wajib diisi.');
+          return;
+        }
+        if (!/^\d{6}$/.test(newPin)) {
+          showFormValidationWarning('resetPinNew', 'PIN harus berupa 6 digit angka (0-9).');
+          return;
+        }
+        if (!confirmPin) {
+          showFormValidationWarning('resetPinConfirm', 'Konfirmasi PIN baru wajib diisi.');
+          return;
+        }
+        if (newPin !== confirmPin) {
+          showFormValidationWarning('resetPinConfirm', 'Konfirmasi PIN baru tidak cocok.');
+          return;
+        }
+
+        showFullPageLoading('Verifikasi OTP & Reset PIN...');
+
+        gasRun('verifyAndResetSlipPin', Auth.getToken(), otp, newPin).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+
+          if (res && res.success) {
+            var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+            if (user) user.hasSlipPin = true;
+            setSlipPinSessionVerified(newPin);
+
+            if (bsModalResetSlipPinOtp) bsModalResetSlipPinOtp.hide();
+            Swal.fire({
+              icon: 'success',
+              title: 'PIN Berhasil Direset!',
+              text: res.message || 'PIN baru telah aktif. Silakan buka slip gaji Anda.',
+              confirmButtonText: 'Buka Slip Gaji'
+            }).then(function () {
+              if (_pendingSlipIdToOpen) {
+                var sId = _pendingSlipIdToOpen;
+                _pendingSlipIdToOpen = null;
+                openPdfModal(sId, newPin);
+              }
+            });
+          } else {
+            Swal.fire('Gagal Reset PIN', res.message || 'Kode OTP salah atau kedaluwarsa.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
       window.handleLogin = function () {
         var u = document.getElementById('loginUsername').value.trim();
         var p = document.getElementById('loginPassword').value.trim();
@@ -6387,6 +7059,7 @@
       };
 
       window.logout = function () {
+        clearSlipPinSession();
         var token = Auth.getToken();
         if (token) {
           gasRun('destroySession', token);
@@ -7633,6 +8306,7 @@
             '<td>' + rosterBadge + '</td>' +
             '<td class="text-center text-nowrap"><div class="action-group">' +
             '<button class="btn btn-sm btn-action btn-action-edit" onclick="openModalKaryawan(\'' + escapeHTML(k.id) + '\')" title="Edit Karyawan"><i class="bi bi-pencil-square"></i>Edit</button>' +
+            (k.hasSlipPin ? '<button class="btn btn-sm btn-action text-warning border-warning" onclick="handleAdminResetPin(\'' + escapeHTML(k.id) + '\', \'' + escapeHTML(k.name) + '\')" title="Reset PIN Slip Gaji Karyawan"><i class="bi bi-shield-x"></i>Reset PIN</button>' : '') +
             '<button class="btn btn-sm btn-action btn-action-delete" onclick="deleteKaryawan(\'' + escapeHTML(k.id) + '\')" title="Hapus Karyawan"><i class="bi bi-trash"></i>Hapus</button>' +
             '</div></td>';
           tbody.appendChild(tr);
@@ -7783,6 +8457,38 @@
               } else {
                 Swal.fire('Gagal', resp.message || 'Gagal menghapus.', 'error');
               }
+            });
+          }
+        });
+      };
+
+      window.handleAdminResetPin = function (empId, empName) {
+        Swal.fire({
+          title: 'Reset PIN Slip Gaji?',
+          html: 'PIN Slip Gaji untuk karyawan <strong>' + escapeHTML(empName) + '</strong> (' + escapeHTML(empId) + ') akan dihapus/direset.<br><small class="text-muted">Karyawan dapat membuat PIN baru saat membuka slip gaji.</small>',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#f59e0b',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Ya, Reset PIN',
+          cancelButtonText: 'Batal'
+        }).then(function (result) {
+          if (result.isConfirmed) {
+            showFullPageLoading('Mereset PIN karyawan...');
+            gasRun('adminResetSlipPin', Auth.getToken(), empId).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp.success) {
+                Swal.fire('Berhasil!', resp.message || 'PIN berhasil direset.', 'success');
+                var k = (dbKaryawan || []).find(function (item) { return item.id === empId; });
+                if (k) k.hasSlipPin = false;
+                renderKaryawanTable();
+              } else {
+                Swal.fire('Gagal', resp.message || 'Gagal mereset PIN.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error Server', err.message || err.toString(), 'error');
             });
           }
         });
@@ -8415,9 +9121,35 @@
       var currentPdfBase64 = null;
       var currentPdfFileName = 'Slip_Gaji.pdf';
 
-      window.openPdfModal = function (slipId) {
+      window.openPdfModal = function (slipId, explicitPin) {
         var slip = dbSlips.find(function (s) { return s.id === slipId; });
         if (!slip) return;
+
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        var isHRD = user && (user.role === 'Admin' || user.role === 'HRD');
+        var isOwner = user && String(user.username || '').toLowerCase() === String(slip.empId || '').toLowerCase();
+
+        // Verifikasi PIN untuk pemilik slip gaji (atau karyawan non-admin)
+        if (isOwner || !isHRD) {
+          var pinToUse = explicitPin || (isSlipPinSessionValid() ? _verifiedSlipPin : null);
+          if (!pinToUse) {
+            if (user && user.hasSlipPin === false) {
+              Swal.fire({
+                icon: 'info',
+                title: 'Atur PIN Keamanan Terlebih Dahulu',
+                text: 'Demi menjaga kerahasiaan nominal gaji Anda, silakan buat 6 digit PIN keamanan sebelum melihat slip gaji.',
+                confirmButtonText: 'Buat PIN Sekarang'
+              }).then(function () {
+                _pendingSlipIdToOpen = slipId;
+                openManageSlipPinModal();
+              });
+              return;
+            } else {
+              openVerifySlipPinModal(slipId);
+              return;
+            }
+          }
+        }
 
         document.getElementById('pdfViewFileName').innerText = slip.fileName;
         document.getElementById('pdfViewEmpName').innerText = slip.empName;
@@ -8440,9 +9172,17 @@
         currentPdfBase64 = null;
         currentPdfFileName = slip.fileName || 'Slip_Gaji.pdf';
 
-        gasRun('getSlipPdfBase64', Auth.getToken(), slipId).then(function (resp) {
+        var pinArg = explicitPin || (isSlipPinSessionValid() ? _verifiedSlipPin : '');
+        gasRun('getSlipPdfBase64', Auth.getToken(), slipId, pinArg).then(function (resp) {
           if (handleSessionExpired(resp)) return;
+          if (resp && resp.needPin) {
+            clearSlipPinSession();
+            if (bsModalViewPdf) bsModalViewPdf.hide();
+            openVerifySlipPinModal(slipId);
+            return;
+          }
           if (resp && resp.success && resp.base64) {
+            if (pinArg) setSlipPinSessionVerified(pinArg);
             currentPdfBase64 = resp.base64;
             currentPdfFileName = resp.fileName || slip.fileName;
             loadPdfFromBase64(resp.base64);
@@ -13106,6 +13846,7 @@
         updateSidebarToggleState();
         checkLoginState();
         initSplashScreen();
+        initPinBoxesEvents();
       });
 
     })();
