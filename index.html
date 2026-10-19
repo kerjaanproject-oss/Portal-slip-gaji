@@ -1064,6 +1064,7 @@
         transform: scale(0.9);
         opacity: 0.55;
       }
+
       100% {
         transform: scale(1.25);
         opacity: 0.95;
@@ -1123,12 +1124,10 @@
       left: -60%;
       width: 45%;
       height: 200%;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.35),
-        transparent
-      );
+      background: linear-gradient(90deg,
+          transparent,
+          rgba(255, 255, 255, 0.35),
+          transparent);
       transform: rotate(25deg);
       animation: btnShimmerSweep 4.5s ease-in-out infinite;
       pointer-events: none;
@@ -1138,9 +1137,11 @@
       0% {
         left: -60%;
       }
+
       25% {
         left: 140%;
       }
+
       100% {
         left: 140%;
       }
@@ -1281,6 +1282,7 @@
     }
 
     @media (max-width: 767.98px) {
+
       #modalDetailCuti .modal-dialog,
       #modalApprovalCuti .modal-dialog {
         margin: 0.5rem auto !important;
@@ -1343,7 +1345,7 @@
         gap: 0.45rem !important;
       }
 
-      #modalDetailCuti .modal-detail-actions-wrap > button {
+      #modalDetailCuti .modal-detail-actions-wrap>button {
         width: 100% !important;
         margin: 0 !important;
         display: inline-flex !important;
@@ -1359,12 +1361,12 @@
       }
 
       /* If only 1 button (e.g. Tutup), span 2 columns */
-      #modalDetailCuti .modal-detail-actions-wrap > button:only-child {
+      #modalDetailCuti .modal-detail-actions-wrap>button:only-child {
         grid-column: span 2 !important;
       }
 
       /* If 3 buttons, the last button (Tutup) spans 2 columns */
-      #modalDetailCuti .modal-detail-actions-wrap > button:last-child:nth-child(odd) {
+      #modalDetailCuti .modal-detail-actions-wrap>button:last-child:nth-child(odd) {
         grid-column: span 2 !important;
       }
 
@@ -1375,13 +1377,13 @@
         gap: 0.5rem !important;
       }
 
-      #modalApprovalCuti .modal-footer > button[data-bs-dismiss="modal"] {
+      #modalApprovalCuti .modal-footer>button[data-bs-dismiss="modal"] {
         order: 2;
         width: 100% !important;
         min-height: 38px !important;
       }
 
-      #modalApprovalCuti .modal-footer > div {
+      #modalApprovalCuti .modal-footer>div {
         order: 1;
         width: 100% !important;
         display: grid !important;
@@ -1389,7 +1391,7 @@
         gap: 0.5rem !important;
       }
 
-      #modalApprovalCuti .modal-footer > div > button {
+      #modalApprovalCuti .modal-footer>div>button {
         width: 100% !important;
         min-height: 40px !important;
         display: inline-flex !important;
@@ -1717,12 +1719,14 @@
       .cal-filter-select {
         min-width: 155px;
       }
+
       #searchKalenderNama {
         min-width: 160px;
       }
     }
 
     @media (max-width: 768px) {
+
       .calendar-grid-header,
       .calendar-grid-body {
         grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
@@ -3266,7 +3270,8 @@
           <a href="javascript:void(0)" onclick="openForgotPasswordModal()"
             class="text-primary small text-decoration-none fw-semibold">Lupa Password?</a>
         </div>
-        <button type="submit" id="btnLoginSubmit" class="btn btn-primary btn-login-shimmer w-100 py-2 fw-semibold shadow-sm">
+        <button type="submit" id="btnLoginSubmit"
+          class="btn btn-primary btn-login-shimmer w-100 py-2 fw-semibold shadow-sm">
           <i class="bi bi-box-arrow-in-right me-2"></i> Masuk
         </button>
       </form>
@@ -3590,7 +3595,7 @@
                       <th>Nama Lengkap</th>
                       <th>Departemen</th>
                       <th>Jabatan</th>
-                      <th>No. WA / Email</th>
+                      <th>Email</th>
                       <th class="text-center" style="width: 140px;">Status</th>
                       <th class="text-center text-nowrap pe-3" style="width: 160px;">Aksi</th>
                     </tr>
@@ -4134,18 +4139,22 @@
           <!-- Banner Header -->
           <div class="card border-0 shadow-sm mb-3 mb-md-4"
             style="background: linear-gradient(135deg, #4338ca 0%, #0284c7 100%); color: white; border-radius: 1rem;">
-            <div class="card-body p-3 p-md-4 d-flex align-items-center justify-content-between flex-wrap gap-2 gap-md-3">
+            <div
+              class="card-body p-3 p-md-4 d-flex align-items-center justify-content-between flex-wrap gap-2 gap-md-3">
               <div>
                 <h5 class="fw-bold mb-1 text-white fs-6 fs-md-4">Kalender Cuti Tim &amp; Departemen</h5>
-                <p class="mb-0 text-white-50 extra-small d-none d-sm-block">Pantau visual jadwal cuti seluruh anggota tim secara bulanan untuk
+                <p class="mb-0 text-white-50 extra-small d-none d-sm-block">Pantau visual jadwal cuti seluruh anggota
+                  tim secara bulanan untuk
                   mengantisipasi kekosongan operasional.</p>
               </div>
               <div class="d-flex align-items-center gap-2 w-100 w-sm-auto justify-content-end">
-                <button type="button" class="btn btn-light btn-sm fw-semibold px-2.5 py-1.5 px-md-3 py-md-2 text-primary shadow-sm flex-fill flex-sm-grow-0"
+                <button type="button"
+                  class="btn btn-light btn-sm fw-semibold px-2.5 py-1.5 px-md-3 py-md-2 text-primary shadow-sm flex-fill flex-sm-grow-0"
                   onclick="showPage('persetujuan-cuti', document.getElementById('subitem-persetujuan-cuti'))">
                   <i class="bi bi-shield-check me-1"></i>Persetujuan Cuti
                 </button>
-                <button type="button" class="btn btn-outline-light btn-sm fw-semibold px-2.5 py-1.5 px-md-3 py-md-2 shadow-sm flex-fill flex-sm-grow-0"
+                <button type="button"
+                  class="btn btn-outline-light btn-sm fw-semibold px-2.5 py-1.5 px-md-3 py-md-2 shadow-sm flex-fill flex-sm-grow-0"
                   onclick="loadKalenderCuti()">
                   <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                 </button>
@@ -4160,8 +4169,10 @@
                 style="border-radius: 0.85rem; border-left: 4px solid #2563eb !important;">
                 <div class="d-flex align-items-center justify-content-between">
                   <div>
-                    <div class="text-muted extra-small fw-bold text-uppercase d-none d-sm-block">Karyawan Cuti Bulan Ini</div>
-                    <div class="text-muted extra-small fw-bold text-uppercase d-sm-none" style="font-size: 0.65rem;">Karyawan</div>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-none d-sm-block">Karyawan Cuti Bulan Ini
+                    </div>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-sm-none" style="font-size: 0.65rem;">
+                      Karyawan</div>
                     <h5 class="fw-bold text-dark mt-1 mb-0 fs-6 fs-md-5" id="metricCalTotalKaryawan">0 Karyawan</h5>
                   </div>
                   <div
@@ -4177,8 +4188,10 @@
                 style="border-radius: 0.85rem; border-left: 4px solid #16a34a !important;">
                 <div class="d-flex align-items-center justify-content-between">
                   <div>
-                    <div class="text-muted extra-small fw-bold text-uppercase d-none d-sm-block">Total Hari Cuti Terjadwal</div>
-                    <div class="text-muted extra-small fw-bold text-uppercase d-sm-none" style="font-size: 0.65rem;">Total Hari</div>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-none d-sm-block">Total Hari Cuti
+                      Terjadwal</div>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-sm-none" style="font-size: 0.65rem;">
+                      Total Hari</div>
                     <h5 class="fw-bold text-dark mt-1 mb-0 fs-6 fs-md-5" id="metricCalTotalHari">0 Hari</h5>
                   </div>
                   <div
@@ -4194,8 +4207,10 @@
                 style="border-radius: 0.85rem; border-left: 4px solid #ca8a04 !important;">
                 <div class="d-flex align-items-center justify-content-between">
                   <div>
-                    <div class="text-muted extra-small fw-bold text-uppercase d-none d-sm-block">Menunggu Persetujuan</div>
-                    <div class="text-muted extra-small fw-bold text-uppercase d-sm-none" style="font-size: 0.65rem;">Menunggu</div>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-none d-sm-block">Menunggu Persetujuan
+                    </div>
+                    <div class="text-muted extra-small fw-bold text-uppercase d-sm-none" style="font-size: 0.65rem;">
+                      Menunggu</div>
                     <h5 class="fw-bold text-dark mt-1 mb-0 fs-6 fs-md-5" id="metricCalMenunggu">0 Permohonan</h5>
                   </div>
                   <div
@@ -4214,7 +4229,8 @@
             <div class="card-header bg-white border-bottom p-2.5 p-sm-3 p-md-4">
               <div class="row g-2 g-md-3 align-items-center justify-content-between">
                 <!-- Month & Year Navigation -->
-                <div class="col-12 col-lg-auto d-flex align-items-center justify-content-between justify-content-lg-start gap-2 flex-wrap">
+                <div
+                  class="col-12 col-lg-auto d-flex align-items-center justify-content-between justify-content-lg-start gap-2 flex-wrap">
                   <div class="btn-group shadow-xs">
                     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="navKalenderMonth(-1)"
                       title="Bulan Sebelumnya">
@@ -4284,7 +4300,8 @@
               </div>
 
               <!-- Legenda Warna Status -->
-              <div class="d-flex align-items-center gap-2 gap-md-3 flex-wrap mt-2.5 pt-2.5 border-top extra-small text-muted cal-legend-container">
+              <div
+                class="d-flex align-items-center gap-2 gap-md-3 flex-wrap mt-2.5 pt-2.5 border-top extra-small text-muted cal-legend-container">
                 <span class="fw-bold text-dark me-1"><i
                     class="bi bi-info-circle me-1 text-primary"></i>Keterangan:</span>
                 <span class="d-inline-flex align-items-center gap-1">
@@ -4302,7 +4319,8 @@
                     style="width: 9px; height: 9px; background-color: #2563eb; flex-shrink: 0;"></span>
                   <strong>Hari Ini</strong>
                 </span>
-                <span class="w-100 d-block mt-1 text-muted fst-italic cal-legend-note">*Klik pada kotak tanggal untuk melihat detail karyawan yang
+                <span class="w-100 d-block mt-1 text-muted fst-italic cal-legend-note">*Klik pada kotak tanggal untuk
+                  melihat detail karyawan yang
                   cuti.</span>
               </div>
             </div>
@@ -4312,13 +4330,20 @@
               <div class="calendar-card border-0">
                 <!-- Day of Week Headers -->
                 <div class="calendar-grid-header">
-                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Senin</span><span class="d-sm-none">Sen</span></div>
-                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Selasa</span><span class="d-sm-none">Sel</span></div>
-                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Rabu</span><span class="d-sm-none">Rab</span></div>
-                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Kamis</span><span class="d-sm-none">Kam</span></div>
-                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Jumat</span><span class="d-sm-none">Jum</span></div>
-                  <div class="calendar-grid-header-col weekend"><span class="d-none d-sm-inline">Sabtu</span><span class="d-sm-none">Sab</span></div>
-                  <div class="calendar-grid-header-col weekend"><span class="d-none d-sm-inline">Minggu</span><span class="d-sm-none">Min</span></div>
+                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Senin</span><span
+                      class="d-sm-none">Sen</span></div>
+                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Selasa</span><span
+                      class="d-sm-none">Sel</span></div>
+                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Rabu</span><span
+                      class="d-sm-none">Rab</span></div>
+                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Kamis</span><span
+                      class="d-sm-none">Kam</span></div>
+                  <div class="calendar-grid-header-col"><span class="d-none d-sm-inline">Jumat</span><span
+                      class="d-sm-none">Jum</span></div>
+                  <div class="calendar-grid-header-col weekend"><span class="d-none d-sm-inline">Sabtu</span><span
+                      class="d-sm-none">Sab</span></div>
+                  <div class="calendar-grid-header-col weekend"><span class="d-none d-sm-inline">Minggu</span><span
+                      class="d-sm-none">Min</span></div>
                 </div>
                 <!-- 7x5 or 7x6 Day Cells Body -->
                 <div class="calendar-grid-body" id="calendarGridBody">
@@ -5674,11 +5699,11 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label small fw-semibold">No. WhatsApp / Email <span class="text-danger">*</span></label>
+            <label class="form-label small fw-semibold">Email <span class="text-danger">*</span></label>
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-telephone"></i></span>
-              <input type="text" id="regKontak" class="form-control"
-                placeholder="Contoh: 08123456789 atau nama@email.com" required inputmode="email">
+              <input type="text" id="regKontak" class="form-control" placeholder="Contoh: nama@email.com" required
+                inputmode="email">
             </div>
             <div class="form-text extra-small text-muted">Akan digunakan untuk verifikasi dan notifikasi slip gaji.
             </div>
@@ -13252,7 +13277,7 @@
           '<tr><th class="bg-light">Nama Lengkap</th><td class="fw-bold">' + escapeHTML(item.name) + '</td></tr>' +
           '<tr><th class="bg-light">Departemen</th><td>' + escapeHTML(item.dept) + '</td></tr>' +
           '<tr><th class="bg-light">Jabatan</th><td>' + escapeHTML(item.jabatan) + '</td></tr>' +
-          '<tr><th class="bg-light">No. WA / Email</th><td>' + escapeHTML(item.kontak) + '</td></tr>' +
+          '<tr><th class="bg-light">Email</th><td>' + escapeHTML(item.kontak) + '</td></tr>' +
           '<tr><th class="bg-light">Tanggal Mendaftar</th><td>' + escapeHTML(formatDateDMY(item.tanggalDaftar)) + '</td></tr>' +
           '<tr><th class="bg-light">Status Saat Ini</th><td>' + statusBadge + '</td></tr>' +
           '<tr><th class="bg-light">Tanggal Diproses</th><td>' + escapeHTML(formatDateDMY(item.tanggalDiproses)) + '</td></tr>' +
