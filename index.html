@@ -3159,6 +3159,113 @@
       border-color: #f87171 !important;
       box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.2) !important;
     }
+
+    /* ELEGANT MODAL ANIMATIONS & SMOOTH CLOSING */
+    .modal.fade {
+      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    .modal.fade .modal-dialog {
+      transform: scale(0.96) translateY(12px) !important;
+      opacity: 0;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease !important;
+      will-change: transform, opacity;
+    }
+
+    .modal.show .modal-dialog {
+      transform: scale(1) translateY(0) !important;
+      opacity: 1 !important;
+    }
+
+    /* BACKDROP BLUR & SEAMLESS FADE */
+    .modal-backdrop.fade {
+      opacity: 0;
+      transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.28s ease !important;
+    }
+
+    .modal-backdrop.show {
+      opacity: 0.65 !important;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+
+    /* CLOSE BUTTON HOVER & CLICK MICRO-INTERACTION */
+    .modal .btn-close {
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      opacity: 0.65;
+    }
+    .modal .btn-close:hover {
+      opacity: 1;
+      transform: rotate(90deg) scale(1.1);
+    }
+    .modal .btn-close:active {
+      transform: rotate(90deg) scale(0.92);
+    }
+
+    /* LOGOUT TRANSITION OVERLAY */
+    .logout-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 10500;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .logout-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .logout-overlay-content {
+      text-align: center;
+      transform: scale(0.92) translateY(8px);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .logout-overlay.show .logout-overlay-content {
+      transform: scale(1) translateY(0);
+    }
+    .logout-spinner-ring {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .logout-icon-center {
+      position: absolute;
+      font-size: 1.35rem;
+    }
+
+    /* DARK MODE STYLES FOR LOGOUT MODAL */
+    [data-theme="dark"] .modal-title-logout {
+      color: #f8fafc !important;
+    }
+    [data-theme="dark"] .modal-desc-logout {
+      color: #94a3b8 !important;
+    }
+    [data-theme="dark"] #modalLogout .modal-content {
+      background-color: #132238 !important;
+      border: 1px solid #20334d !important;
+    }
+    [data-theme="dark"] #modalLogout .btn-light {
+      background-color: #1e293b !important;
+      border-color: #334155 !important;
+      color: #cbd5e1 !important;
+    }
+    [data-theme="dark"] #modalLogout .btn-light:hover {
+      background-color: #334155 !important;
+      color: #ffffff !important;
+    }
   </style>
 </head>
 
@@ -3201,6 +3308,18 @@
         <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">Mohon Tunggu</h6>
         <small class="text-muted" id="loaderText">Memproses data...</small>
       </div>
+    </div>
+  </div>
+
+  <!-- LOGOUT TRANSITION OVERLAY -->
+  <div id="logoutOverlay" class="logout-overlay" style="display: none;">
+    <div class="logout-overlay-content">
+      <div class="logout-spinner-ring">
+        <div class="spinner-border text-danger" role="status" style="width: 3.25rem; height: 3.25rem; border-width: 3.5px;"></div>
+        <div class="logout-icon-center"><i class="bi bi-shield-lock-fill text-danger"></i></div>
+      </div>
+      <h5 class="fw-bold text-white mb-1 mt-3">Mengakhiri Sesi...</h5>
+      <p class="text-white-50 small mb-0">Mengamankan akun Anda dan kembali ke halaman login</p>
     </div>
   </div>
 
@@ -5602,20 +5721,24 @@
 
   <!-- MODAL: KONFIRMASI LOGOUT -->
   <div class="modal fade" id="modalLogout" tabindex="-1">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold"><i class="bi bi-box-arrow-right text-danger me-2"></i>Konfirmasi Keluar</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <p class="mb-0">Apakah Anda yakin ingin keluar dari aplikasi? Sesi login Anda akan berakhir.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
-          <button type="button" class="btn btn-danger btn-sm fw-semibold" onclick="performLogout()">
-            <i class="bi bi-box-arrow-right me-1"></i>Ya, Keluar
-          </button>
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+      <div class="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+        <div class="modal-body p-4 text-center">
+          <div class="d-inline-flex justify-content-center align-items-center mb-3 rounded-circle bg-danger-subtle text-danger" style="width: 64px; height: 64px;">
+            <i class="bi bi-box-arrow-right fs-2"></i>
+          </div>
+          <h5 class="fw-bold modal-title-logout mb-2">Konfirmasi Keluar</h5>
+          <p class="text-secondary modal-desc-logout small mb-4">
+            Apakah Anda yakin ingin keluar dari aplikasi? Sesi login Anda akan diakhiri dan data akun Anda akan diamankan.
+          </p>
+          <div class="d-flex gap-2 justify-content-center">
+            <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-semibold small flex-grow-1" data-bs-dismiss="modal">
+              Batal
+            </button>
+            <button type="button" class="btn btn-danger px-4 py-2 rounded-3 fw-semibold small shadow-sm flex-grow-1" id="btnConfirmLogoutAction" onclick="performLogout()">
+              <i class="bi bi-box-arrow-right me-1"></i>Ya, Keluar
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -7050,12 +7173,51 @@
         if (!bsModalLogout) {
           bsModalLogout = new bootstrap.Modal(document.getElementById('modalLogout'));
         }
+        var btn = document.getElementById('btnConfirmLogoutAction');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-box-arrow-right me-1"></i>Ya, Keluar';
+        }
         bsModalLogout.show();
       };
 
       window.performLogout = function () {
-        if (bsModalLogout) bsModalLogout.hide();
-        logout();
+        var btn = document.getElementById('btnConfirmLogoutAction');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Mengakhiri sesi...';
+        }
+
+        // Tampilkan overlay transisi logout dengan elegan
+        var overlay = document.getElementById('logoutOverlay');
+        if (overlay) {
+          overlay.style.display = 'flex';
+          setTimeout(function () {
+            overlay.classList.add('show');
+          }, 20);
+        }
+
+        // Tutup modal logout secara halus
+        if (bsModalLogout) {
+          bsModalLogout.hide();
+        }
+
+        // Jeda untuk transisi keluar yang tenang & elegan
+        setTimeout(function () {
+          logout();
+          setTimeout(function () {
+            if (overlay) {
+              overlay.classList.remove('show');
+              setTimeout(function () {
+                overlay.style.display = 'none';
+                if (btn) {
+                  btn.disabled = false;
+                  btn.innerHTML = '<i class="bi bi-box-arrow-right me-1"></i>Ya, Keluar';
+                }
+              }, 350);
+            }
+          }, 250);
+        }, 450);
       };
 
       window.logout = function () {
@@ -7078,6 +7240,14 @@
         if (chkRemember) {
           chkRemember.checked = isRemember;
         }
+
+        // Pastikan tidak ada sisa backdrop modal yang tertinggal
+        var lingeringBackdrops = document.querySelectorAll('.modal-backdrop');
+        lingeringBackdrops.forEach(function (el) { el.remove(); });
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+
         checkLoginState();
       };
 
