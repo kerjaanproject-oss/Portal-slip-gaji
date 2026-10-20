@@ -3821,8 +3821,8 @@
       <!-- TOPBAR -->
       <header class="topbar">
         <div class="d-flex align-items-center gap-3">
-          <button class="btn btn-light sidebar-toggle d-none d-lg-inline-flex" id="sidebarToggle" type="button" onclick="toggleSidebar()"
-            aria-controls="appSidebar" aria-expanded="true" aria-label="Sembunyikan sidebar"
+          <button class="btn btn-light sidebar-toggle d-none d-lg-inline-flex" id="sidebarToggle" type="button"
+            onclick="toggleSidebar()" aria-controls="appSidebar" aria-expanded="true" aria-label="Sembunyikan sidebar"
             title="Tampilkan / sembunyikan sidebar">
             <i class="bi bi-list fs-4" aria-hidden="true"></i>
           </button>
@@ -3899,8 +3899,7 @@
                   </div>
                   <h4 class="fw-bold mb-1 text-white" id="dashGreetingText">Selamat Datang, <span
                       id="dashUserFullname">-</span></h4>
-                  <p class="mb-0 text-white text-opacity-75 small">PT Berkah Batu Bara &mdash; Portal Mandiri
-                    Kepegawaian &amp; Slip Gaji</p>
+                  <p class="mb-0 text-white text-opacity-75 small">PT Berkah Batu Bara &mdash; Berkah APP</p>
                 </div>
                 <div class="text-md-end text-white">
                   <div class="fw-bold fs-6" id="dashLiveDate">-</div>
@@ -4035,11 +4034,13 @@
                   </a>
                 </div>
                 <div class="col-4 col-md-2 hrd-only d-none">
-                  <a href="javascript:void(0)" class="dash-action-btn position-relative" onclick="showPage('persetujuan-pendaftar')">
+                  <a href="javascript:void(0)" class="dash-action-btn position-relative"
+                    onclick="showPage('persetujuan-pendaftar')">
                     <div class="dash-action-icon bg-primary-subtle text-primary">
                       <i class="bi bi-person-check"></i>
                     </div>
-                    <span class="badge bg-danger rounded-pill position-absolute top-0 end-0 m-2 d-none" id="badgeDashPendaftar">0</span>
+                    <span class="badge bg-danger rounded-pill position-absolute top-0 end-0 m-2 d-none"
+                      id="badgeDashPendaftar">0</span>
                     <span class="small fw-semibold">Persetujuan Akun</span>
                   </a>
                 </div>
@@ -8503,7 +8504,7 @@
                       dbSlips = slipRes.slips || slipRes.data;
                       renderDashboard();
                     }
-                  }).catch(function () {});
+                  }).catch(function () { });
                 }
 
                 if (!dbPengumuman || dbPengumuman.length === 0) {
@@ -8517,9 +8518,9 @@
                           dbPengumuman = [actRes.announcement];
                           renderDashboard();
                         }
-                      }).catch(function () {});
+                      }).catch(function () { });
                     }
-                  }).catch(function () {});
+                  }).catch(function () { });
                 }
               }
               if (pageName === 'profil') {
