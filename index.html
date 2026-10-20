@@ -8202,12 +8202,33 @@
           if (elBadge) { elBadge.className = 'badge bg-warning-subtle text-warning fw-semibold'; elBadge.textContent = 'Perlu Setup'; }
         } else {
           if (elPola) elPola.textContent = pola;
-          var rosterDef = (dbRoster && dbRoster.length) ? dbRoster.find(function (r) {
-            return String(r.nama || '').trim().toLowerCase() === String(pola || '').trim().toLowerCase();
+          var rItem = (dbRoster && dbRoster.length) ? dbRoster.find(function (item) {
+            var n = String(item.name || item.nama || '').trim().toLowerCase();
+            var p = String(pola || '').trim().toLowerCase();
+            return n === p || n.replace(/\s+/g, '') === p.replace(/\s+/g, '');
           }) : null;
 
-          var wDays = rosterDef ? parseInt(rosterDef.kerja) : 0;
-          var lDays = rosterDef ? parseInt(rosterDef.cuti) : 0;
+          var wDays = rItem ? parseInt(rItem.workDays || rItem.kerja, 10) : 0;
+          var lDays = rItem ? parseInt(rItem.leaveDays || rItem.cuti, 10) : 0;
+
+          if (wDays <= 0 || lDays <= 0) {
+            if (pola.includes('12') && pola.includes('2')) { wDays = 90; lDays = 14; }
+            else if (pola.includes('8') && pola.includes('2')) { wDays = 56; lDays = 14; }
+            else if (pola.includes('6') && pola.includes('2')) { wDays = 42; lDays = 14; }
+            else if (pola.includes('4') && pola.includes('2')) { wDays = 28; lDays = 14; }
+            else if (pola.includes('60') && pola.includes('14')) { wDays = 60; lDays = 14; }
+            else {
+              var parts = pola.match(/\d+/g);
+              if (parts && parts.length >= 2) {
+                var p1 = parseInt(parts[0], 10);
+                var p2 = parseInt(parts[1], 10);
+                wDays = p1 <= 14 ? p1 * 7 : p1;
+                lDays = p2 <= 4 ? p2 * 7 : p2;
+              } else {
+                wDays = 60; lDays = 14;
+              }
+            }
+          }
 
           var myEmpId = String(user.username || '').trim().toLowerCase();
           var latestCutiRoster = (dbCutiList && dbCutiList.length) ? dbCutiList.find(function (c) {
@@ -8217,18 +8238,17 @@
             return isMe && isRoster && notRejected;
           }) : null;
 
-          var dStart;
+          var effectiveStintStart = (typeof parseDateToYMD === 'function' ? parseDateToYMD(tglMulai) : null) || tglMulai;
           if (latestCutiRoster && latestCutiRoster.tanggalSelesai) {
-            var dEndLast = new Date(latestCutiRoster.tanggalSelesai + 'T00:00:00');
+            var ymdEnd = (typeof parseDateToYMD === 'function' ? parseDateToYMD(latestCutiRoster.tanggalSelesai) : null) || latestCutiRoster.tanggalSelesai;
+            var dEndLast = new Date(ymdEnd + 'T00:00:00');
             if (!isNaN(dEndLast.getTime())) {
               dEndLast.setDate(dEndLast.getDate() + 1);
-              dStart = dEndLast;
+              effectiveStintStart = (typeof toDateInputString === 'function') ? toDateInputString(dEndLast) : dEndLast.toISOString().split('T')[0];
             }
           }
-          if (!dStart) {
-            dStart = new Date(tglMulai + 'T00:00:00');
-          }
 
+          var dStart = new Date(effectiveStintStart + 'T00:00:00');
           var today = new Date();
           today.setHours(0, 0, 0, 0);
           var elapsedDays = 0;
@@ -8261,6 +8281,20 @@
         var mySlips = (dbSlips && dbSlips.length) ? dbSlips.filter(function (s) {
           return String(s.empId || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
         }) : [];
+
+        var monthMap = {
+          'januari': 1, 'februari': 2, 'maret': 3, 'april': 4,
+          'mei': 5, 'juni': 6, 'juli': 7, 'agustus': 8,
+          'september': 9, 'oktober': 10, 'november': 11, 'desember': 12
+        };
+        mySlips.sort(function (a, b) {
+          var yA = parseInt(a.tahun, 10) || 0;
+          var yB = parseInt(b.tahun, 10) || 0;
+          if (yA !== yB) return yB - yA;
+          var mA = monthMap[String(a.bulan || '').toLowerCase()] || 0;
+          var mB = monthMap[String(b.bulan || '').toLowerCase()] || 0;
+          return mB - mA;
+        });
 
         if (mySlips.length > 0) {
           var latestSlip = mySlips[0];
@@ -8415,6 +8449,7 @@
               dbDepartemen = res.departemen || [];
               dbRoster = res.roster || [];
               if (res.cuti) dbCutiList = res.cuti || [];
+              if (res.announcements) dbPengumuman = res.announcements;
               if (res.pendingPendaftarCount !== undefined) {
                 updatePendingPendaftarBadge(res.pendingPendaftarCount);
               }
@@ -8454,6 +8489,32 @@
 
               if (pageName === 'dashboard') {
                 renderDashboard();
+
+                var u = Auth.getUser();
+                if (u && u.role !== 'Admin') {
+                  gasRun('getSlipKaryawan', token, 'SEMUA', 'SEMUA').then(function (slipRes) {
+                    if (slipRes && slipRes.success && (slipRes.slips || slipRes.data)) {
+                      dbSlips = slipRes.slips || slipRes.data;
+                      renderDashboard();
+                    }
+                  }).catch(function () {});
+                }
+
+                if (!dbPengumuman || dbPengumuman.length === 0) {
+                  gasRun('getAnnouncements', token).then(function (annRes) {
+                    if (annRes && annRes.success && annRes.list) {
+                      dbPengumuman = annRes.list;
+                      renderDashboard();
+                    } else {
+                      gasRun('getActiveAnnouncement').then(function (actRes) {
+                        if (actRes && actRes.success && actRes.hasAnnouncement && actRes.announcement) {
+                          dbPengumuman = [actRes.announcement];
+                          renderDashboard();
+                        }
+                      }).catch(function () {});
+                    }
+                  }).catch(function () {});
+                }
               }
               if (pageName === 'profil') {
                 renderProfilePage();
@@ -9031,7 +9092,7 @@
         }
       };
 
-      // 2. Logika Halaman Kelola Pengumuman (HRD / Admin)
+      // 2. Logika Halaman Kelola Pengumuman (HRD / Admin & Karyawan)
       window.loadPengumuman = function () {
         var tbody = document.getElementById('tablePengumuman');
         if (tbody) {
@@ -9039,17 +9100,38 @@
         }
         gasRun('getAnnouncements', Auth.getToken()).then(function (res) {
           if (handleSessionExpired(res)) return;
-          if (res.success) {
+          if (res && res.success && res.list) {
             dbPengumuman = res.list || [];
             currentPagePengumuman = 1;
             renderPengumumanTable();
           } else {
-            Swal.fire('Info', res.message || 'Gagal memuat data pengumuman.', 'warning');
+            fallbackLoadPengumuman();
           }
-        }).catch(function (err) {
-          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        }).catch(function () {
+          fallbackLoadPengumuman();
         });
       };
+
+      function fallbackLoadPengumuman() {
+        if (typeof dbPengumuman !== 'undefined' && dbPengumuman && dbPengumuman.length > 0) {
+          currentPagePengumuman = 1;
+          renderPengumumanTable();
+          return;
+        }
+        gasRun('getActiveAnnouncement').then(function (res) {
+          if (res && res.success && res.hasAnnouncement && res.announcement) {
+            dbPengumuman = [res.announcement];
+          } else {
+            dbPengumuman = [];
+          }
+          currentPagePengumuman = 1;
+          renderPengumumanTable();
+        }).catch(function () {
+          dbPengumuman = [];
+          currentPagePengumuman = 1;
+          renderPengumumanTable();
+        });
+      }
 
       window.renderPengumumanTable = function () {
         var tbody = document.getElementById('tablePengumuman');
@@ -9069,7 +9151,7 @@
         });
 
         if (filtered.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada pengumuman yang sesuai.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-info-circle me-1"></i>Belum ada pengumuman aktif saat ini.</td></tr>';
           renderPaginationControls('paginationPengumuman', 0, 1, function () { });
           return;
         }
@@ -10354,6 +10436,20 @@
           var matchBulan = (bulan === 'SEMUA') ? true : (String(s.bulan || '').toLowerCase() === String(bulan || '').toLowerCase());
           var matchTahun = (tahun === 'SEMUA') ? true : (String(s.tahun || '').trim() === String(tahun || '').trim());
           return matchBulan && matchTahun;
+        });
+
+        var monthMap = {
+          'januari': 1, 'februari': 2, 'maret': 3, 'april': 4,
+          'mei': 5, 'juni': 6, 'juli': 7, 'agustus': 8,
+          'september': 9, 'oktober': 10, 'november': 11, 'desember': 12
+        };
+        list.sort(function (a, b) {
+          var yA = parseInt(a.tahun, 10) || 0;
+          var yB = parseInt(b.tahun, 10) || 0;
+          if (yA !== yB) return yB - yA;
+          var mA = monthMap[String(a.bulan || '').toLowerCase()] || 0;
+          var mB = monthMap[String(b.bulan || '').toLowerCase()] || 0;
+          return mB - mA;
         });
 
         if (list.length === 0) {

@@ -938,28 +938,63 @@ function getInitialData(token) {
   const slipSheet = ss.getSheetByName('SlipGaji');
   const slipData = slipSheet ? slipSheet.getDataRange().getValues() : [];
   const slipList = [];
-  for (let j = 1; j < slipData.length; j++) {
-    const empId = String(slipData[j][1] || '').trim().toLowerCase();
-    if (isHRD || empId === currentUsername) {
-      const resiId = String(slipData[j][13] || '').trim();
-      const resiName = String(slipData[j][11] || '').trim();
-      slipList.push({
-        id: String(slipData[j][0]),
-        empId: String(slipData[j][1]),
-        empName: String(slipData[j][2]),
-        bulan: String(slipData[j][3]),
-        tahun: String(slipData[j][4]),
-        fileName: String(slipData[j][5]),
-        catatan: String(slipData[j][6]),
-        driveUrl: String(slipData[j][7]),
-        uploadDate: slipData[j][9] ? Utilities.formatDate(new Date(slipData[j][9]), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : '-',
-        downloaded: String(slipData[j][10]).startsWith('Terkirim') || String(slipData[j][10]) === 'Diakses',
-        emailStatus: String(slipData[j][10] || 'Belum'),
-        resiFileName: resiName,
-        resiDriveUrl: String(slipData[j][12] || ''),
-        hasResi: !!(resiId || resiName)
-      });
+  if (slipData && slipData.length > 1) {
+    const sHeaders = slipData[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+    const sIdIdx = sHeaders.findIndex(function (h) { return h.includes('id slip') || h === 'id' || h.includes('kode'); });
+    const sEmpIdIdx = sHeaders.findIndex(function (h) { return h.includes('id karyawan') || h.includes('nik') || h.includes('nip') || h === 'id_karyawan'; });
+    const sNameIdx = sHeaders.findIndex(function (h) { return h.includes('nama'); });
+    const sBulanIdx = sHeaders.findIndex(function (h) { return h.includes('bulan'); });
+    const sTahunIdx = sHeaders.findIndex(function (h) { return h.includes('tahun'); });
+    const sFileIdx = sHeaders.findIndex(function (h) { return h.includes('nama file') || h.includes('file'); });
+    const sCatIdx = sHeaders.findIndex(function (h) { return h.includes('catatan') || h.includes('keterangan'); });
+    const sUrlIdx = sHeaders.findIndex(function (h) { return h.includes('url') || h.includes('link'); });
+    const sTglIdx = sHeaders.findIndex(function (h) { return h.includes('tanggal') || h.includes('tgl'); });
+    const sEmailIdx = sHeaders.findIndex(function (h) { return h.includes('email') || h.includes('status'); });
+    const sResiNameIdx = sHeaders.findIndex(function (h) { return h.includes('file resi') || h.includes('nama resi'); });
+    const sResiUrlIdx = sHeaders.findIndex(function (h) { return h.includes('url drive resi') || h.includes('url resi'); });
+    const sResiIdIdx = sHeaders.findIndex(function (h) { return h.includes('file id resi') || h.includes('id resi'); });
+
+    for (let j = 1; j < slipData.length; j++) {
+      const row = slipData[j];
+      if (!row || row.every(function (c) { return String(c || '').trim() === ''; })) continue;
+      const empId = sEmpIdIdx !== -1 ? String(row[sEmpIdIdx] || '').trim().toLowerCase() : String(row[1] || '').trim().toLowerCase();
+      if (isHRD || empId === currentUsername) {
+        const resiId = sResiIdIdx !== -1 ? String(row[sResiIdIdx] || '').trim() : String(row[13] || '').trim();
+        const resiName = sResiNameIdx !== -1 ? String(row[sResiNameIdx] || '').trim() : String(row[11] || '').trim();
+        const uploadRaw = sTglIdx !== -1 ? row[sTglIdx] : row[9];
+        const emailStatus = sEmailIdx !== -1 ? String(row[sEmailIdx] || 'Belum') : String(row[10] || 'Belum');
+        slipList.push({
+          id: sIdIdx !== -1 && row[sIdIdx] ? String(row[sIdIdx]).trim() : String(row[0] || ''),
+          empId: sEmpIdIdx !== -1 && row[sEmpIdIdx] ? String(row[sEmpIdIdx]).trim() : String(row[1] || ''),
+          empName: sNameIdx !== -1 && row[sNameIdx] ? String(row[sNameIdx]).trim() : String(row[2] || ''),
+          bulan: sBulanIdx !== -1 ? String(row[sBulanIdx] || '').trim() : String(row[3] || '').trim(),
+          tahun: sTahunIdx !== -1 ? String(row[sTahunIdx] || '').trim() : String(row[4] || '').trim(),
+          fileName: sFileIdx !== -1 && row[sFileIdx] ? String(row[sFileIdx]).trim() : String(row[5] || ''),
+          catatan: sCatIdx !== -1 && row[sCatIdx] ? String(row[sCatIdx]).trim() : String(row[6] || ''),
+          driveUrl: sUrlIdx !== -1 && row[sUrlIdx] ? String(row[sUrlIdx]).trim() : String(row[7] || ''),
+          uploadDate: uploadRaw instanceof Date ? Utilities.formatDate(uploadRaw, Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd HH:mm') : (uploadRaw ? String(uploadRaw) : '-'),
+          downloaded: emailStatus.startsWith('Terkirim') || emailStatus === 'Diakses',
+          emailStatus: emailStatus,
+          resiFileName: resiName,
+          resiDriveUrl: sResiUrlIdx !== -1 ? String(row[sResiUrlIdx] || '').trim() : String(row[12] || ''),
+          hasResi: !!(resiId || resiName)
+        });
+      }
     }
+
+    const monthMap = {
+      'januari': 1, 'februari': 2, 'maret': 3, 'april': 4,
+      'mei': 5, 'juni': 6, 'juli': 7, 'agustus': 8,
+      'september': 9, 'oktober': 10, 'november': 11, 'desember': 12
+    };
+    slipList.sort(function (a, b) {
+      const yA = parseInt(a.tahun, 10) || 0;
+      const yB = parseInt(b.tahun, 10) || 0;
+      if (yA !== yB) return yB - yA;
+      const mA = monthMap[String(a.bulan || '').toLowerCase()] || 0;
+      const mB = monthMap[String(b.bulan || '').toLowerCase()] || 0;
+      return mB - mA;
+    });
   }
 
   // Get Departemen
@@ -1024,6 +1059,31 @@ function getInitialData(token) {
     }
   }
 
+  // Get Pengumuman
+  const pengumumanSheet = getOrCreatePengumumanSheet(ss);
+  const annData = pengumumanSheet ? pengumumanSheet.getDataRange().getValues() : [];
+  const annList = [];
+  for (let a = 1; a < annData.length; a++) {
+    const row = annData[a];
+    const aId = String(row[0] || '').trim();
+    if (!aId) continue;
+    const aStatus = String(row[6] || 'Aktif').trim();
+    if (!isHRD && aStatus !== 'Aktif') continue;
+    annList.push({
+      id: aId,
+      judul: String(row[1] || '').trim(),
+      isi: String(row[2] || '').trim(),
+      tipe: String(row[3] || 'Informasi').trim(),
+      tanggalMulai: formatDateString(row[4]),
+      tanggalSelesai: formatDateString(row[5]),
+      status: aStatus,
+      tanggalDibuat: formatDateString(row[7]),
+      dibuatOleh: String(row[8] || '').trim(),
+      rowIndex: a + 1
+    });
+  }
+  annList.reverse();
+
   return {
     success: true,
     karyawan: karyawanList,
@@ -1031,6 +1091,7 @@ function getInitialData(token) {
     departemen: deptList,
     roster: rosterList,
     cuti: cutiList,
+    announcements: annList,
     pendingPendaftarCount: pendingPendaftarCount
   };
 }
@@ -1101,6 +1162,20 @@ function getSlipKaryawan(token, filterBulan, filterTahun) {
       }
     }
   }
+
+  const monthMap = {
+    'januari': 1, 'februari': 2, 'maret': 3, 'april': 4,
+    'mei': 5, 'juni': 6, 'juli': 7, 'agustus': 8,
+    'september': 9, 'oktober': 10, 'november': 11, 'desember': 12
+  };
+  result.sort(function (a, b) {
+    const yA = parseInt(a.tahun, 10) || 0;
+    const yB = parseInt(b.tahun, 10) || 0;
+    if (yA !== yB) return yB - yA;
+    const mA = monthMap[String(a.bulan || '').toLowerCase()] || 0;
+    const mB = monthMap[String(b.bulan || '').toLowerCase()] || 0;
+    return mB - mA;
+  });
 
   return { success: true, data: result, slips: result };
 }
