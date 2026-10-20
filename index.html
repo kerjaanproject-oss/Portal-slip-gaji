@@ -3735,8 +3735,8 @@
           </a>
         </li>
 
-        <!-- PENGUMUMAN (SEMUA ROLE) -->
-        <li>
+        <!-- PENGUMUMAN (HRD ONLY) -->
+        <li class="hrd-only d-none">
           <a class="nav-item-custom" id="nav-item-pengumuman" onclick="showPage('pengumuman', this)">
             <i class="bi bi-megaphone w-20px"></i>
             <span>Pengumuman</span>
@@ -4067,7 +4067,7 @@
                     <span class="small fw-semibold">Pola Roster</span>
                   </a>
                 </div>
-                <div class="col-4 col-md-2">
+                <div class="col-4 col-md-2 hrd-only d-none">
                   <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('pengumuman')">
                     <div class="dash-action-icon bg-danger-subtle text-danger">
                       <i class="bi bi-megaphone"></i>
@@ -4095,7 +4095,7 @@
                 <i class="bi bi-bell-fill text-warning fs-5"></i>
                 <h6 class="fw-bold m-0 text-dark">Pengumuman Perusahaan Terbaru</h6>
               </div>
-              <a href="javascript:void(0)" class="small fw-semibold text-primary text-decoration-none"
+              <a href="javascript:void(0)" class="small fw-semibold text-primary text-decoration-none hrd-only d-none"
                 onclick="showPage('pengumuman')">Lihat Semua &rarr;</a>
             </div>
             <div class="card-body p-3 p-md-4" id="dashAnnouncementBody">
@@ -5028,8 +5028,8 @@
           </div>
         </div>
 
-        <!-- PAGE 6: PENGUMUMAN PERUSAHAAN (SEMUA ROLE) -->
-        <div id="page-pengumuman" class="app-page d-none">
+        <!-- PAGE 6: PENGUMUMAN PERUSAHAAN (HRD ONLY) -->
+        <div id="page-pengumuman" class="app-page d-none hrd-only">
           <div class="card border-0 shadow-sm">
             <div
               class="card-header bg-white py-2 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -5232,8 +5232,8 @@
           <span class="bottom-nav-label">Cuti</span>
         </button>
 
-        <!-- 4. PENGUMUMAN -->
-        <button type="button" class="bottom-nav-item" id="bnav-pengumuman"
+        <!-- 4. PENGUMUMAN (HRD ONLY) -->
+        <button type="button" class="bottom-nav-item hrd-only d-none" id="bnav-pengumuman"
           onclick="switchBottomNav('pengumuman', this)">
           <div class="bottom-nav-icon-wrapper position-relative">
             <i class="bi bi-bell-fill bottom-nav-icon"></i>
@@ -8064,6 +8064,12 @@
 
       window.showPage = function (pageName, navEl, isFirstLogin) {
         if (!Auth.isVerified()) { logout(); return; }
+
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        if (pageName === 'pengumuman' && (!user || user.role !== 'Admin')) {
+          pageName = 'dashboard';
+          navEl = document.getElementById('nav-item-dashboard');
+        }
 
         if (isMobileSidebar()) closeSidebar();
 

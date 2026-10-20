@@ -3562,7 +3562,9 @@ function getActiveAnnouncement() {
 function getAnnouncements(token) {
   const session = validateSession(token);
   if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
-  const isAdmin = (session.user.role === 'Admin');
+  if (session.user.role !== 'Admin') {
+    return { success: false, message: 'Akses ditolak. Fitur kelola pengumuman hanya untuk Admin/HRD.' };
+  }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = getOrCreatePengumumanSheet(ss);
@@ -3574,7 +3576,6 @@ function getAnnouncements(token) {
     const id = String(row[0] || '').trim();
     if (!id) continue;
     const status = String(row[6] || 'Aktif').trim();
-    if (!isAdmin && status !== 'Aktif') continue;
 
     list.push({
       id: id,
