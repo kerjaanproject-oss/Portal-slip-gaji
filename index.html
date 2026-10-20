@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwwJz4euan_1dYtpWdryktqv0vNTA0DNXLqeezvZ6cqmNfy_UppVNnVVyqT_P_T-qb0/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbxvUJl8ox1c7SLSill8CeUjJNTZZdJPBAuyhOgDmpUlhYlnnVGQiIfo78YgG2KJR6si/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -996,8 +996,14 @@
         max-width: 34vw;
       }
 
-      .topbar .sidebar-toggle {
-        flex-shrink: 0;
+      .sidebar-toggle,
+      #sidebarToggle {
+        display: none !important;
+      }
+
+      .sidebar,
+      .sidebar-backdrop {
+        display: none !important;
       }
 
       .card-header {
@@ -3277,6 +3283,271 @@
       background-color: #334155 !important;
       color: #ffffff !important;
     }
+
+    /* ==========================================================================
+       MOBILE BOTTOM NAVIGATION BAR (NATIVE APP EXPERIENCE)
+       ========================================================================== */
+    .mobile-bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: 64px;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+      z-index: 1030;
+      display: block;
+    }
+
+    [data-theme="dark"] .mobile-bottom-nav {
+      background: rgba(15, 23, 42, 0.94);
+      border-top: 1px solid rgba(51, 65, 85, 0.8);
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .bottom-nav-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      height: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 0.25rem;
+    }
+
+    .bottom-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 0;
+      outline: none;
+      padding: 6px 0;
+      color: #64748b;
+      text-decoration: none;
+      transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s ease;
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .bottom-nav-item:active {
+      transform: scale(0.92);
+    }
+
+    .bottom-nav-icon-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 28px;
+      margin-bottom: 2px;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bottom-nav-icon {
+      font-size: 1.35rem;
+      transition: all 0.2s ease;
+      line-height: 1;
+    }
+
+    .bottom-nav-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      transition: color 0.2s ease;
+      line-height: 1.2;
+    }
+
+    /* ACTIVE STATE */
+    .bottom-nav-item.active {
+      color: #0284c7;
+    }
+
+    .bottom-nav-item.active .bottom-nav-icon-wrapper {
+      transform: translateY(-2px);
+    }
+
+    .bottom-nav-item.active .bottom-nav-label {
+      color: #0284c7;
+      font-weight: 700;
+    }
+
+    .bottom-nav-item.active::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      width: 16px;
+      height: 3px;
+      background: #0284c7;
+      border-radius: 9999px;
+      box-shadow: 0 1px 4px rgba(2, 132, 199, 0.4);
+    }
+
+    [data-theme="dark"] .bottom-nav-item {
+      color: #94a3b8;
+    }
+
+    [data-theme="dark"] .bottom-nav-item.active {
+      color: #38bdf8;
+    }
+
+    [data-theme="dark"] .bottom-nav-item.active .bottom-nav-label {
+      color: #38bdf8;
+    }
+
+    [data-theme="dark"] .bottom-nav-item.active::after {
+      background: #38bdf8;
+      box-shadow: 0 1px 6px rgba(56, 189, 248, 0.5);
+    }
+
+    .bottom-nav-badge {
+      position: absolute;
+      top: -3px;
+      right: -8px;
+      font-size: 0.6rem;
+      padding: 0.2em 0.45em;
+      min-width: 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* PADDING UNTUK KONTEN MOBILE AGAR TIDAK TERTUTUP BOTTOM NAV */
+    @media (max-width: 991.98px) {
+      .main-content {
+        padding-bottom: 84px !important;
+      }
+    }
+
+    @media (min-width: 992px) {
+      .mobile-bottom-nav {
+        display: none !important;
+      }
+    }
+
+    /* ==========================================================================
+       DASHBOARD & PROFILE MODERN STYLES
+       ========================================================================== */
+    .dash-hero-card {
+      background: linear-gradient(135deg, #0369a1 0%, #0d9488 50%, #047857 100%);
+      color: white;
+      border-radius: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dash-hero-card::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .dash-action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.15rem 0.75rem;
+      border-radius: 1rem;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+      text-decoration: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      cursor: pointer;
+    }
+
+    .dash-action-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      color: #0284c7;
+      border-color: #cbd5e1;
+    }
+
+    .dash-action-btn:active {
+      transform: scale(0.96);
+    }
+
+    [data-theme="dark"] .dash-action-btn {
+      background: #1e293b;
+      border-color: #334155;
+      color: #f1f5f9;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] .dash-action-btn:hover {
+      background: #273549;
+      color: #38bdf8;
+      border-color: #475569;
+    }
+
+    .dash-action-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.45rem;
+      margin-bottom: 0.65rem;
+      transition: transform 0.2s ease;
+    }
+
+    .dash-action-btn:hover .dash-action-icon {
+      transform: scale(1.08);
+    }
+
+    .profile-avatar-circle {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+      color: white;
+      font-size: 1.85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+      border: 3px solid #ffffff;
+    }
+
+    [data-theme="dark"] .profile-avatar-circle {
+      border-color: #1e293b;
+    }
+
+    .profile-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 1.15rem;
+      border-bottom: 1px solid #f1f5f9;
+      background: transparent;
+      transition: background 0.15s ease;
+    }
+
+    .profile-list-item:last-child {
+      border-bottom: none;
+    }
+
+    [data-theme="dark"] .profile-list-item {
+      border-bottom-color: #334155;
+    }
   </style>
 </head>
 
@@ -3428,9 +3699,17 @@
       </div>
 
       <ul class="sidebar-menu">
+        <!-- BERANDA / DASHBOARD (SEMUA ROLE) -->
+        <li>
+          <a class="nav-item-custom active" id="nav-item-dashboard" onclick="showPage('dashboard', this)">
+            <i class="bi bi-house-door w-20px"></i>
+            <span>Beranda</span>
+          </a>
+        </li>
+
         <!-- HRD MENU -->
         <li class="hrd-only">
-          <a class="nav-item-custom active" onclick="showPage('karyawan', this)">
+          <a class="nav-item-custom" id="nav-item-karyawan" onclick="showPage('karyawan', this)">
             <i class="bi bi-person-gear w-20px"></i>
             <span>Data Karyawan</span>
           </a>
@@ -3444,29 +3723,29 @@
           </a>
         </li>
         <li class="hrd-only">
-          <a class="nav-item-custom" onclick="showPage('master', this)">
+          <a class="nav-item-custom" id="nav-item-master" onclick="showPage('master', this)">
             <i class="bi bi-diagram-3 w-20px"></i>
             <span>Master Departemen</span>
           </a>
         </li>
         <li class="hrd-only">
-          <a class="nav-item-custom" onclick="showPage('upload-slip', this)">
+          <a class="nav-item-custom" id="nav-item-upload-slip" onclick="showPage('upload-slip', this)">
             <i class="bi bi-cloud-arrow-up w-20px"></i>
             <span>Slip Gaji</span>
           </a>
         </li>
-        <li class="hrd-only">
+
+        <!-- PENGUMUMAN (SEMUA ROLE) -->
+        <li>
           <a class="nav-item-custom" id="nav-item-pengumuman" onclick="showPage('pengumuman', this)">
             <i class="bi bi-megaphone w-20px"></i>
-            <span>Kelola Pengumuman</span>
+            <span>Pengumuman</span>
           </a>
         </li>
 
-
-
         <!-- KARYAWAN MENU -->
         <li class="karyawan-only">
-          <a class="nav-item-custom" onclick="showPage('slip-saya', this)">
+          <a class="nav-item-custom" id="nav-item-slip-saya" onclick="showPage('slip-saya', this)">
             <i class="bi bi-folder w-20px"></i>
             <span>Slip Gaji Saya</span>
           </a>
@@ -3517,6 +3796,14 @@
             </li>
           </ul>
         </li>
+
+        <!-- PROFIL & AKUN (SEMUA ROLE) -->
+        <li>
+          <a class="nav-item-custom" id="nav-item-profil" onclick="showPage('profil', this)">
+            <i class="bi bi-person-circle w-20px"></i>
+            <span>Profil &amp; Akun</span>
+          </a>
+        </li>
       </ul>
 
       <div class="sidebar-footer">
@@ -3534,7 +3821,7 @@
       <!-- TOPBAR -->
       <header class="topbar">
         <div class="d-flex align-items-center gap-3">
-          <button class="btn btn-light sidebar-toggle" id="sidebarToggle" type="button" onclick="toggleSidebar()"
+          <button class="btn btn-light sidebar-toggle d-none d-lg-inline-flex" id="sidebarToggle" type="button" onclick="toggleSidebar()"
             aria-controls="appSidebar" aria-expanded="true" aria-label="Sembunyikan sidebar"
             title="Tampilkan / sembunyikan sidebar">
             <i class="bi bi-list fs-4" aria-hidden="true"></i>
@@ -3594,8 +3881,231 @@
       <!-- PAGES -->
       <div class="app-body">
 
+        <!-- PAGE 0: BERANDA / DASHBOARD (SEMUA ROLE) -->
+        <div id="page-dashboard" class="app-page">
+          <!-- Welcome Hero Banner -->
+          <div class="card border-0 shadow-sm mb-4 dash-hero-card">
+            <div class="card-body p-4 p-md-4">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span class="badge bg-white text-dark fw-bold px-2.5 py-1.5 fs-7" id="dashRoleBadge">Karyawan</span>
+                    <span
+                      class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 px-2.5 py-1.5 fs-7"
+                      id="dashDeptBadge">-</span>
+                    <span
+                      class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 px-2.5 py-1.5 fs-7"
+                      id="dashIdBadge">-</span>
+                  </div>
+                  <h4 class="fw-bold mb-1 text-white" id="dashGreetingText">Selamat Datang, <span
+                      id="dashUserFullname">-</span></h4>
+                  <p class="mb-0 text-white text-opacity-75 small">PT Berkah Batu Bara &mdash; Portal Mandiri
+                    Kepegawaian &amp; Slip Gaji</p>
+                </div>
+                <div class="text-md-end text-white">
+                  <div class="fw-bold fs-6" id="dashLiveDate">-</div>
+                  <div class="text-white text-opacity-75 small d-flex align-items-center justify-content-md-end gap-1">
+                    <i class="bi bi-clock"></i> <span id="dashLiveClock">--:--:-- WIB</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Metric Stats Cards -->
+          <div class="row g-3 mb-4">
+            <!-- 1. Status Pola Roster & Hari Onsite -->
+            <div class="col-12 col-md-6 col-xl-4">
+              <div class="card border-0 shadow-sm h-100 p-3"
+                style="border-radius: 1rem; border-left: 5px solid #0284c7 !important;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div class="text-muted extra-small fw-bold text-uppercase">Status Pola Roster</div>
+                  <span class="badge bg-primary-subtle text-primary fw-semibold" id="dashRosterBadge">Roster</span>
+                </div>
+                <h5 class="fw-bold text-dark mb-1" id="dashRosterPolaText">Non-Roster</h5>
+                <div class="small text-muted mb-2" id="dashRosterStintText">Karyawan Reguler (Bukan Roster)</div>
+                <div class="progress mb-2" style="height: 6px;">
+                  <div class="progress-bar bg-primary" id="dashRosterProgressBar" role="progressbar" style="width: 0%;">
+                  </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center extra-small text-muted">
+                  <span id="dashRosterProgressLabel">0% Masa Kerja</span>
+                  <a href="javascript:void(0)" class="text-primary fw-semibold text-decoration-none"
+                    onclick="showPage('pengajuan-cuti')">Detail Cuti &rarr;</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Slip Gaji Terbaru -->
+            <div class="col-12 col-sm-6 col-xl-4">
+              <div class="card border-0 shadow-sm h-100 p-3"
+                style="border-radius: 1rem; border-left: 5px solid #10b981 !important;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div class="text-muted extra-small fw-bold text-uppercase">Slip Gaji Terakhir</div>
+                  <i class="bi bi-file-earmark-check-fill text-success fs-5"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-1" id="dashLatestSlipPeriod">-</h5>
+                <div class="small text-muted mb-3" id="dashLatestSlipDesc">Memeriksa ketersediaan slip gaji...</div>
+                <button type="button"
+                  class="btn btn-outline-success btn-sm w-100 fw-semibold d-flex align-items-center justify-content-center gap-1.5"
+                  onclick="showPage('slip-saya')">
+                  <i class="bi bi-eye"></i> Buka Slip Gaji Saya
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. Ringkasan Pengajuan Cuti / Approval -->
+            <div class="col-12 col-sm-6 col-xl-4">
+              <div class="card border-0 shadow-sm h-100 p-3"
+                style="border-radius: 1rem; border-left: 5px solid #f59e0b !important;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div class="text-muted extra-small fw-bold text-uppercase" id="dashCutiCardTitle">Pengajuan Cuti Saya
+                  </div>
+                  <i class="bi bi-calendar2-range text-warning fs-5"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-1" id="dashCutiCountText">0 Pengajuan</h5>
+                <div class="small text-muted mb-3" id="dashCutiDescText">Total permohonan cuti diajukan</div>
+                <button type="button"
+                  class="btn btn-outline-primary btn-sm w-100 fw-semibold d-flex align-items-center justify-content-center gap-1.5"
+                  id="dashCutiActionBtn" onclick="showPage('pengajuan-cuti')">
+                  <i class="bi bi-plus-circle"></i> Buat Pengajuan Cuti
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons Grid -->
+          <div class="card border-0 shadow-sm mb-4" style="border-radius: 1rem;">
+            <div class="card-header bg-white py-3 px-4 border-bottom">
+              <h6 class="fw-bold m-0 text-dark"><i class="bi bi-grid-fill text-primary me-2"></i>Aksi Cepat &amp; Menu
+                Utama</h6>
+            </div>
+            <div class="card-body p-3 p-md-4">
+              <div class="row g-2 g-sm-3 text-center">
+                <div class="col-4 col-md-2">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('slip-saya')">
+                    <div class="dash-action-icon bg-success-subtle text-success">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </div>
+                    <span class="small fw-semibold">Slip Saya</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('pengajuan-cuti')">
+                    <div class="dash-action-icon bg-primary-subtle text-primary">
+                      <i class="bi bi-file-earmark-plus"></i>
+                    </div>
+                    <span class="small fw-semibold">Ajukan Cuti</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('riwayat-cuti')">
+                    <div class="dash-action-icon bg-info-subtle text-info">
+                      <i class="bi bi-clock-history"></i>
+                    </div>
+                    <span class="small fw-semibold">Riwayat Cuti</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2 atasan-hrd-only d-none">
+                  <a href="javascript:void(0)" class="dash-action-btn position-relative"
+                    onclick="showPage('persetujuan-cuti')">
+                    <div class="dash-action-icon bg-warning-subtle text-warning">
+                      <i class="bi bi-shield-check"></i>
+                    </div>
+                    <span class="badge bg-danger rounded-pill position-absolute top-0 end-0 m-2 d-none"
+                      id="badgeDashApproval">0</span>
+                    <span class="small fw-semibold">Persetujuan</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2 atasan-hrd-only d-none">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('kalender-cuti')">
+                    <div class="dash-action-icon bg-indigo-subtle text-indigo"
+                      style="background-color: #e0e7ff; color: #4338ca;">
+                      <i class="bi bi-calendar3"></i>
+                    </div>
+                    <span class="small fw-semibold">Kalender Tim</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2 hrd-only d-none">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('karyawan')">
+                    <div class="dash-action-icon bg-secondary-subtle text-secondary">
+                      <i class="bi bi-person-gear"></i>
+                    </div>
+                    <span class="small fw-semibold">Data Karyawan</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2 hrd-only d-none">
+                  <a href="javascript:void(0)" class="dash-action-btn position-relative" onclick="showPage('persetujuan-pendaftar')">
+                    <div class="dash-action-icon bg-primary-subtle text-primary">
+                      <i class="bi bi-person-check"></i>
+                    </div>
+                    <span class="badge bg-danger rounded-pill position-absolute top-0 end-0 m-2 d-none" id="badgeDashPendaftar">0</span>
+                    <span class="small fw-semibold">Persetujuan Akun</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2 hrd-only d-none">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('master')">
+                    <div class="dash-action-icon bg-warning-subtle text-warning">
+                      <i class="bi bi-building-gear"></i>
+                    </div>
+                    <span class="small fw-semibold">Departemen</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2 hrd-only d-none">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('upload-slip')">
+                    <div class="dash-action-icon bg-success-subtle text-success">
+                      <i class="bi bi-cloud-arrow-up"></i>
+                    </div>
+                    <span class="small fw-semibold">Upload Slip</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2 hrd-only d-none">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('master-roster')">
+                    <div class="dash-action-icon bg-info-subtle text-info">
+                      <i class="bi bi-sliders"></i>
+                    </div>
+                    <span class="small fw-semibold">Pola Roster</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('pengumuman')">
+                    <div class="dash-action-icon bg-danger-subtle text-danger">
+                      <i class="bi bi-megaphone"></i>
+                    </div>
+                    <span class="small fw-semibold">Pengumuman</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="openManageSlipPinModal()">
+                    <div class="dash-action-icon bg-dark-subtle text-dark">
+                      <i class="bi bi-shield-lock"></i>
+                    </div>
+                    <span class="small fw-semibold">PIN Slip</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Highlight Pengumuman Aktif -->
+          <div class="card border-0 shadow-sm mb-4" id="dashAnnouncementCard"
+            style="border-radius: 1rem; display: none;">
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-bell-fill text-warning fs-5"></i>
+                <h6 class="fw-bold m-0 text-dark">Pengumuman Perusahaan Terbaru</h6>
+              </div>
+              <a href="javascript:void(0)" class="small fw-semibold text-primary text-decoration-none"
+                onclick="showPage('pengumuman')">Lihat Semua &rarr;</a>
+            </div>
+            <div class="card-body p-3 p-md-4" id="dashAnnouncementBody">
+              <!-- Filled via JavaScript -->
+            </div>
+          </div>
+        </div>
+
         <!-- PAGE 1: KARYAWAN (HRD) -->
-        <div id="page-karyawan" class="app-page">
+        <div id="page-karyawan" class="app-page d-none">
           <div class="card border-0 shadow-sm">
             <div
               class="card-header bg-white py-3 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -4518,13 +5028,13 @@
           </div>
         </div>
 
-        <!-- PAGE 7: KELOLA PENGUMUMAN (HRD ONLY) -->
-        <div id="page-pengumuman" class="app-page d-none hrd-only">
+        <!-- PAGE 6: PENGUMUMAN PERUSAHAAN (SEMUA ROLE) -->
+        <div id="page-pengumuman" class="app-page d-none">
           <div class="card border-0 shadow-sm">
             <div
               class="card-header bg-white py-2 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
               <h6 class="fw-bold m-0 text-dark">
-                <i class="bi bi-megaphone text-primary me-2"></i>Kelola Pengumuman Pop-up Login
+                <i class="bi bi-megaphone text-primary me-2"></i>Pengumuman Perusahaan
               </h6>
               <div class="d-flex align-items-center gap-2">
                 <input type="text" id="searchPengumuman" class="form-control form-control-sm"
@@ -4534,7 +5044,7 @@
                   title="Reset Filter">
                   <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
                 </button>
-                <button class="btn btn-primary btn-sm fw-semibold" onclick="openAddAnnouncementModal()">
+                <button class="btn btn-primary btn-sm fw-semibold hrd-only" onclick="openAddAnnouncementModal()">
                   <i class="bi bi-plus-circle me-1"></i>Tambah Pengumuman
                 </button>
               </div>
@@ -4567,8 +5077,180 @@
           </div>
         </div>
 
+        <!-- PAGE 7: PROFIL & AKUN SAYA (SEMUA ROLE) -->
+        <div id="page-profil" class="app-page d-none">
+          <!-- Profile Header Card -->
+          <div class="card border-0 shadow-sm mb-4" style="border-radius: 1.25rem; overflow: hidden;">
+            <div class="p-4 text-center text-white"
+              style="background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);">
+              <div class="profile-avatar-circle mx-auto mb-3 shadow" id="profileAvatarText">
+                --
+              </div>
+              <h5 class="fw-bold text-white mb-1" id="profileFullnameText">-</h5>
+              <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                <span class="badge bg-white text-dark fw-bold px-3 py-1.5" id="profileRoleBadge">-</span>
+                <span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 px-3 py-1.5"
+                  id="profileIdBadge">-</span>
+              </div>
+            </div>
+            <div class="card-body p-3 p-md-4">
+              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person-lines-fill text-primary me-2"></i>Informasi
+                Kepegawaian</h6>
+              <div class="list-group list-group-flush border rounded-3 mb-4">
+                <div class="profile-list-item">
+                  <span class="small text-muted"><i class="bi bi-building me-2"></i>Departemen / Divisi</span>
+                  <strong class="small text-dark" id="profileDeptText">-</strong>
+                </div>
+                <div class="profile-list-item">
+                  <span class="small text-muted"><i class="bi bi-briefcase me-2"></i>Jabatan</span>
+                  <strong class="small text-dark" id="profileJabatanText">-</strong>
+                </div>
+                <div class="profile-list-item">
+                  <span class="small text-muted"><i class="bi bi-calendar2-range me-2"></i>Pola Roster Kerja</span>
+                  <strong class="small text-dark" id="profileRosterText">-</strong>
+                </div>
+                <div class="profile-list-item">
+                  <span class="small text-muted"><i class="bi bi-calendar-event me-2"></i>Tanggal Mulai Masuk
+                    Site</span>
+                  <strong class="small text-dark" id="profileTglMasukText">-</strong>
+                </div>
+                <div class="profile-list-item">
+                  <span class="small text-muted"><i class="bi bi-envelope me-2"></i>Email Terdaftar</span>
+                  <strong class="small text-dark" id="profileEmailText">-</strong>
+                </div>
+                <div class="profile-list-item">
+                  <span class="small text-muted"><i class="bi bi-geo-alt me-2"></i>Lokasi Kerja / Jobsite</span>
+                  <strong class="small text-dark">TRIOP (PT Berkah Batu Bara)</strong>
+                </div>
+              </div>
+
+              <!-- Keamanan & Pengaturan Akun -->
+              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-shield-lock-fill text-success me-2"></i>Keamanan &amp;
+                Pengaturan Akun</h6>
+              <div class="row g-2 g-md-3 mb-4">
+                <div class="col-12 col-md-6">
+                  <div class="p-3 border rounded-3 h-100 d-flex align-items-center justify-content-between bg-light">
+                    <div class="d-flex align-items-center gap-3">
+                      <div
+                        class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+                        style="width: 42px; height: 42px; flex-shrink: 0;">
+                        <i class="bi bi-key-fill fs-5"></i>
+                      </div>
+                      <div>
+                        <div class="fw-bold small text-dark">Password Akun</div>
+                        <div class="extra-small text-muted">Amankan akses login Anda</div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm fw-semibold"
+                      onclick="openChangePasswordSelfModal()">
+                      Ubah Password
+                    </button>
+                  </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <div class="p-3 border rounded-3 h-100 d-flex align-items-center justify-content-between bg-light">
+                    <div class="d-flex align-items-center gap-3">
+                      <div
+                        class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center"
+                        style="width: 42px; height: 42px; flex-shrink: 0;">
+                        <i class="bi bi-shield-lock-fill fs-5"></i>
+                      </div>
+                      <div>
+                        <div class="fw-bold small text-dark">PIN Slip Gaji (6-Digit)</div>
+                        <div class="extra-small text-muted" id="profilePinStatusText">Memeriksa status PIN...</div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-success btn-sm fw-semibold"
+                      onclick="openManageSlipPinModal()">
+                      Kelola PIN
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tampilan Tema -->
+              <div class="p-3 border rounded-3 mb-4 d-flex align-items-center justify-content-between bg-light">
+                <div class="d-flex align-items-center gap-3">
+                  <div
+                    class="rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center"
+                    style="width: 42px; height: 42px; flex-shrink: 0;">
+                    <i class="bi bi-moon-stars-fill fs-5"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold small text-dark">Tema Tampilan Aplikasi</div>
+                    <div class="extra-small text-muted" id="profileThemeStatusText">Mode Terang (Light Mode)</div>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm fw-semibold" onclick="toggleTheme()">
+                  <i class="bi bi-arrow-repeat me-1"></i>Ganti Tema
+                </button>
+              </div>
+
+              <!-- Tombol Keluar Akun -->
+              <div class="pt-2">
+                <button type="button"
+                  class="btn btn-outline-danger w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-xs"
+                  onclick="confirmLogout()">
+                  <i class="bi bi-box-arrow-right fs-5"></i>
+                  <span>Keluar dari Aplikasi</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR (NATIVE APP EXPERIENCE) -->
+    <nav class="mobile-bottom-nav d-lg-none" id="mobileBottomNav" aria-label="Navigasi Utama Mobile">
+      <div class="bottom-nav-container">
+        <!-- 1. BERANDA -->
+        <button type="button" class="bottom-nav-item active" id="bnav-dashboard"
+          onclick="switchBottomNav('dashboard', this)">
+          <div class="bottom-nav-icon-wrapper">
+            <i class="bi bi-house-door-fill bottom-nav-icon"></i>
+          </div>
+          <span class="bottom-nav-label">Beranda</span>
+        </button>
+
+        <!-- 2. SLIP GAJI -->
+        <button type="button" class="bottom-nav-item" id="bnav-slip" onclick="switchBottomNav('slip', this)">
+          <div class="bottom-nav-icon-wrapper">
+            <i class="bi bi-file-earmark-text-fill bottom-nav-icon"></i>
+          </div>
+          <span class="bottom-nav-label">Slip Gaji</span>
+        </button>
+
+        <!-- 3. CUTI -->
+        <button type="button" class="bottom-nav-item" id="bnav-cuti" onclick="switchBottomNav('cuti', this)">
+          <div class="bottom-nav-icon-wrapper position-relative">
+            <i class="bi bi-calendar2-check-fill bottom-nav-icon"></i>
+            <span class="bottom-nav-badge badge bg-danger rounded-pill d-none" id="badgeBottomNavCuti">0</span>
+          </div>
+          <span class="bottom-nav-label">Cuti</span>
+        </button>
+
+        <!-- 4. PENGUMUMAN -->
+        <button type="button" class="bottom-nav-item" id="bnav-pengumuman"
+          onclick="switchBottomNav('pengumuman', this)">
+          <div class="bottom-nav-icon-wrapper position-relative">
+            <i class="bi bi-bell-fill bottom-nav-icon"></i>
+            <span class="bottom-nav-badge badge bg-danger rounded-pill d-none" id="badgeBottomNavPengumuman">!</span>
+          </div>
+          <span class="bottom-nav-label">Pengumuman</span>
+        </button>
+
+        <!-- 5. PROFIL -->
+        <button type="button" class="bottom-nav-item" id="bnav-profil" onclick="switchBottomNav('profil', this)">
+          <div class="bottom-nav-icon-wrapper">
+            <i class="bi bi-person-circle bottom-nav-icon"></i>
+          </div>
+          <span class="bottom-nav-label">Profil</span>
+        </button>
+      </div>
+    </nav>
   </section>
 
   <!-- MODAL: PENGUMUMAN POP-UP LOGIN (OPSI A) -->
@@ -6505,7 +7187,7 @@
       };
 
       function isMobileSidebar() {
-        return window.matchMedia('(max-width: 767.98px)').matches;
+        return window.matchMedia('(max-width: 991.98px)').matches;
       }
 
       function updateSidebarToggleState() {
@@ -6522,16 +7204,11 @@
       }
 
       window.toggleSidebar = function () {
+        if (isMobileSidebar()) return;
         var mainApp = document.getElementById('mainApp');
         if (!mainApp) return;
 
-        if (isMobileSidebar()) {
-          var willOpen = !mainApp.classList.contains('sidebar-open');
-          mainApp.classList.toggle('sidebar-open', willOpen);
-          document.body.classList.toggle('sidebar-open', willOpen);
-        } else {
-          mainApp.classList.toggle('sidebar-collapsed');
-        }
+        mainApp.classList.toggle('sidebar-collapsed');
         updateSidebarToggleState();
       };
 
@@ -7291,18 +7968,17 @@
             hrdElements.forEach(function (el) { el.classList.remove('d-none'); });
             karyawanElements.forEach(function (el) { el.classList.add('d-none'); });
             atasanElements.forEach(function (el) { el.classList.remove('d-none'); });
-            showPage('karyawan', null, isFirstLogin);
+            showPage('dashboard', document.getElementById('nav-item-dashboard'), isFirstLogin);
           } else if (isAtasan) {
             hrdElements.forEach(function (el) { el.classList.add('d-none'); });
             karyawanElements.forEach(function (el) { el.classList.remove('d-none'); });
             atasanElements.forEach(function (el) { el.classList.remove('d-none'); });
-            // Atasan langsung diarahkan ke submenu Persetujuan Cuti
-            showPage('persetujuan-cuti', document.getElementById('subitem-persetujuan-cuti'), isFirstLogin);
+            showPage('dashboard', document.getElementById('nav-item-dashboard'), isFirstLogin);
           } else {
             hrdElements.forEach(function (el) { el.classList.add('d-none'); });
             karyawanElements.forEach(function (el) { el.classList.remove('d-none'); });
             atasanElements.forEach(function (el) { el.classList.add('d-none'); });
-            showPage('slip-saya', null, isFirstLogin);
+            showPage('dashboard', document.getElementById('nav-item-dashboard'), isFirstLogin);
           }
           // Ambil status approval di background agar badge navbar & sidebar segera update
           if (user.role === 'Admin' || isAtasan) {
@@ -7352,6 +8028,40 @@
         }
       }
 
+      window.switchBottomNav = function (targetKey, btnEl) {
+        if (!Auth.isVerified()) return;
+        var user = Auth.getUser();
+        var isAtasan = (user.role === 'Supervisor' || user.role === 'supervisor' || (typeof isJobAtasan === 'function' && isJobAtasan(user.jabatan, user.role)));
+
+        if (targetKey === 'dashboard') {
+          showPage('dashboard', document.getElementById('nav-item-dashboard'));
+        } else if (targetKey === 'slip') {
+          if (user.role === 'Admin') {
+            showPage('upload-slip', document.getElementById('nav-item-upload-slip'));
+          } else {
+            showPage('slip-saya', document.getElementById('nav-item-slip-saya'));
+          }
+        } else if (targetKey === 'cuti') {
+          if (user.role === 'Admin' || isAtasan) {
+            var pendingApprovals = (dbCutiList && dbCutiList.length) ? dbCutiList.filter(function (c) {
+              if (user.role === 'Admin') return c.status === 'Disetujui Atasan' || c.status === 'Menunggu Persetujuan';
+              return c.status === 'Menunggu Persetujuan';
+            }).length : 0;
+            if (pendingApprovals > 0) {
+              showPage('persetujuan-cuti', document.getElementById('subitem-persetujuan-cuti'));
+            } else {
+              showPage('pengajuan-cuti', document.getElementById('subitem-pengajuan-cuti'));
+            }
+          } else {
+            showPage('pengajuan-cuti', document.getElementById('subitem-pengajuan-cuti'));
+          }
+        } else if (targetKey === 'pengumuman') {
+          showPage('pengumuman', document.getElementById('nav-item-pengumuman'));
+        } else if (targetKey === 'profil') {
+          showPage('profil', document.getElementById('nav-item-profil'));
+        }
+      };
+
       window.showPage = function (pageName, navEl, isFirstLogin) {
         if (!Auth.isVerified()) { logout(); return; }
 
@@ -7371,6 +8081,27 @@
         });
         if (navEl) navEl.classList.add('active');
 
+        // Update Bottom Nav active state
+        document.querySelectorAll('.bottom-nav-item').forEach(function (btn) {
+          btn.classList.remove('active');
+        });
+        if (pageName === 'dashboard') {
+          var bDash = document.getElementById('bnav-dashboard');
+          if (bDash) bDash.classList.add('active');
+        } else if (pageName === 'slip-saya' || pageName === 'upload-slip') {
+          var bSlip = document.getElementById('bnav-slip');
+          if (bSlip) bSlip.classList.add('active');
+        } else if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'kalender-cuti' || pageName === 'master-roster') {
+          var bCuti = document.getElementById('bnav-cuti');
+          if (bCuti) bCuti.classList.add('active');
+        } else if (pageName === 'pengumuman') {
+          var bPeng = document.getElementById('bnav-pengumuman');
+          if (bPeng) bPeng.classList.add('active');
+        } else if (pageName === 'profil') {
+          var bProf = document.getElementById('bnav-profil');
+          if (bProf) bProf.classList.add('active');
+        }
+
         if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'kalender-cuti' || pageName === 'master-roster') {
           var subm = document.getElementById('submenuCuti');
           if (subm) subm.classList.remove('d-none');
@@ -7381,6 +8112,8 @@
         }
 
         var titles = {
+          'dashboard': 'Beranda Utama',
+          'profil': 'Profil & Keamanan Akun',
           'karyawan': 'Kelola Data Karyawan',
           'master': 'Master Data Departemen',
           'persetujuan-pendaftar': 'Persetujuan Pendaftaran Akun',
@@ -7391,11 +8124,279 @@
           'persetujuan-cuti': 'Persetujuan Cuti Karyawan',
           'kalender-cuti': 'Kalender Cuti Tim & Departemen',
           'master-roster': 'Master Pola Roster Perusahaan',
-          'pengumuman': 'Kelola Pengumuman Pop-up Login'
+          'pengumuman': 'Pengumuman Perusahaan'
         };
         document.getElementById('pageTitle').innerText = titles[pageName] || 'Portal Slip Gaji';
 
         loadPageData(pageName, isFirstLogin);
+      };
+
+      function startDashboardClock() {
+        if (window._dashClockTimer) clearInterval(window._dashClockTimer);
+        function updateClock() {
+          var now = new Date();
+          var timeEl = document.getElementById('dashLiveClock');
+          var dateEl = document.getElementById('dashLiveDate');
+          if (timeEl) {
+            var hh = String(now.getHours()).padStart(2, '0');
+            var mm = String(now.getMinutes()).padStart(2, '0');
+            var ss = String(now.getSeconds()).padStart(2, '0');
+            timeEl.textContent = hh + ':' + mm + ':' + ss + ' WIB';
+          }
+          if (dateEl) {
+            var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            var months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            dateEl.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+          }
+        }
+        updateClock();
+        window._dashClockTimer = setInterval(updateClock, 1000);
+      }
+
+      window.renderDashboard = function () {
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        if (!user) return;
+
+        var elFullname = document.getElementById('dashUserFullname');
+        if (elFullname) elFullname.textContent = user.fullname || user.username;
+        var elRole = document.getElementById('dashRoleBadge');
+        if (elRole) elRole.textContent = user.role === 'Admin' ? 'HRD / Administrator' : (user.role || 'Karyawan');
+        var elDept = document.getElementById('dashDeptBadge');
+        if (elDept) elDept.textContent = user.dept || 'TRIOP';
+        var elId = document.getElementById('dashIdBadge');
+        if (elId) elId.textContent = 'ID: ' + user.username;
+
+        var hour = new Date().getHours();
+        var greeting = 'Selamat Pagi';
+        if (hour >= 11 && hour < 15) greeting = 'Selamat Siang';
+        else if (hour >= 15 && hour < 18) greeting = 'Selamat Sore';
+        else if (hour >= 18 || hour < 5) greeting = 'Selamat Malam';
+        var elGreeting = document.getElementById('dashGreetingText');
+        if (elGreeting) elGreeting.innerHTML = greeting + ', <span id="dashUserFullname">' + (user.fullname || user.username) + '</span>';
+
+        startDashboardClock();
+
+        var empFromDb = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) {
+          return String(k.id || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+        }) : null;
+        var pola = (empFromDb && empFromDb.polaRoster) ? empFromDb.polaRoster : (user.polaRoster || 'Non-Roster');
+        var tglMulai = (empFromDb && empFromDb.tglMulaiKerja) ? empFromDb.tglMulaiKerja : (user.tglMulaiKerja || '');
+
+        var elPola = document.getElementById('dashRosterPolaText');
+        var elStint = document.getElementById('dashRosterStintText');
+        var elBar = document.getElementById('dashRosterProgressBar');
+        var elBarLabel = document.getElementById('dashRosterProgressLabel');
+        var elBadge = document.getElementById('dashRosterBadge');
+
+        if (!pola || pola === 'Non-Roster') {
+          if (elPola) elPola.textContent = 'Non-Roster / Reguler';
+          if (elStint) elStint.textContent = 'Karyawan Reguler (Mengikuti hak cuti tahunan)';
+          if (elBar) { elBar.style.width = '100%'; elBar.className = 'progress-bar bg-secondary'; }
+          if (elBarLabel) elBarLabel.textContent = 'Reguler';
+          if (elBadge) { elBadge.className = 'badge bg-secondary-subtle text-secondary fw-semibold'; elBadge.textContent = 'Reguler'; }
+        } else if (!tglMulai) {
+          if (elPola) elPola.textContent = pola;
+          if (elStint) elStint.textContent = 'Tanggal mulai kerja belum diatur HRD';
+          if (elBar) { elBar.style.width = '0%'; elBar.className = 'progress-bar bg-warning'; }
+          if (elBarLabel) elBarLabel.textContent = 'Belum diatur';
+          if (elBadge) { elBadge.className = 'badge bg-warning-subtle text-warning fw-semibold'; elBadge.textContent = 'Perlu Setup'; }
+        } else {
+          if (elPola) elPola.textContent = pola;
+          var rosterDef = (dbRoster && dbRoster.length) ? dbRoster.find(function (r) {
+            return String(r.nama || '').trim().toLowerCase() === String(pola || '').trim().toLowerCase();
+          }) : null;
+
+          var wDays = rosterDef ? parseInt(rosterDef.kerja) : 0;
+          var lDays = rosterDef ? parseInt(rosterDef.cuti) : 0;
+
+          var myEmpId = String(user.username || '').trim().toLowerCase();
+          var latestCutiRoster = (dbCutiList && dbCutiList.length) ? dbCutiList.find(function (c) {
+            var isMe = (c.empId && String(c.empId).trim().toLowerCase() === myEmpId);
+            var isRoster = c.jenisCuti && String(c.jenisCuti).toLowerCase().indexOf('roster') !== -1;
+            var notRejected = c.status !== 'Ditolak' && c.status !== 'Ditolak Atasan' && c.status !== 'Ditolak HRD';
+            return isMe && isRoster && notRejected;
+          }) : null;
+
+          var dStart;
+          if (latestCutiRoster && latestCutiRoster.tanggalSelesai) {
+            var dEndLast = new Date(latestCutiRoster.tanggalSelesai + 'T00:00:00');
+            if (!isNaN(dEndLast.getTime())) {
+              dEndLast.setDate(dEndLast.getDate() + 1);
+              dStart = dEndLast;
+            }
+          }
+          if (!dStart) {
+            dStart = new Date(tglMulai + 'T00:00:00');
+          }
+
+          var today = new Date();
+          today.setHours(0, 0, 0, 0);
+          var elapsedDays = 0;
+          if (!isNaN(dStart.getTime())) {
+            var diffMs = today.getTime() - dStart.getTime();
+            elapsedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+            if (elapsedDays < 1) elapsedDays = 1;
+          }
+
+          if (wDays > 0) {
+            var pct = Math.min(100, Math.round((elapsedDays / wDays) * 100));
+            if (elBar) {
+              elBar.style.width = pct + '%';
+              elBar.className = pct >= 100 ? 'progress-bar bg-danger' : (pct >= 80 ? 'progress-bar bg-warning' : 'progress-bar bg-primary');
+            }
+            if (elStint) elStint.textContent = 'Hari ke-' + elapsedDays + ' dari ' + wDays + ' hari onsite';
+            if (elBarLabel) elBarLabel.textContent = pct + '% masa kerja';
+            if (elBadge) {
+              elBadge.className = pct >= 100 ? 'badge bg-danger text-white fw-semibold' : 'badge bg-primary-subtle text-primary fw-semibold';
+              elBadge.textContent = pct >= 100 ? 'Siap Cuti' : 'Onsite';
+            }
+          } else {
+            if (elStint) elStint.textContent = 'Hari ke-' + elapsedDays + ' onsite';
+          }
+        }
+
+        // Slip Gaji Terakhir
+        var elSlipPeriod = document.getElementById('dashLatestSlipPeriod');
+        var elSlipDesc = document.getElementById('dashLatestSlipDesc');
+        var mySlips = (dbSlips && dbSlips.length) ? dbSlips.filter(function (s) {
+          return String(s.empId || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+        }) : [];
+
+        if (mySlips.length > 0) {
+          var latestSlip = mySlips[0];
+          if (elSlipPeriod) elSlipPeriod.textContent = latestSlip.bulan + ' ' + latestSlip.tahun;
+          if (elSlipDesc) elSlipDesc.textContent = 'Slip gaji periode ' + latestSlip.bulan + ' ' + latestSlip.tahun + ' siap diakses.';
+        } else {
+          if (elSlipPeriod) elSlipPeriod.textContent = 'Belum Ada';
+          if (elSlipDesc) elSlipDesc.textContent = 'Belum ada data slip gaji yang diterbitkan untuk akun Anda.';
+        }
+
+        // Status Pengajuan Cuti / Approval
+        var isAtasan = (user.role === 'Supervisor' || user.role === 'supervisor' || (typeof isJobAtasan === 'function' && isJobAtasan(user.jabatan, user.role)));
+        var elCutiTitle = document.getElementById('dashCutiCardTitle');
+        var elCutiCount = document.getElementById('dashCutiCountText');
+        var elCutiDesc = document.getElementById('dashCutiDescText');
+        var elCutiBtn = document.getElementById('dashCutiActionBtn');
+
+        if (user.role === 'Admin' || isAtasan) {
+          var pendingCount = (dbCutiList && dbCutiList.length) ? dbCutiList.filter(function (c) {
+            if (user.role === 'Admin') return c.status === 'Disetujui Atasan' || c.status === 'Menunggu Persetujuan';
+            return c.status === 'Menunggu Persetujuan';
+          }).length : 0;
+
+          if (pendingCount > 0) {
+            if (elCutiTitle) elCutiTitle.textContent = 'Persetujuan Cuti Menunggu';
+            if (elCutiCount) elCutiCount.innerHTML = '<span class="text-danger">' + pendingCount + ' Permohonan</span>';
+            if (elCutiDesc) elCutiDesc.textContent = 'Ada cuti anggota tim yang membutuhkan persetujuan Anda.';
+            if (elCutiBtn) {
+              elCutiBtn.innerHTML = '<i class="bi bi-shield-check me-1"></i> Buka Persetujuan Cuti';
+              elCutiBtn.onclick = function () { showPage('persetujuan-cuti'); };
+            }
+          } else {
+            if (elCutiTitle) elCutiTitle.textContent = 'Persetujuan Cuti Tim';
+            if (elCutiCount) elCutiCount.textContent = 'Semua Selesai';
+            if (elCutiDesc) elCutiDesc.textContent = 'Tidak ada permohonan cuti tertunda saat ini.';
+            if (elCutiBtn) {
+              elCutiBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Buat Pengajuan Cuti';
+              elCutiBtn.onclick = function () { showPage('pengajuan-cuti'); };
+            }
+          }
+        } else {
+          var myLeaves = (dbCutiList && dbCutiList.length) ? dbCutiList.filter(function (c) {
+            return String(c.empId || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+          }) : [];
+          if (elCutiTitle) elCutiTitle.textContent = 'Pengajuan Cuti Saya';
+          if (elCutiCount) elCutiCount.textContent = myLeaves.length + ' Pengajuan';
+          if (elCutiDesc) elCutiDesc.textContent = 'Total permohonan cuti yang telah Anda ajukan.';
+          if (elCutiBtn) {
+            elCutiBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Buat Pengajuan Cuti';
+            elCutiBtn.onclick = function () { showPage('pengajuan-cuti'); };
+          }
+        }
+
+        // Preview Pengumuman Terkini jika ada
+        var elAnnCard = document.getElementById('dashAnnouncementCard');
+        var elAnnBody = document.getElementById('dashAnnouncementBody');
+        if (elAnnCard && elAnnBody && typeof dbPengumuman !== 'undefined' && dbPengumuman && dbPengumuman.length > 0) {
+          var activeAnn = dbPengumuman.find(function (a) { return a.status === 'Aktif'; }) || dbPengumuman[0];
+          if (activeAnn) {
+            elAnnCard.style.display = 'block';
+            elAnnBody.innerHTML =
+              '<div class="d-flex align-items-start justify-content-between gap-3">' +
+              '<div>' +
+              '<div class="d-flex align-items-center gap-2 mb-1.5">' +
+              '<span class="badge ' + (activeAnn.tipe === 'Mendesak' ? 'bg-danger' : (activeAnn.tipe === 'Penting' ? 'bg-warning text-dark' : 'bg-primary')) + ' rounded-pill px-2.5 py-1 extra-small">' + activeAnn.tipe + '</span>' +
+              '<span class="text-muted extra-small"><i class="bi bi-calendar3 me-1"></i>' + (activeAnn.tanggalDibuat || '') + '</span>' +
+              '</div>' +
+              '<h6 class="fw-bold text-dark mb-1">' + activeAnn.judul + '</h6>' +
+              '<p class="text-muted small mb-0" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">' + (activeAnn.isi || '').replace(/\n/g, ' ') + '</p>' +
+              '</div>' +
+              '</div>';
+          } else {
+            elAnnCard.style.display = 'none';
+          }
+        }
+      };
+
+      window.renderProfilePage = function () {
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        if (!user) return;
+
+        var empFromDb = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) {
+          return String(k.id || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+        }) : null;
+
+        var fullname = (empFromDb && empFromDb.name) ? empFromDb.name : (user.fullname || user.username);
+        var dept = (empFromDb && empFromDb.dept) ? empFromDb.dept : (user.dept || '-');
+        var jabatan = (empFromDb && empFromDb.jabatan) ? empFromDb.jabatan : (user.jabatan || '-');
+        var pola = (empFromDb && empFromDb.polaRoster) ? empFromDb.polaRoster : (user.polaRoster || 'Non-Roster');
+        var tglMasuk = (empFromDb && empFromDb.tglMulaiKerja) ? empFromDb.tglMulaiKerja : (user.tglMulaiKerja || '-');
+        var email = (empFromDb && empFromDb.email) ? empFromDb.email : (user.email || '-');
+
+        var initials = '--';
+        if (fullname) {
+          var parts = fullname.trim().split(/\s+/);
+          if (parts.length >= 2) {
+            initials = (parts[0][0] + parts[1][0]).toUpperCase();
+          } else if (parts.length === 1 && parts[0].length > 0) {
+            initials = parts[0].substring(0, 2).toUpperCase();
+          }
+        }
+
+        var elAvatar = document.getElementById('profileAvatarText');
+        if (elAvatar) elAvatar.textContent = initials;
+        var elFullname = document.getElementById('profileFullnameText');
+        if (elFullname) elFullname.textContent = fullname;
+        var elRole = document.getElementById('profileRoleBadge');
+        if (elRole) elRole.textContent = user.role === 'Admin' ? 'HRD / Administrator' : (user.role || 'Karyawan');
+        var elId = document.getElementById('profileIdBadge');
+        if (elId) elId.textContent = 'ID: ' + user.username;
+
+        var elDept = document.getElementById('profileDeptText');
+        if (elDept) elDept.textContent = dept;
+        var elJab = document.getElementById('profileJabatanText');
+        if (elJab) elJab.textContent = jabatan;
+        var elRoster = document.getElementById('profileRosterText');
+        if (elRoster) elRoster.textContent = pola;
+        var elTgl = document.getElementById('profileTglMasukText');
+        if (elTgl) elTgl.textContent = tglMasuk && tglMasuk !== '-' ? formatDateIndo(tglMasuk) : '-';
+        var elEmail = document.getElementById('profileEmailText');
+        if (elEmail) elEmail.textContent = email;
+
+        var elPin = document.getElementById('profilePinStatusText');
+        if (elPin) {
+          if (user.hasSlipPin) {
+            elPin.innerHTML = '<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>PIN Aktif (6 Digit)</span>';
+          } else {
+            elPin.innerHTML = '<span class="text-warning fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i>PIN Belum Dibuat</span>';
+          }
+        }
+
+        var elTheme = document.getElementById('profileThemeStatusText');
+        if (elTheme) {
+          var currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+          elTheme.textContent = currentTheme === 'dark' ? 'Mode Gelap (Dark Mode Aktif)' : 'Mode Terang (Light Mode Aktif)';
+        }
       };
 
       function loadPageData(pageName, isFirstLogin) {
@@ -7404,7 +8405,7 @@
 
         showFullPageLoading('Mengambil data...');
 
-        if (pageName === 'karyawan' || pageName === 'master' || pageName === 'upload-slip' || pageName === 'persetujuan-pendaftar') {
+        if (pageName === 'dashboard' || pageName === 'profil' || pageName === 'karyawan' || pageName === 'master' || pageName === 'upload-slip' || pageName === 'persetujuan-pendaftar') {
           gasRun('getInitialData', token).then(function (res) {
             hideFullPageLoading();
             if (handleSessionExpired(res)) return;
@@ -7416,6 +8417,46 @@
               if (res.cuti) dbCutiList = res.cuti || [];
               if (res.pendingPendaftarCount !== undefined) {
                 updatePendingPendaftarBadge(res.pendingPendaftarCount);
+              }
+
+              var me = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) {
+                return String(k.id || '').trim().toLowerCase() === String(Auth.getUser().username || '').trim().toLowerCase();
+              }) : null;
+              if (me) {
+                var currentUser = Auth.getUser();
+                currentUser.polaRoster = me.polaRoster;
+                currentUser.tglMulaiKerja = me.tglMulaiKerja;
+                currentUser.dept = me.dept;
+                currentUser.jabatan = me.jabatan;
+                currentUser.fullname = me.name;
+                currentUser.email = me.email;
+                currentUser.hasSlipPin = me.hasSlipPin;
+                Auth.setUser(currentUser);
+              }
+
+              // Update Approval badges
+              var isAtasan = (currentUser && (currentUser.role === 'Supervisor' || currentUser.role === 'supervisor' || (typeof isJobAtasan === 'function' && isJobAtasan(currentUser.jabatan, currentUser.role))));
+              if (currentUser && (currentUser.role === 'Admin' || isAtasan)) {
+                var pendingApprovals = (dbCutiList && dbCutiList.length) ? dbCutiList.filter(function (c) {
+                  if (currentUser.role === 'Admin') return c.status === 'Disetujui Atasan' || c.status === 'Menunggu Persetujuan';
+                  return c.status === 'Menunggu Persetujuan';
+                }).length : 0;
+                var badgeBNav = document.getElementById('badgeBottomNavCuti');
+                if (badgeBNav) {
+                  if (pendingApprovals > 0) {
+                    badgeBNav.textContent = pendingApprovals;
+                    badgeBNav.classList.remove('d-none');
+                  } else {
+                    badgeBNav.classList.add('d-none');
+                  }
+                }
+              }
+
+              if (pageName === 'dashboard') {
+                renderDashboard();
+              }
+              if (pageName === 'profil') {
+                renderProfilePage();
               }
               if (pageName === 'karyawan') {
                 populateKaryawanDeptFilter();
@@ -7441,6 +8482,11 @@
                 showWelcomeModal();
               }
             }
+          }).catch(function (err) {
+            hideFullPageLoading();
+            if (pageName === 'dashboard') renderDashboard();
+            if (pageName === 'profil') renderProfilePage();
+            Swal.fire('Error Server', err.message || err.toString(), 'error');
           });
         } else if (pageName === 'slip-saya') {
           gasRun('getSlipKaryawan', token, 'SEMUA', 'SEMUA').then(function (res) {
@@ -8068,19 +9114,28 @@
 
           var isiSnippet = a.isi ? (a.isi.length > 70 ? a.isi.substring(0, 70) + '...' : a.isi) : '-';
 
+          var currentUser = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+          var isAdmin = currentUser && currentUser.role === 'Admin';
+          var statusDisplay = isAdmin ? statusBtn : ('<span class="badge ' + (isAktif ? 'bg-success' : 'bg-secondary') + '">' + escapeHTML(a.status || 'Aktif') + '</span>');
+
+          var actionHtml = '<div class="action-group">' +
+            '<button class="btn btn-sm btn-action btn-action-view" onclick="openDetailAnnouncementModal(\'' + escapeHTML(a.id) + '\')" title="Lihat Detail Pengumuman"><i class="bi bi-eye"></i></button>' +
+            '<button class="btn btn-sm btn-action text-success border-success-subtle bg-success-subtle" onclick="shareAnnouncementToWA(\'' + escapeHTML(a.id) + '\')" title="Bagikan ke WhatsApp"><i class="bi bi-whatsapp"></i> WA</button>';
+          if (isAdmin) {
+            actionHtml +=
+              '<button class="btn btn-sm btn-action btn-action-edit" onclick="openEditAnnouncementModal(\'' + escapeHTML(a.id) + '\')" title="Edit Pengumuman"><i class="bi bi-pencil-square"></i>Edit</button>' +
+              '<button class="btn btn-sm btn-action btn-action-delete" onclick="handleDeleteAnnouncement(\'' + escapeHTML(a.id) + '\')" title="Hapus Pengumuman"><i class="bi bi-trash"></i>Hapus</button>';
+          }
+          actionHtml += '</div>';
+
           tr.innerHTML =
             '<td class="text-center fw-bold text-dark">' + globalIdx + '</td>' +
             '<td><div class="fw-bold text-dark">' + escapeHTML(a.judul) + '</div><div class="text-muted extra-small mt-0.5" style="max-width: 320px;">' + escapeHTML(isiSnippet) + '</div></td>' +
             '<td class="text-center">' + tipeBadge + '</td>' +
             '<td class="text-center small">' + periodeText + '</td>' +
-            '<td class="text-center">' + statusBtn + '</td>' +
+            '<td class="text-center">' + statusDisplay + '</td>' +
             '<td class="small text-muted"><i class="bi bi-person me-1"></i>' + escapeHTML(a.dibuatOleh || 'HRD') + (a.tanggalDibuat ? '<div class="extra-small text-black-50">' + escapeHTML(formatDateDDMMYYYY(a.tanggalDibuat)) + '</div>' : '') + '</td>' +
-            '<td class="text-center text-nowrap"><div class="action-group">' +
-            '<button class="btn btn-sm btn-action btn-action-view" onclick="openDetailAnnouncementModal(\'' + escapeHTML(a.id) + '\')" title="Lihat Detail Pengumuman"><i class="bi bi-eye"></i></button>' +
-            '<button class="btn btn-sm btn-action text-success border-success-subtle bg-success-subtle" onclick="shareAnnouncementToWA(\'' + escapeHTML(a.id) + '\')" title="Bagikan ke WhatsApp"><i class="bi bi-whatsapp"></i> WA</button>' +
-            '<button class="btn btn-sm btn-action btn-action-edit" onclick="openEditAnnouncementModal(\'' + escapeHTML(a.id) + '\')" title="Edit Pengumuman"><i class="bi bi-pencil-square"></i>Edit</button>' +
-            '<button class="btn btn-sm btn-action btn-action-delete" onclick="handleDeleteAnnouncement(\'' + escapeHTML(a.id) + '\')" title="Hapus Pengumuman"><i class="bi bi-trash"></i>Hapus</button>' +
-            '</div></td>';
+            '<td class="text-center text-nowrap">' + actionHtml + '</td>';
 
           tbody.appendChild(tr);
         });
@@ -11080,7 +12135,7 @@
               if (canUserApproveCuti(c)) needApprovalCount++;
             });
 
-            // Update badge sidebar & badge tombol filter persetujuan
+            // Update badge sidebar, bottom nav, & dashboard approval
             var badgeNav = document.getElementById('badgeNavApproval');
             if (badgeNav) {
               badgeNav.innerText = needApprovalCount;
@@ -11088,6 +12143,26 @@
                 badgeNav.classList.remove('d-none');
               } else {
                 badgeNav.classList.add('d-none');
+              }
+            }
+
+            var badgeBNav = document.getElementById('badgeBottomNavCuti');
+            if (badgeBNav) {
+              badgeBNav.innerText = needApprovalCount;
+              if (needApprovalCount > 0) {
+                badgeBNav.classList.remove('d-none');
+              } else {
+                badgeBNav.classList.add('d-none');
+              }
+            }
+
+            var badgeDash = document.getElementById('badgeDashApproval');
+            if (badgeDash) {
+              badgeDash.innerText = needApprovalCount;
+              if (needApprovalCount > 0) {
+                badgeDash.classList.remove('d-none');
+              } else {
+                badgeDash.classList.add('d-none');
               }
             }
 
@@ -13763,6 +14838,16 @@
           }
         }
 
+        var bDash = document.getElementById('badgeDashPendaftar');
+        if (bDash) {
+          bDash.innerText = count;
+          if (count > 0) {
+            bDash.classList.remove('d-none');
+          } else {
+            bDash.classList.add('d-none');
+          }
+        }
+
         var bHead = document.getElementById('badgePendingPendaftarHeader');
         if (bHead) {
           bHead.innerText = count + ' Menunggu';
@@ -14106,6 +15191,7 @@
         initTheme();
         initConsoleSecurity();
         initInspectProtection();
+        if (isMobileSidebar()) closeSidebar();
         updateSidebarToggleState();
         checkLoginState();
         initSplashScreen();

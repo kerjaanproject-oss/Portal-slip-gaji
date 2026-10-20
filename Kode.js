@@ -3487,7 +3487,7 @@ function getActiveAnnouncement() {
 function getAnnouncements(token) {
   const session = validateSession(token);
   if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
-  if (session.user.role !== 'Admin') return { success: false, message: 'Akses ditolak. Hanya Admin/HRD yang dapat mengelola pengumuman.' };
+  const isAdmin = (session.user.role === 'Admin');
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = getOrCreatePengumumanSheet(ss);
@@ -3498,6 +3498,9 @@ function getAnnouncements(token) {
     const row = data[i];
     const id = String(row[0] || '').trim();
     if (!id) continue;
+    const status = String(row[6] || 'Aktif').trim();
+    if (!isAdmin && status !== 'Aktif') continue;
+
     list.push({
       id: id,
       judul: String(row[1] || '').trim(),
@@ -3505,7 +3508,7 @@ function getAnnouncements(token) {
       tipe: String(row[3] || 'Informasi').trim(),
       tanggalMulai: formatDateString(row[4]),
       tanggalSelesai: formatDateString(row[5]),
-      status: String(row[6] || 'Aktif').trim(),
+      status: status,
       tanggalDibuat: formatDateString(row[7]),
       dibuatOleh: String(row[8] || '').trim(),
       rowIndex: i + 1
