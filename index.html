@@ -846,9 +846,9 @@
             </div>
           </div>
         </div>
-                <!-- PAGE: INPUT DATA GAJI (HRD ONLY) -->
+                        <!-- PAGE: INPUT DATA GAJI (HRD ONLY) -->
         <div id="page-input-gaji" class="app-page d-none hrd-only">
-          <!-- PAGE HEADER WITH ACTIONS -->
+          <!-- CARD HEADER & ACTIONS -->
           <div class="card border-0 shadow-sm mb-3">
             <div class="card-body p-3 p-md-4">
               <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
@@ -857,120 +857,63 @@
                     <span class="p-2 rounded-3 bg-primary-subtle text-primary">
                       <i class="bi bi-wallet2"></i>
                     </span>
-                    Data Gaji Karyawan (Input Harian & Rekapitulasi)
+                    Data Gaji Karyawan
                   </h5>
                   <p class="text-muted small mb-0 mt-1">
-                    Input harian lembur, ritase, dan tunjangan harian per karyawan. Terakumulasi otomatis ke total akhir bulanan.
+                    Input dan pantau rincian komponen lembur, ritase, tunjangan, serta perkembangan total gaji per hari karyawan.
                   </p>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                   <button class="btn btn-primary btn-sm fw-semibold shadow-sm px-3" onclick="openModalDataGaji()">
-                    <i class="bi bi-plus-circle me-1.5"></i>Tambah Data Gaji Harian
+                    <i class="bi bi-plus-circle me-1.5"></i>Tambah Data Gaji
                   </button>
                   <button class="btn btn-outline-secondary btn-sm px-2.5" onclick="loadDataGajiList()" title="Segarkan Data">
                     <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                   </button>
                 </div>
               </div>
-
-              <!-- KPI SUMMARY CARDS FOR SELECTED PERIOD -->
-              <div class="row g-2 mt-2 pt-2 border-top">
-                <div class="col-6 col-md-3">
-                  <div class="p-2.5 rounded bg-light border">
-                    <small class="text-muted extra-small d-block text-uppercase fw-semibold">Total Catatan Harian</small>
-                    <span class="fs-6 fw-bold text-dark" id="kpiGajiTotalEntri">0 Entri</span>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="p-2.5 rounded bg-light border">
-                    <small class="text-muted extra-small d-block text-uppercase fw-semibold">Total Overtime</small>
-                    <span class="fs-6 fw-bold text-primary" id="kpiGajiTotalOvertime">0 Jam / Rp 0</span>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="p-2.5 rounded bg-light border">
-                    <small class="text-muted extra-small d-block text-uppercase fw-semibold">Total Ritase</small>
-                    <span class="fs-6 fw-bold text-warning" id="kpiGajiTotalRitase">0 Rit / Rp 0</span>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="p-2.5 rounded bg-light border">
-                    <small class="text-muted extra-small d-block text-uppercase fw-semibold">Total Tunjangan Harian</small>
-                    <span class="fs-6 fw-bold text-success" id="kpiGajiTotalTunjangan">Rp 0</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
-          <!-- CARD DAFTAR DATA GAJI & TABS -->
+          <!-- CARD DAFTAR DATA GAJI -->
           <div class="card border-0 shadow-sm">
-            <!-- TAB NAVIGATION -->
-            <div class="card-header bg-white p-0 border-bottom">
-              <ul class="nav nav-tabs card-header-tabs m-0 px-3 pt-2" id="dataGajiTabs">
-                <li class="nav-item">
-                  <button class="nav-link active fw-semibold small" id="tabBtnHarian" onclick="switchDataGajiTab('harian')">
-                    <i class="bi bi-calendar3 me-1.5 text-primary"></i>Catatan Input Harian 
-                    <span class="badge bg-primary-subtle text-primary ms-1" id="badgeCountHarian">0</span>
-                  </button>
-                </li>
-                <li class="nav-item">
-                  <button class="nav-link fw-semibold small" id="tabBtnRekap" onclick="switchDataGajiTab('rekap')">
-                    <i class="bi bi-calculator-fill me-1.5 text-success"></i>Rekapitulasi Total Akhir 
-                    <span class="badge bg-success-subtle text-success ms-1" id="badgeCountRekap">0</span>
-                  </button>
-                </li>
-              </ul>
+            <div class="card-header bg-white py-3 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <h6 class="fw-bold m-0 text-dark"><i class="bi bi-card-checklist text-primary me-2"></i>Daftar Riwayat Data Gaji Karyawan</h6>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 extra-small" id="badgeCountDataGaji">0 Data</span>
+              </div>
             </div>
 
             <!-- FILTER & SEARCH BAR -->
             <div class="p-3 bg-light border-bottom">
               <div class="row g-2 align-items-center">
-                <div class="col-md-3 col-sm-6">
-                  <label class="form-label extra-small text-muted mb-1">Filter Bulan:</label>
-                  <select id="filterDataGajiBulan" class="form-select form-select-sm" onchange="onDataGajiFilterChange()">
-                    <option value="SEMUA">-- Semua Bulan --</option>
-                    <option value="Januari">Januari</option>
-                    <option value="Februari">Februari</option>
-                    <option value="Maret">Maret</option>
-                    <option value="April">April</option>
-                    <option value="Mei">Mei</option>
-                    <option value="Juni">Juni</option>
-                    <option value="Juli">Juli</option>
-                    <option value="Agustus">Agustus</option>
-                    <option value="September">September</option>
-                    <option value="Oktober">Oktober</option>
-                    <option value="November">November</option>
-                    <option value="Desember">Desember</option>
-                  </select>
-                </div>
-                <div class="col-md-2 col-sm-6">
-                  <label class="form-label extra-small text-muted mb-1">Filter Tahun:</label>
-                  <select id="filterDataGajiTahun" class="form-select form-select-sm" onchange="onDataGajiFilterChange()">
-                    <option value="SEMUA">-- Semua Tahun --</option>
-                    <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                    <option value="2027">2027</option>
-                  </select>
-                </div>
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-4 col-sm-6">
                   <label class="form-label extra-small text-muted mb-1">Filter Departemen:</label>
-                  <select id="filterDataGajiDept" class="form-select form-select-sm" onchange="onDataGajiFilterChange()">
+                  <select id="filterDataGajiDept" class="form-select form-select-sm" onchange="renderDataGajiTable()">
                     <option value="SEMUA">-- Semua Departemen --</option>
                   </select>
                 </div>
-                <div class="col-md-4 col-sm-6">
-                  <label class="form-label extra-small text-muted mb-1">Cari Karyawan:</label>
+                <div class="col-md-3 col-sm-6">
+                  <label class="form-label extra-small text-muted mb-1">Filter Tanggal:</label>
+                  <input type="date" id="filterDataGajiTanggal" class="form-control form-control-sm" onchange="renderDataGajiTable()">
+                </div>
+                <div class="col-md-4 col-sm-10">
+                  <label class="form-label extra-small text-muted mb-1">Cari Karyawan / Catatan:</label>
                   <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" id="searchDataGaji" class="form-control" placeholder="Cari nama / ID karyawan..." onkeyup="renderCurrentDataGajiView()">
+                    <input type="text" id="searchDataGaji" class="form-control" placeholder="Cari nama, ID karyawan, tanggal..." onkeyup="renderDataGajiTable()">
                   </div>
+                </div>
+                <div class="col-md-1 col-sm-2 d-flex align-items-end">
+                  <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetDataGajiFilter()" title="Reset Filter">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
                 </div>
               </div>
             </div>
 
-            <!-- VIEW 1: TABEL CATATAN HARIAN -->
-            <div id="viewGajiHarian" class="card-body p-0">
+            <!-- TABLE CONTAINER -->
+            <div class="card-body p-0">
               <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
                   <thead class="text-white text-uppercase extra-small fw-bold">
@@ -979,58 +922,23 @@
                       <th>Tanggal Kerja</th>
                       <th>Karyawan</th>
                       <th>Departemen & Jabatan</th>
+                      <th class="text-end">Gaji Pokok</th>
                       <th class="text-end">Overtime</th>
                       <th class="text-end">Ritase</th>
                       <th class="text-end">Tunjangan Harian</th>
-                      <th class="text-end">Total Hari Ini</th>
+                      <th class="text-end bg-primary-subtle text-primary fw-bolder">TOTAL GAJI</th>
                       <th>Catatan</th>
                       <th class="text-center text-nowrap" style="width: 1%;">Aksi</th>
                     </tr>
                   </thead>
                   <tbody id="tableBodyDataGaji">
                     <tr>
-                      <td colspan="10" class="text-center text-muted py-4">Memuat data gaji harian...</td>
+                      <td colspan="11" class="text-center text-muted py-4">Memuat data gaji...</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
               <div id="paginationDataGaji"></div>
-            </div>
-
-            <!-- VIEW 2: TABEL REKAPITULASI TOTAL AKHIR PER KARYAWAN -->
-            <div id="viewGajiRekap" class="card-body p-0 d-none">
-              <div class="p-3 bg-light-subtle border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-success text-white px-2.5 py-1 extra-small">Rekapitulasi Otomatis</span>
-                  <small class="text-muted">Total akhir per karyawan = Gaji Pokok (Master) + Total Overtime + Total Ritase + Total Tunjangan</small>
-                </div>
-                <button class="btn btn-outline-success btn-sm" onclick="exportRekapGajiCsv()">
-                  <i class="bi bi-file-earmark-spreadsheet me-1"></i>Ekspor Ringkasan CSV
-                </button>
-              </div>
-              <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                  <thead class="text-white text-uppercase extra-small fw-bold bg-success">
-                    <tr>
-                      <th class="text-center" style="width: 50px;">No</th>
-                      <th>Karyawan</th>
-                      <th>Departemen & Jabatan</th>
-                      <th class="text-center">Hari Kerja</th>
-                      <th class="text-end">Basic (Gaji Pokok)</th>
-                      <th class="text-end">Total Overtime</th>
-                      <th class="text-end">Total Ritase</th>
-                      <th class="text-end">Total Tunjangan</th>
-                      <th class="text-end fw-bolder bg-success-subtle text-success">TOTAL AKHIR GAJI</th>
-                      <th class="text-center" style="width: 1%;">Rincian</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tableBodyRekapGaji">
-                    <tr>
-                      <td colspan="10" class="text-center text-muted py-4">Memuat rekapitulasi gaji...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
             </div>
           </div>
         </div>
@@ -2609,13 +2517,13 @@
   </div>
 
   
-  <!-- MODAL: INPUT DATA GAJI (HARIAN) -->
+    <!-- MODAL: INPUT DATA GAJI -->
   <div class="modal fade" id="modalDataGaji" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content shadow">
         <div class="modal-header bg-primary text-white py-2.5 px-3">
           <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2" id="modalDataGajiTitle">
-            <i class="bi bi-wallet-fill"></i> Tambah Data Gaji Harian
+            <i class="bi bi-wallet-fill"></i> Tambah Data Gaji
           </h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
@@ -2625,36 +2533,13 @@
             <input type="hidden" id="gajiEmpIdHidden" value="">
             <input type="hidden" id="gajiEmpNameHidden" value="">
 
-            <!-- ROW 1: TANGGAL KERJA & PERIODE -->
-            <div class="row g-2 mb-3">
-              <div class="col-md-6 col-sm-12">
-                <label class="form-label fw-semibold small text-dark mb-1">
-                  <i class="bi bi-calendar-check me-1 text-primary"></i>Tanggal Kerja <span class="text-danger">*</span>
-                </label>
-                <input type="date" id="gajiTanggal" class="form-control form-control-sm" required onchange="onDataGajiTanggalChange()">
-                <div class="form-text extra-small">Tanggal kerja harian untuk lembur/ritase ini.</div>
-              </div>
-              <div class="col-md-3 col-6">
-                <label class="form-label fw-semibold small text-muted mb-1">Bulan</label>
-                <select id="gajiBulan" class="form-select form-select-sm" required>
-                  <option value="Januari">Januari</option>
-                  <option value="Februari">Februari</option>
-                  <option value="Maret">Maret</option>
-                  <option value="April">April</option>
-                  <option value="Mei">Mei</option>
-                  <option value="Juni">Juni</option>
-                  <option value="Juli">Juli</option>
-                  <option value="Agustus">Agustus</option>
-                  <option value="September">September</option>
-                  <option value="Oktober">Oktober</option>
-                  <option value="November">November</option>
-                  <option value="Desember">Desember</option>
-                </select>
-              </div>
-              <div class="col-md-3 col-6">
-                <label class="form-label fw-semibold small text-muted mb-1">Tahun</label>
-                <input type="number" id="gajiTahun" class="form-control form-control-sm" min="2020" max="2035" required>
-              </div>
+            <!-- ROW 1: TANGGAL KERJA -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold small text-dark mb-1">
+                <i class="bi bi-calendar-check me-1 text-primary"></i>Tanggal Kerja <span class="text-danger">*</span>
+              </label>
+              <input type="date" id="gajiTanggal" class="form-control form-control-sm" required>
+              <div class="form-text extra-small">Pilih tanggal kerja untuk pencatatan gaji ini.</div>
             </div>
 
             <!-- ROW 2: DEPARTEMEN & KARYAWAN -->
@@ -2701,7 +2586,7 @@
             <!-- SECTION: KOMPONEN HARIAN -->
             <div class="d-flex align-items-center justify-content-between mb-2">
               <h6 class="fw-bold text-dark small m-0 text-uppercase">
-                <i class="bi bi-clock-history text-primary me-1"></i>Komponen Gaji Harian
+                <i class="bi bi-clock-history text-primary me-1"></i>Komponen Gaji
               </h6>
               <span class="text-muted extra-small">Fleksibel (kosongkan jika tidak ada)</span>
             </div>
@@ -2709,7 +2594,7 @@
             <!-- ROW OVERTIME -->
             <div class="p-2.5 rounded bg-light border mb-2.5">
               <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="fw-bold extra-small text-dark"><i class="bi bi-stopwatch text-primary me-1"></i>Overtime (Lembur Hari Ini)</span>
+                <span class="fw-bold extra-small text-dark"><i class="bi bi-stopwatch text-primary me-1"></i>Overtime (Lembur)</span>
                 <span class="subtotal-pill" id="previewSubtotalOvertime">Rp 0</span>
               </div>
               <div class="row g-2">
@@ -2733,7 +2618,7 @@
             <!-- ROW RITASE -->
             <div class="p-2.5 rounded bg-light border mb-2.5">
               <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="fw-bold extra-small text-dark"><i class="bi bi-truck text-warning me-1"></i>Ritase Hari Ini</span>
+                <span class="fw-bold extra-small text-dark"><i class="bi bi-truck text-warning me-1"></i>Ritase</span>
                 <span class="subtotal-pill" id="previewSubtotalRitase">Rp 0</span>
               </div>
               <div class="row g-2">
@@ -2769,29 +2654,33 @@
               </div>
             </div>
 
-            <!-- LIVE CALCULATION SUMMARY CARD -->
+            <!-- LIVE CALCULATION SUMMARY CARD (TOTAL GAJI LIVE PREVIEW) -->
             <div class="salary-calc-card mb-0">
               <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="fw-bold text-dark small"><i class="bi bi-calculator text-success me-1"></i>Ringkasan Perhitungan Hari Ini</span>
+                <span class="fw-bold text-dark small"><i class="bi bi-calculator text-success me-1"></i>Ringkasan Perhitungan Gaji</span>
                 <span class="badge bg-success-subtle text-success border border-success-subtle extra-small">Live Preview</span>
               </div>
               <div class="salary-component-row">
-                <span class="text-muted extra-small">Subtotal Overtime Hari Ini:</span>
+                <span class="text-muted extra-small">Gaji Pokok (Basic):</span>
+                <span class="fw-semibold small text-dark" id="liveSumBasic">Rp 0</span>
+              </div>
+              <div class="salary-component-row">
+                <span class="text-muted extra-small">Subtotal Overtime:</span>
                 <span class="fw-semibold small text-primary" id="liveSumOvertime">Rp 0</span>
               </div>
               <div class="salary-component-row">
-                <span class="text-muted extra-small">Subtotal Ritase Hari Ini:</span>
+                <span class="text-muted extra-small">Subtotal Ritase:</span>
                 <span class="fw-semibold small text-warning" id="liveSumRitase">Rp 0</span>
               </div>
               <div class="salary-component-row">
-                <span class="text-muted extra-small">Tunjangan Harian Hari Ini:</span>
+                <span class="text-muted extra-small">Tunjangan Harian:</span>
                 <span class="fw-semibold small" id="liveSumTunjangan">Rp 0</span>
               </div>
               <hr class="my-1.5 border-success-subtle">
               <div class="d-flex align-items-center justify-content-between pt-1">
                 <div>
-                  <span class="fw-bold text-dark small d-block">TOTAL PENGHASILAN HARI INI:</span>
-                  <small class="text-muted extra-small">+ Gaji Pokok bulanan tetap tersimpan di profil karyawan</small>
+                  <span class="fw-bold text-dark small d-block">TOTAL GAJI:</span>
+                  <small class="text-muted extra-small">Gaji Pokok + Overtime + Ritase + Tunjangan</small>
                 </div>
                 <span class="salary-total-display fs-5" id="liveSumTotalGaji">Rp 0</span>
               </div>

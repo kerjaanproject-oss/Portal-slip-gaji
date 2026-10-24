@@ -1,44 +1,22 @@
 <script>
 // ==========================================================================
-// MODUL PENGELOLAAN DATA GAJI KARYAWAN (INPUT HARIAN & REKAPITULASI)
+// MODUL PENGELOLAAN DATA GAJI KARYAWAN (INPUT HARIAN & TOTAL GAJI)
 // File: Scripts_DataGaji.html
 // Menangani formulir modal harian, auto-fill Gaji Pokok dari master karyawan,
-// kalkulasi live, filter dinamis, dan tabel rekapitulasi total akhir.
+// live preview Total Gaji, dan tabel riwayat dengan kolom Total Gaji per hari.
 // ==========================================================================
 
 (function () {
   var cachedDataGajiList = [];
-  var currentGajiTab = 'harian';
   var currentPageDataGaji = 1;
   var pageSizeDataGaji = 15;
   var bsModalDataGaji = null;
 
   // Inisialisasi awal saat halaman dibuka
   window.initDataGajiPage = function () {
-    initDefaultPeriodFilters();
     populateDataGajiDeptFilters();
     loadDataGajiList();
   };
-
-  function initDefaultPeriodFilters() {
-    var now = new Date();
-    var currentYear = now.getFullYear();
-    var monthNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-    var currentMonth = monthNames[now.getMonth()];
-
-    var selBulan = document.getElementById('filterDataGajiBulan');
-    if (selBulan && (!selBulan.value || selBulan.value === 'SEMUA')) {
-      selBulan.value = currentMonth;
-    }
-
-    var selTahun = document.getElementById('filterDataGajiTahun');
-    if (selTahun && (!selTahun.value || selTahun.value === 'SEMUA')) {
-      selTahun.value = String(currentYear);
-    }
-  }
 
   function populateDataGajiDeptFilters() {
     var selFilter = document.getElementById('filterDataGajiDept');
@@ -66,40 +44,15 @@
     selFilter.value = depts.includes(currentVal) ? currentVal : 'SEMUA';
   }
 
-  // --- TAB NAVIGATION ---
-  window.switchDataGajiTab = function (tab) {
-    currentGajiTab = tab;
-    var btnHarian = document.getElementById('tabBtnHarian');
-    var btnRekap = document.getElementById('tabBtnRekap');
-    var viewHarian = document.getElementById('viewGajiHarian');
-    var viewRekap = document.getElementById('viewGajiRekap');
-
-    if (tab === 'harian') {
-      if (btnHarian) btnHarian.classList.add('active');
-      if (btnRekap) btnRekap.classList.remove('active');
-      if (viewHarian) viewHarian.classList.remove('d-none');
-      if (viewRekap) viewRekap.classList.add('d-none');
-      renderDataGajiTable();
-    } else {
-      if (btnHarian) btnHarian.classList.remove('active');
-      if (btnRekap) btnRekap.classList.add('active');
-      if (viewHarian) viewHarian.classList.add('d-none');
-      if (viewRekap) viewRekap.classList.remove('d-none');
-      renderRekapTotalGaji();
-    }
-  };
-
-  window.renderCurrentDataGajiView = function () {
-    if (currentGajiTab === 'harian') {
-      currentPageDataGaji = 1;
-      renderDataGajiTable();
-    } else {
-      renderRekapTotalGaji();
-    }
-  };
-
-  window.onDataGajiFilterChange = function () {
-    loadDataGajiList();
+  window.resetDataGajiFilter = function () {
+    var selDept = document.getElementById('filterDataGajiDept');
+    if (selDept) selDept.value = 'SEMUA';
+    var tglFilter = document.getElementById('filterDataGajiTanggal');
+    if (tglFilter) tglFilter.value = '';
+    var searchEl = document.getElementById('searchDataGaji');
+    if (searchEl) searchEl.value = '';
+    currentPageDataGaji = 1;
+    renderDataGajiTable();
   };
 
   // --- MODAL INPUT & EDIT ---
@@ -126,11 +79,9 @@
       var item = cachedDataGajiList.find(function (g) { return g.id === gajiId; });
       if (!item) return;
 
-      if (titleEl) titleEl.innerHTML = '<i class="bi bi-pencil-square me-2"></i>Edit Data Gaji Harian';
+      if (titleEl) titleEl.innerHTML = '<i class="bi bi-pencil-square me-2"></i>Edit Data Gaji';
       document.getElementById('gajiEditId').value = item.id;
       document.getElementById('gajiTanggal').value = item.tanggal || '';
-      document.getElementById('gajiBulan').value = item.bulan || '';
-      document.getElementById('gajiTahun').value = item.tahun || '';
 
       var deptSel = document.getElementById('gajiDeptSelect');
       if (deptSel) deptSel.value = item.dept || '';
@@ -157,7 +108,7 @@
       document.getElementById('gajiTunjanganHarian').value = item.tunjanganHarian ? formatRupiahVal(item.tunjanganHarian).replace('Rp ', '') : '';
       document.getElementById('gajiCatatan').value = item.catatan || '';
     } else {
-      if (titleEl) titleEl.innerHTML = '<i class="bi bi-wallet-fill me-2"></i>Tambah Data Gaji Harian';
+      if (titleEl) titleEl.innerHTML = '<i class="bi bi-wallet-fill me-2"></i>Tambah Data Gaji';
       document.getElementById('gajiEditId').value = '';
       document.getElementById('gajiEmpIdHidden').value = '';
       document.getElementById('gajiEmpNameHidden').value = '';
@@ -171,7 +122,6 @@
       var todayStr = today.toISOString().split('T')[0];
       var tglInput = document.getElementById('gajiTanggal');
       if (tglInput) tglInput.value = todayStr;
-      window.onDataGajiTanggalChange();
 
       var empSel = document.getElementById('gajiEmpSelect');
       if (empSel) {
@@ -240,26 +190,6 @@
   }
 
   // --- DEPENDENT EVENTS ---
-  window.onDataGajiTanggalChange = function () {
-    var tglVal = document.getElementById('gajiTanggal').value;
-    if (!tglVal) return;
-    var parts = tglVal.split('-');
-    if (parts.length >= 2) {
-      var year = parts[0];
-      var mIndex = parseInt(parts[1], 10) - 1;
-      var monthNames = [
-        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-      ];
-      if (mIndex >= 0 && mIndex < 12) {
-        var bulanSel = document.getElementById('gajiBulan');
-        if (bulanSel) bulanSel.value = monthNames[mIndex];
-      }
-      var tahunInp = document.getElementById('gajiTahun');
-      if (tahunInp) tahunInp.value = year;
-    }
-  };
-
   window.onDataGajiDeptChange = function () {
     var deptSel = document.getElementById('gajiDeptSelect');
     var selectedDept = deptSel ? deptSel.value : '';
@@ -311,6 +241,8 @@
 
   // --- LIVE CALCULATION ---
   window.calculateTotalGajiLive = function () {
+    var basic = Number(document.getElementById('gajiBasicNumeric').value) || 0;
+
     var jamOt = parseFloat(document.getElementById('gajiJamOvertime').value) || 0;
     var tarifOt = parseRupiahVal(document.getElementById('gajiTarifOvertime').value);
     var subtotalOt = Math.round(jamOt * tarifOt);
@@ -321,14 +253,17 @@
 
     var tunjangan = parseRupiahVal(document.getElementById('gajiTunjanganHarian').value);
 
-    // Total penghasilan hari ini (Overtime + Ritase + Tunjangan Harian)
-    var totalHariIni = subtotalOt + subtotalRit + tunjangan;
+    // TOTAL GAJI LIVE PREVIEW: Basic + Overtime + Ritase + Tunjangan Harian
+    var grandTotalGaji = basic + subtotalOt + subtotalRit + tunjangan;
 
     var pillOt = document.getElementById('previewSubtotalOvertime');
     if (pillOt) pillOt.innerText = formatRupiahVal(subtotalOt);
 
     var pillRit = document.getElementById('previewSubtotalRitase');
     if (pillRit) pillRit.innerText = formatRupiahVal(subtotalRit);
+
+    var sumBasic = document.getElementById('liveSumBasic');
+    if (sumBasic) sumBasic.innerText = formatRupiahVal(basic);
 
     var sumOt = document.getElementById('liveSumOvertime');
     if (sumOt) sumOt.innerText = formatRupiahVal(subtotalOt);
@@ -340,7 +275,7 @@
     if (sumTunj) sumTunj.innerText = formatRupiahVal(tunjangan);
 
     var sumTotal = document.getElementById('liveSumTotalGaji');
-    if (sumTotal) sumTotal.innerText = formatRupiahVal(totalHariIni);
+    if (sumTotal) sumTotal.innerText = formatRupiahVal(grandTotalGaji);
   };
 
   // --- SUBMIT FORM ---
@@ -349,8 +284,6 @@
 
     var editId = document.getElementById('gajiEditId').value.trim();
     var tanggal = document.getElementById('gajiTanggal').value.trim();
-    var bulan = document.getElementById('gajiBulan').value.trim();
-    var tahun = document.getElementById('gajiTahun').value.trim();
     var dept = document.getElementById('gajiDeptSelect').value.trim();
     var empId = document.getElementById('gajiEmpIdHidden').value.trim() || document.getElementById('gajiEmpSelect').value.trim();
     var empName = document.getElementById('gajiEmpNameHidden').value.trim();
@@ -358,11 +291,7 @@
     var basic = Number(document.getElementById('gajiBasicNumeric').value) || 0;
 
     if (!tanggal) {
-      showFormValidationWarning('gajiTanggal', 'Tanggal kerja harian wajib diisi.');
-      return;
-    }
-    if (!bulan || !tahun) {
-      showFormValidationWarning('gajiBulan', 'Periode bulan dan tahun wajib dipilih.');
+      showFormValidationWarning('gajiTanggal', 'Tanggal kerja wajib diisi.');
       return;
     }
     if (!dept) {
@@ -383,13 +312,11 @@
 
     var subtotalOt = jamOt * tarifOt;
     var subtotalRit = ritase * tarifRit;
-    var totalHariIni = subtotalOt + subtotalRit + tunjangan;
+    var totalGaji = basic + subtotalOt + subtotalRit + tunjangan;
 
     var payload = {
       id: editId,
       tanggal: tanggal,
-      bulan: bulan,
-      tahun: tahun,
       dept: dept,
       empId: empId,
       empName: empName,
@@ -407,18 +334,17 @@
       '<div class="text-start extra-small p-2.5 rounded bg-light border mb-2">' +
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Tanggal Kerja:</span><strong class="text-dark">' + escapeHTML(formatDateDMY(tanggal)) + '</strong></div>' +
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Karyawan:</span><strong class="text-dark">' + escapeHTML(empName) + ' (' + escapeHTML(empId) + ')</strong></div>' +
-      '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Gaji Pokok (Master):</span><strong>' + formatRupiahVal(basic) + '</strong></div>' +
+      '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Gaji Pokok (Basic):</span><strong>' + formatRupiahVal(basic) + '</strong></div>' +
       '<hr class="my-1">' +
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Overtime:</span><span>' + jamOt + ' Jam @ ' + formatRupiahVal(tarifOt) + ' = <strong>' + formatRupiahVal(subtotalOt) + '</strong></span></div>' +
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Ritase:</span><span>' + ritase + ' Rit @ ' + formatRupiahVal(tarifRit) + ' = <strong>' + formatRupiahVal(subtotalRit) + '</strong></span></div>' +
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Tunjangan Harian:</span><strong>' + formatRupiahVal(tunjangan) + '</strong></div>' +
       '<hr class="my-1">' +
-      '<div class="d-flex justify-content-between fs-6"><span class="fw-bold text-dark">Total Hari Ini:</span><strong class="text-success">' + formatRupiahVal(totalHariIni) + '</strong></div>' +
-      '</div>' +
-      '<p class="extra-small text-muted mb-0">Pastikan data yang diinput sudah sesuai sebelum disimpan ke sistem.</p>';
+      '<div class="d-flex justify-content-between fs-6"><span class="fw-bold text-dark">TOTAL GAJI:</span><strong class="text-success">' + formatRupiahVal(totalGaji) + '</strong></div>' +
+      '</div>';
 
     Swal.fire({
-      title: editId ? 'Perbarui Data Gaji Harian?' : 'Simpan Data Gaji Harian?',
+      title: editId ? 'Perbarui Data Gaji?' : 'Simpan Data Gaji?',
       html: confirmHtml,
       icon: 'question',
       showCancelButton: true,
@@ -428,7 +354,7 @@
     }).then(function (res) {
       if (!res.isConfirmed) return;
 
-      showFullPageLoading('Menyimpan data gaji harian...');
+      showFullPageLoading('Menyimpan data gaji...');
 
       gasRun('saveDataGaji', Auth.getToken(), payload).then(function (resp) {
         hideFullPageLoading();
@@ -439,7 +365,7 @@
           Swal.fire({
             icon: 'success',
             title: 'Berhasil Disimpan',
-            text: resp.message || 'Data gaji harian berhasil disimpan.',
+            text: resp.message || 'Data gaji berhasil disimpan.',
             timer: 2000,
             showConfirmButton: false
           });
@@ -456,91 +382,62 @@
 
   // --- LOAD DATA LIST ---
   window.loadDataGajiList = function () {
-    var selBulan = document.getElementById('filterDataGajiBulan');
-    var selTahun = document.getElementById('filterDataGajiTahun');
-    var selDept = document.getElementById('filterDataGajiDept');
-
-    var filterBulan = selBulan ? selBulan.value : 'SEMUA';
-    var filterTahun = selTahun ? selTahun.value : 'SEMUA';
-    var filterDept = selDept ? selDept.value : 'SEMUA';
-
     var tbody = document.getElementById('tableBodyDataGaji');
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat data gaji harian...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat data gaji...</td></tr>';
     }
 
-    var tbodyRekap = document.getElementById('tableBodyRekapGaji');
-    if (tbodyRekap) {
-      tbodyRekap.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-success me-2"></div>Memuat rekapitulasi gaji...</td></tr>';
-    }
-
-    gasRun('getDataGaji', Auth.getToken(), filterBulan, filterTahun, filterDept).then(function (res) {
+    gasRun('getDataGaji', Auth.getToken()).then(function (res) {
       if (handleSessionExpired(res)) return;
 
       if (res && res.success) {
         cachedDataGajiList = Array.isArray(res.list) ? res.list : [];
-        updateGajiSummaryKPI();
         renderDataGajiTable();
-        renderRekapTotalGaji();
       } else {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-4">' + escapeHTML(res.message || 'Gagal memuat data gaji.') + '</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="11" class="text-center text-danger py-4">' + escapeHTML(res.message || 'Gagal memuat data gaji.') + '</td></tr>';
       }
     }).catch(function (err) {
-      if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-4">Gagal memuat data: ' + escapeHTML(err.toString()) + '</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="11" class="text-center text-danger py-4">Gagal memuat data: ' + escapeHTML(err.toString()) + '</td></tr>';
     });
   };
 
-  // --- UPDATE KPI SUMMARY CARDS ---
-  function updateGajiSummaryKPI() {
-    var totalEntries = cachedDataGajiList.length;
-    var totalJamOt = 0;
-    var totalNominalOt = 0;
-    var totalRitase = 0;
-    var totalNominalRit = 0;
-    var totalTunjangan = 0;
-
-    cachedDataGajiList.forEach(function (g) {
-      totalJamOt += Number(g.jamOvertime || 0);
-      totalNominalOt += Number(g.totalOvertime || 0);
-      totalRitase += Number(g.ritase || 0);
-      totalNominalRit += Number(g.totalRitase || 0);
-      totalTunjangan += Number(g.tunjanganHarian || 0);
-    });
-
-    var kpiEntri = document.getElementById('kpiGajiTotalEntri');
-    if (kpiEntri) kpiEntri.innerText = totalEntries + ' Entri';
-
-    var kpiOt = document.getElementById('kpiGajiTotalOvertime');
-    if (kpiOt) kpiOt.innerText = totalJamOt + ' Jam / ' + formatRupiahVal(totalNominalOt);
-
-    var kpiRit = document.getElementById('kpiGajiTotalRitase');
-    if (kpiRit) kpiRit.innerText = totalRitase + ' Rit / ' + formatRupiahVal(totalNominalRit);
-
-    var kpiTunj = document.getElementById('kpiGajiTotalTunjangan');
-    if (kpiTunj) kpiTunj.innerText = formatRupiahVal(totalTunjangan);
-
-    var badgeHarian = document.getElementById('badgeCountHarian');
-    if (badgeHarian) badgeHarian.innerText = totalEntries;
-  }
-
-  // --- VIEW 1: TABEL CATATAN HARIAN ---
+  // --- RENDER DATA GAJI TABLE WITH TOTAL GAJI ---
   window.renderDataGajiTable = function () {
     var tbody = document.getElementById('tableBodyDataGaji');
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    var selDept = document.getElementById('filterDataGajiDept');
+    var filterDept = selDept ? selDept.value : 'SEMUA';
+
+    var tglFilter = document.getElementById('filterDataGajiTanggal');
+    var filterDate = tglFilter ? tglFilter.value.trim() : '';
+
     var search = (document.getElementById('searchDataGaji') ? document.getElementById('searchDataGaji').value : '').toLowerCase().trim();
 
     var filtered = cachedDataGajiList.filter(function (g) {
-      if (!search) return true;
-      return (g.empName || '').toLowerCase().includes(search) ||
-        (g.empId || '').toLowerCase().includes(search) ||
-        (g.dept || '').toLowerCase().includes(search) ||
-        (g.tanggal || '').toLowerCase().includes(search);
+      if (filterDept && filterDept !== 'SEMUA') {
+        if (String(g.dept || '').toLowerCase() !== filterDept.toLowerCase()) return false;
+      }
+      if (filterDate) {
+        if (String(g.tanggal || '').trim() !== filterDate) return false;
+      }
+      if (search) {
+        var match = (g.empName || '').toLowerCase().includes(search) ||
+          (g.empId || '').toLowerCase().includes(search) ||
+          (g.dept || '').toLowerCase().includes(search) ||
+          (g.catatan || '').toLowerCase().includes(search) ||
+          (g.tanggal || '').toLowerCase().includes(search);
+        if (!match) return false;
+      }
+      return true;
     });
 
+    var badgeCount = document.getElementById('badgeCountDataGaji');
+    if (badgeCount) badgeCount.innerText = filtered.length + ' Data';
+
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Belum ada catatan gaji harian untuk periode / filter ini.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4">Belum ada data gaji yang sesuai filter.</td></tr>';
       renderPaginationControls('paginationDataGaji', 0, 1, function () { });
       return;
     }
@@ -550,19 +447,29 @@
 
     pageData.forEach(function (g, idx) {
       var no = startIdx + idx + 1;
+
+      // Ambil Basic dari data karyawan terkini atau dari row
+      var empMatch = dbKaryawan.find(function (k) { return String(k.id).toLowerCase() === String(g.empId).toLowerCase(); });
+      var basic = empMatch && empMatch.gajiPokok ? empMatch.gajiPokok : Number(g.basic || 0);
+
+      var subtotalOt = Number(g.totalOvertime || 0);
+      var subtotalRit = Number(g.totalRitase || 0);
+      var tunjangan = Number(g.tunjanganHarian || 0);
+
+      // Total Gaji: Basic + Overtime + Ritase + Tunjangan
+      var totalGaji = basic + subtotalOt + subtotalRit + tunjangan;
+
       var otText = g.jamOvertime > 0
-        ? '<div class="text-end"><span class="fw-semibold text-primary">' + formatRupiahVal(g.totalOvertime) + '</span><br><small class="text-muted extra-small">' + g.jamOvertime + ' Jam</small></div>'
+        ? '<div class="text-end"><span class="fw-semibold text-primary">' + formatRupiahVal(subtotalOt) + '</span><br><small class="text-muted extra-small">' + g.jamOvertime + ' Jam</small></div>'
         : '<span class="text-muted extra-small">-</span>';
 
       var ritText = g.ritase > 0
-        ? '<div class="text-end"><span class="fw-semibold text-warning">' + formatRupiahVal(g.totalRitase) + '</span><br><small class="text-muted extra-small">' + g.ritase + ' Rit</small></div>'
+        ? '<div class="text-end"><span class="fw-semibold text-warning">' + formatRupiahVal(subtotalRit) + '</span><br><small class="text-muted extra-small">' + g.ritase + ' Rit</small></div>'
         : '<span class="text-muted extra-small">-</span>';
 
-      var tunjText = g.tunjanganHarian > 0
-        ? '<div class="text-end fw-semibold text-dark">' + formatRupiahVal(g.tunjanganHarian) + '</div>'
+      var tunjText = tunjangan > 0
+        ? '<div class="text-end fw-semibold text-dark">' + formatRupiahVal(tunjangan) + '</div>'
         : '<span class="text-muted extra-small">-</span>';
-
-      var totalHariIni = Number(g.totalHarian || (Number(g.totalOvertime || 0) + Number(g.totalRitase || 0) + Number(g.tunjanganHarian || 0)));
 
       var tr = document.createElement('tr');
       tr.innerHTML =
@@ -570,10 +477,11 @@
         '<td class="text-nowrap fw-bold text-dark"><i class="bi bi-calendar-event me-1 text-primary"></i>' + escapeHTML(formatDateDMY(g.tanggal)) + '</td>' +
         '<td><strong>' + escapeHTML(g.empName) + '</strong><br><small class="text-muted extra-small">ID: ' + escapeHTML(g.empId) + '</small></td>' +
         '<td><span class="badge bg-light text-dark border">' + escapeHTML(g.dept) + '</span><br><small class="text-muted extra-small">' + escapeHTML(g.jabatan) + '</small></td>' +
+        '<td class="text-end fw-semibold text-dark">' + formatRupiahVal(basic) + '</td>' +
         '<td class="text-end">' + otText + '</td>' +
         '<td class="text-end">' + ritText + '</td>' +
         '<td class="text-end">' + tunjText + '</td>' +
-        '<td class="text-end fw-bold text-success">' + formatRupiahVal(totalHariIni) + '</td>' +
+        '<td class="text-end fw-bold text-success fs-6 bg-success-subtle">' + formatRupiahVal(totalGaji) + '</td>' +
         '<td><small class="text-muted">' + escapeHTML(g.catatan || '-') + '</small></td>' +
         '<td class="text-center text-nowrap">' +
         '  <div class="action-group">' +
@@ -591,96 +499,6 @@
     });
   };
 
-  // --- VIEW 2: TABEL REKAPITULASI TOTAL AKHIR ---
-  window.renderRekapTotalGaji = function () {
-    var tbody = document.getElementById('tableBodyRekapGaji');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    // Group cachedDataGajiList by empId
-    var empMap = {};
-    cachedDataGajiList.forEach(function (g) {
-      var id = String(g.empId || '').trim();
-      if (!id) return;
-
-      if (!empMap[id]) {
-        // Cari info karyawan dari dbKaryawan
-        var empInfo = dbKaryawan.find(function (k) { return String(k.id).toLowerCase() === id.toLowerCase(); });
-        var masterBasic = empInfo && empInfo.gajiPokok ? empInfo.gajiPokok : (g.basic || 0);
-
-        empMap[id] = {
-          empId: id,
-          empName: g.empName || (empInfo ? empInfo.name : id),
-          dept: g.dept || (empInfo ? empInfo.dept : '-'),
-          jabatan: g.jabatan || (empInfo ? empInfo.jabatan : '-'),
-          basic: masterBasic,
-          daysCount: 0,
-          totalJamOt: 0,
-          totalNominalOt: 0,
-          totalRitase: 0,
-          totalNominalRit: 0,
-          totalTunjangan: 0
-        };
-      }
-
-      empMap[id].daysCount++;
-      empMap[id].totalJamOt += Number(g.jamOvertime || 0);
-      empMap[id].totalNominalOt += Number(g.totalOvertime || 0);
-      empMap[id].totalRitase += Number(g.ritase || 0);
-      empMap[id].totalNominalRit += Number(g.totalRitase || 0);
-      empMap[id].totalTunjangan += Number(g.tunjanganHarian || 0);
-    });
-
-    var rekapList = Object.values(empMap);
-
-    var search = (document.getElementById('searchDataGaji') ? document.getElementById('searchDataGaji').value : '').toLowerCase().trim();
-    if (search) {
-      rekapList = rekapList.filter(function (r) {
-        return r.empName.toLowerCase().includes(search) ||
-          r.empId.toLowerCase().includes(search) ||
-          r.dept.toLowerCase().includes(search);
-      });
-    }
-
-    var badgeRekap = document.getElementById('badgeCountRekap');
-    if (badgeRekap) badgeRekap.innerText = rekapList.length;
-
-    if (rekapList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Belum ada data rekapitulasi untuk filter terpilih.</td></tr>';
-      return;
-    }
-
-    rekapList.sort(function (a, b) { return a.empName.localeCompare(b.empName); });
-
-    rekapList.forEach(function (r, idx) {
-      var grandTotal = r.basic + r.totalNominalOt + r.totalNominalRit + r.totalTunjangan;
-
-      var tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td class="text-center text-muted extra-small">' + (idx + 1) + '</td>' +
-        '<td><strong>' + escapeHTML(r.empName) + '</strong><br><small class="text-muted extra-small">ID: ' + escapeHTML(r.empId) + '</small></td>' +
-        '<td><span class="badge bg-light text-dark border">' + escapeHTML(r.dept) + '</span><br><small class="text-muted extra-small">' + escapeHTML(r.jabatan) + '</small></td>' +
-        '<td class="text-center"><span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 fw-bold">' + r.daysCount + ' Hari</span></td>' +
-        '<td class="text-end fw-semibold text-dark">' + formatRupiahVal(r.basic) + '</td>' +
-        '<td class="text-end"><span class="fw-semibold text-primary">' + formatRupiahVal(r.totalNominalOt) + '</span><br><small class="text-muted extra-small">' + r.totalJamOt + ' Jam</small></td>' +
-        '<td class="text-end"><span class="fw-semibold text-warning">' + formatRupiahVal(r.totalNominalRit) + '</span><br><small class="text-muted extra-small">' + r.totalRitase + ' Rit</small></td>' +
-        '<td class="text-end fw-semibold text-dark">' + formatRupiahVal(r.totalTunjangan) + '</td>' +
-        '<td class="text-end fw-bold fs-6 text-success bg-success-subtle">' + formatRupiahVal(grandTotal) + '</td>' +
-        '<td class="text-center">' +
-        '  <button class="btn btn-sm btn-outline-primary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="filterHarianByEmployee(\'' + escapeHTML(r.empId) + '\')" title="Lihat Rincian Harian Karyawan Ini"><i class="bi bi-eye me-1"></i>Rincian</button>' +
-        '</td>';
-
-      tbody.appendChild(tr);
-    });
-  };
-
-  // Filter tabel harian berdasarkan karyawan tertentu
-  window.filterHarianByEmployee = function (empId) {
-    var searchEl = document.getElementById('searchDataGaji');
-    if (searchEl) searchEl.value = empId;
-    switchDataGajiTab('harian');
-  };
-
   // --- ACTIONS: EDIT & DELETE ---
   window.editDataGajiRow = function (id) {
     openModalDataGaji(id);
@@ -688,8 +506,8 @@
 
   window.deleteDataGajiRow = function (id, name, date) {
     Swal.fire({
-      title: 'Hapus Catatan Gaji Harian?',
-      html: 'Anda yakin ingin menghapus data gaji harian untuk <strong>' + escapeHTML(name) + '</strong> pada tanggal <strong>' + escapeHTML(formatDateDMY(date)) + '</strong>?<br><span class="text-danger extra-small">Tindakan ini tidak dapat dibatalkan.</span>',
+      title: 'Hapus Catatan Data Gaji?',
+      html: 'Anda yakin ingin menghapus data gaji untuk <strong>' + escapeHTML(name) + '</strong> pada tanggal <strong>' + escapeHTML(formatDateDMY(date)) + '</strong>?<br><span class="text-danger extra-small">Tindakan ini tidak dapat dibatalkan.</span>',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Ya, Hapus',
@@ -698,7 +516,7 @@
     }).then(function (res) {
       if (!res.isConfirmed) return;
 
-      showFullPageLoading('Menghapus catatan data gaji...');
+      showFullPageLoading('Menghapus data gaji...');
 
       gasRun('deleteDataGaji', Auth.getToken(), id).then(function (resp) {
         hideFullPageLoading();
@@ -708,7 +526,7 @@
           Swal.fire({
             icon: 'success',
             title: 'Terhapus',
-            text: resp.message || 'Catatan gaji harian berhasil dihapus.',
+            text: resp.message || 'Data gaji berhasil dihapus.',
             timer: 2000,
             showConfirmButton: false
           });
@@ -721,80 +539,6 @@
         Swal.fire('Error', err.toString(), 'error');
       });
     });
-  };
-
-  // --- EKSPOR CSV REKAPITULASI ---
-  window.exportRekapGajiCsv = function () {
-    if (cachedDataGajiList.length === 0) {
-      Swal.fire('Data Kosong', 'Tidak ada data gaji untuk diekspor.', 'info');
-      return;
-    }
-
-    var selBulan = document.getElementById('filterDataGajiBulan');
-    var selTahun = document.getElementById('filterDataGajiTahun');
-    var periodeText = (selBulan ? selBulan.value : 'Semua') + '_' + (selTahun ? selTahun.value : '');
-
-    var csvContent = 'data:text/csv;charset=utf-8,';
-    csvContent += 'No,ID Karyawan,Nama Karyawan,Departemen,Jabatan,Hari Kerja,Basic (Gaji Pokok),Total Jam Overtime,Nominal Overtime,Total Ritase,Nominal Ritase,Total Tunjangan Harian,TOTAL AKHIR GAJI\\n';
-
-    // Grouping
-    var empMap = {};
-    cachedDataGajiList.forEach(function (g) {
-      var id = String(g.empId || '').trim();
-      if (!id) return;
-      if (!empMap[id]) {
-        var empInfo = dbKaryawan.find(function (k) { return String(k.id).toLowerCase() === id.toLowerCase(); });
-        var masterBasic = empInfo && empInfo.gajiPokok ? empInfo.gajiPokok : (g.basic || 0);
-        empMap[id] = {
-          empId: id,
-          empName: g.empName || (empInfo ? empInfo.name : id),
-          dept: g.dept || (empInfo ? empInfo.dept : '-'),
-          jabatan: g.jabatan || (empInfo ? empInfo.jabatan : '-'),
-          basic: masterBasic,
-          daysCount: 0,
-          totalJamOt: 0,
-          totalNominalOt: 0,
-          totalRitase: 0,
-          totalNominalRit: 0,
-          totalTunjangan: 0
-        };
-      }
-      empMap[id].daysCount++;
-      empMap[id].totalJamOt += Number(g.jamOvertime || 0);
-      empMap[id].totalNominalOt += Number(g.totalOvertime || 0);
-      empMap[id].totalRitase += Number(g.ritase || 0);
-      empMap[id].totalNominalRit += Number(g.totalRitase || 0);
-      empMap[id].totalTunjangan += Number(g.tunjanganHarian || 0);
-    });
-
-    var idx = 1;
-    Object.values(empMap).forEach(function (r) {
-      var grandTotal = r.basic + r.totalNominalOt + r.totalNominalRit + r.totalTunjangan;
-      var row = [
-        idx++,
-        '"' + r.empId + '"',
-        '"' + r.empName + '"',
-        '"' + r.dept + '"',
-        '"' + r.jabatan + '"',
-        r.daysCount,
-        r.basic,
-        r.totalJamOt,
-        r.totalNominalOt,
-        r.totalRitase,
-        r.totalNominalRit,
-        r.totalTunjangan,
-        grandTotal
-      ];
-      csvContent += row.join(',') + '\\n';
-    });
-
-    var encodedUri = encodeURI(csvContent);
-    var link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'Rekapitulasi_Gaji_' + periodeText + '.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
 })();
