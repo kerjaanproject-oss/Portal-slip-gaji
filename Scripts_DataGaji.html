@@ -102,6 +102,17 @@
       tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat data gaji karyawan...</td></tr>';
     }
 
+    // Pastikan dbKaryawan dan dbDepartemen terisi jika belum ada
+    if (!Array.isArray(dbKaryawan) || dbKaryawan.length === 0) {
+      gasRun('getInitialData', Auth.getToken()).then(function (initRes) {
+        if (initRes && initRes.success) {
+          if (Array.isArray(initRes.karyawan)) dbKaryawan = initRes.karyawan;
+          if (Array.isArray(initRes.departemen)) dbDepartemen = initRes.departemen;
+          populateDataGajiDeptFilters();
+        }
+      }).catch(function (e) { console.warn('Fetch initial data error:', e); });
+    }
+
     gasRun('getDataGaji', Auth.getToken()).then(function (res) {
       if (handleSessionExpired(res)) return;
 
@@ -121,6 +132,25 @@
     });
   };
 
+  function matchLogToEmp(log, emp) {
+    if (!log || !emp) return false;
+    var logId = String(log.empId || '').trim().toLowerCase();
+    var empId = String(emp.id || '').trim().toLowerCase();
+    if (logId && empId && logId === empId) return true;
+
+    // Nomor digit saja (misal BBB-260620 dengan 260620)
+    var numLog = logId.replace(/\D/g, '');
+    var numEmp = empId.replace(/\D/g, '');
+    if (numLog && numEmp && numLog === numEmp) return true;
+
+    // Nama karyawan
+    var logName = String(log.empName || '').trim().toLowerCase();
+    var empName = String(emp.name || '').trim().toLowerCase();
+    if (logName && empName && logName === empName) return true;
+
+    return false;
+  }
+
   // --- RENDER TABEL UTAMA (1 BARIS PER KARYAWAN) ---
   window.renderDataGajiTable = function () {
     var tbody = document.getElementById('tableBodyDataGaji');
@@ -132,10 +162,13 @@
 
     var search = (document.getElementById('searchDataGaji') ? document.getElementById('searchDataGaji').value : '').toLowerCase().trim();
 
-    // Petakan setiap karyawan di dbKaryawan dan hitung akumulasi log hariannya
+    // 1. Petakan setiap karyawan di dbKaryawan dan hitung akumulasi log hariannya
+    var matchedLogIds = new Set();
     var empList = (Array.isArray(dbKaryawan) ? dbKaryawan : []).map(function (k) {
       var kLogs = cachedDataGajiLogs.filter(function (log) {
-        return String(log.empId || '').trim().toLowerCase() === String(k.id || '').trim().toLowerCase();
+        var match = matchLogToEmp(log, k);
+        if (match && log.id) matchedLogIds.add(log.id);
+        return match;
       });
 
       var totalJamOt = 0;
@@ -170,6 +203,60 @@
         grandTotal: grandTotal,
         logs: kLogs
       };
+    });
+
+    // 2. Jika ada log di database yang tidak terhubung ke karyawan di dbKaryawan, buatkan barisnya otomatis!
+    var unmappedLogs = cachedDataGajiLogs.filter(function (l) { return l.id && !matchedLogIds.has(l.id); });
+    var groupedUnmapped = {};
+    unmappedLogs.forEach(function (log) {
+      var key = String(log.empId || log.empName || 'UNKNOWN').trim().toLowerCase();
+      if (!groupedUnmapped[key]) {
+        groupedUnmapped[key] = {
+          id: log.empId || key,
+          name: log.empName || log.empId || 'Karyawan',
+          dept: log.dept || '-',
+          jabatan: log.jabatan || '-',
+          basic: Number(log.basic || 0),
+          logs: []
+        };
+      }
+      groupedUnmapped[key].logs.push(log);
+    });
+
+    Object.keys(groupedUnmapped).forEach(function (kKey) {
+      var g = groupedUnmapped[kKey];
+      var totalJamOt = 0, totalNominalOt = 0, totalRitase = 0, totalNominalRit = 0, totalTunjangan = 0;
+      g.logs.forEach(function (log) {
+        totalJamOt += Number(log.jamOvertime || 0);
+        totalNominalOt += Number(log.totalOvertime || 0);
+        totalRitase += Number(log.ritase || 0);
+        totalNominalRit += Number(log.totalRitase || 0);
+        totalTunjangan += Number(log.tunjanganHarian || 0);
+      });
+      var basic = Number(g.basic || 0);
+      empList.push({
+        id: g.id,
+        name: g.name,
+        dept: g.dept,
+        jabatan: g.jabatan,
+        basic: basic,
+        daysCount: g.logs.length,
+        totalJamOt: totalJamOt,
+        totalNominalOt: totalNominalOt,
+        totalRitase: totalRitase,
+        totalNominalRit: totalNominalRit,
+        totalTunjangan: totalTunjangan,
+        grandTotal: basic + totalNominalOt + totalNominalRit + totalTunjangan,
+        logs: g.logs
+      });
+    });
+
+    // 3. Urutkan: Karyawan yang memiliki data entri harian (daysCount > 0) tampil paling atas!
+    empList.sort(function (a, b) {
+      if (b.daysCount !== a.daysCount) {
+        return b.daysCount - a.daysCount;
+      }
+      return String(a.name || '').localeCompare(String(b.name || ''));
     });
 
     // Terapkan Filter Departemen & Pencarian
@@ -574,6 +661,21 @@
             timer: 2000,
             showConfirmButton: false
           });
+
+          // Langsung tambahkan atau perbarui item di memori agar perubahan seketika tampil di UI
+          if (resp.item) {
+            var existingIdx = cachedDataGajiLogs.findIndex(function (l) { return l.id === resp.item.id; });
+            if (existingIdx !== -1) {
+              cachedDataGajiLogs[existingIdx] = resp.item;
+            } else {
+              cachedDataGajiLogs.unshift(resp.item);
+            }
+            renderDataGajiTable();
+            if (currentRincianEmpId && bsModalRincianGaji) {
+              renderRincianModal(currentRincianEmpId);
+            }
+          }
+
           loadDataGajiList();
         } else {
           Swal.fire('Gagal Menyimpan', (resp && resp.message) || 'Terjadi kesalahan sistem.', 'error');
@@ -599,8 +701,29 @@
   };
 
   function renderRincianModal(empId) {
-    var emp = (dbKaryawan || []).find(function (k) { return String(k.id).toLowerCase() === String(empId).toLowerCase(); });
-    if (!emp) return;
+    var emp = (dbKaryawan || []).find(function (k) { return matchLogToEmp({ empId: empId, empName: empId }, k); });
+    if (!emp) {
+      var sampleLog = cachedDataGajiLogs.find(function (l) {
+        return matchLogToEmp(l, { id: empId, name: empId });
+      });
+      if (sampleLog) {
+        emp = {
+          id: sampleLog.empId || empId,
+          name: sampleLog.empName || empId,
+          dept: sampleLog.dept || '-',
+          jabatan: sampleLog.jabatan || '-',
+          gajiPokok: sampleLog.basic || 0
+        };
+      } else {
+        emp = {
+          id: empId,
+          name: empId,
+          dept: '-',
+          jabatan: '-',
+          gajiPokok: 0
+        };
+      }
+    }
 
     var titleEl = document.getElementById('rincianEmpTitle');
     if (titleEl) {
@@ -616,9 +739,9 @@
     var basicEl = document.getElementById('rincianEmpBasic');
     if (basicEl) basicEl.innerText = formatRupiahVal(basicVal);
 
-    // Ambil semua log karyawan ini
+    // Ambil semua log karyawan ini dengan pencocokan fleksibel
     var kLogs = cachedDataGajiLogs.filter(function (log) {
-      return String(log.empId || '').trim().toLowerCase() === String(empId).trim().toLowerCase();
+      return matchLogToEmp(log, emp);
     });
 
     var totalJamOt = 0;
