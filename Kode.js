@@ -51,7 +51,13 @@ const ALLOWED_PROTECTED_ACTIONS = [
 
 function doGet(e) {
   // Hanya layani UI HTML Web App (Cegah eksekusi aksi sensitif via GET URL parameter)
-  return HtmlService.createTemplateFromFile('Index')
+  let template;
+  try {
+    template = HtmlService.createTemplateFromFile('index');
+  } catch (err) {
+    template = HtmlService.createTemplateFromFile('Index');
+  }
+  return template
     .evaluate()
     .setTitle('E-Slip Gaji')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
