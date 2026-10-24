@@ -45,11 +45,15 @@
   <!-- ====================================================================== -->
   <!-- MODULAR CSS STYLESHEETS (Dipisahkan per modul untuk efisiensi & kerapian) -->
   <!-- ====================================================================== -->
-  <!-- Local Live-Server Synchronous CSS Loader (Auto Anti-FOUC) -->
+  <!-- Universal Static Host Synchronous CSS Loader (GitHub Pages, Live-Server, Localhost) -->
   <script>
     (function () {
-      var isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:');
-      if (!isLocal) return;
+      var isGas = (
+        window.location.hostname.indexOf('script.google.com') !== -1 ||
+        window.location.hostname.indexOf('googleusercontent.com') !== -1
+      );
+      if (isGas) return;
+
       var styleModules = [
         'Styles_Core.html',
         'Styles_Auth.html',
@@ -57,12 +61,19 @@
         'Styles_Cuti.html',
         'Styles_DarkTheme.html'
       ];
+      var basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
       styleModules.forEach(function (file) {
         try {
+          var targetUrl = (window.location.protocol === 'file:') ? file : (basePath + file + '?_v=' + Date.now());
           var xhr = new XMLHttpRequest();
-          xhr.open('GET', file, false);
+          xhr.open('GET', targetUrl, false);
           xhr.send();
-          if (xhr.status === 200 || xhr.status === 0) {
+          if ((xhr.status !== 200 && xhr.status !== 304 && xhr.status !== 0) || !xhr.responseText) {
+            xhr = new XMLHttpRequest();
+            xhr.open('GET', file + '?_v=' + Date.now(), false);
+            xhr.send();
+          }
+          if ((xhr.status === 200 || xhr.status === 304 || xhr.status === 0) && xhr.responseText) {
             var div = document.createElement('div');
             div.innerHTML = xhr.responseText;
             var styleEl = div.querySelector('style');
@@ -75,7 +86,7 @@
             }
           }
         } catch (e) {
-          console.warn('Local style load error [' + file + ']:', e);
+          console.warn('Style load error [' + file + ']:', e);
         }
       });
     })();
@@ -3484,11 +3495,15 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.all.min.js"></script>
 
   <!-- PRODUCTION APPLICATION LOGIC (Modular Scripts) -->
-  <!-- Local Live-Server Synchronous JS Loader (Sequential Execution) -->
+  <!-- Universal Static Host Synchronous JS Loader (GitHub Pages, Live-Server, Localhost) -->
   <script>
     (function () {
-      var isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:');
-      if (!isLocal) return;
+      var isGas = (
+        window.location.hostname.indexOf('script.google.com') !== -1 ||
+        window.location.hostname.indexOf('googleusercontent.com') !== -1
+      );
+      if (isGas) return;
+
       var scriptModules = [
         'Scripts_Core.html',
         'Scripts_Auth.html',
@@ -3499,12 +3514,19 @@
         'Scripts_Cuti.html',
         'Scripts_Pendaftaran.html'
       ];
+      var basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
       scriptModules.forEach(function (file) {
         try {
+          var targetUrl = (window.location.protocol === 'file:') ? file : (basePath + file + '?_v=' + Date.now());
           var xhr = new XMLHttpRequest();
-          xhr.open('GET', file, false);
+          xhr.open('GET', targetUrl, false);
           xhr.send();
-          if (xhr.status === 200 || xhr.status === 0) {
+          if ((xhr.status !== 200 && xhr.status !== 304 && xhr.status !== 0) || !xhr.responseText) {
+            xhr = new XMLHttpRequest();
+            xhr.open('GET', file + '?_v=' + Date.now(), false);
+            xhr.send();
+          }
+          if ((xhr.status === 200 || xhr.status === 304 || xhr.status === 0) && xhr.responseText) {
             var div = document.createElement('div');
             div.innerHTML = xhr.responseText;
             var scripts = div.querySelectorAll('script');
@@ -3525,7 +3547,7 @@
             }
           }
         } catch (e) {
-          console.warn('Local script load error [' + file + ']:', e);
+          console.warn('Script load error [' + file + ']:', e);
         }
       });
     })();
