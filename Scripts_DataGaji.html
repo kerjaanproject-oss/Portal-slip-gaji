@@ -14,6 +14,46 @@
   var bsModalRincianGaji = null;
   var currentRincianEmpId = null;
 
+  var NAMA_HARI_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+  function formatDateWithDay(dateVal) {
+    if (!dateVal || dateVal === '-') return '-';
+    var dObj = null;
+    if (dateVal instanceof Date) {
+      dObj = dateVal;
+    } else {
+      var s = String(dateVal).trim().split('T')[0].split(' ')[0];
+      if (s.indexOf('-') !== -1) {
+        var p = s.split('-');
+        if (p.length === 3) {
+          if (p[0].length === 4) {
+            dObj = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+          } else {
+            dObj = new Date(Number(p[2]), Number(p[1]) - 1, Number(p[0]));
+          }
+        }
+      } else if (s.indexOf('/') !== -1) {
+        var p = s.split('/');
+        if (p.length === 3) {
+          if (p[0].length === 4) {
+            dObj = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+          } else {
+            dObj = new Date(Number(p[2]), Number(p[1]) - 1, Number(p[0]));
+          }
+        }
+      }
+    }
+    if (!dObj || isNaN(dObj.getTime())) {
+      return typeof formatDateDMY === 'function' ? formatDateDMY(dateVal) : String(dateVal);
+    }
+    var dayName = NAMA_HARI_ID[dObj.getDay()];
+    var dd = String(dObj.getDate()).padStart(2, '0');
+    var mm = String(dObj.getMonth() + 1).padStart(2, '0');
+    var yyyy = dObj.getFullYear();
+    return dayName + ', ' + dd + '/' + mm + '/' + yyyy;
+  }
+  window.formatDateWithDay = formatDateWithDay;
+
   // Inisialisasi awal saat halaman dibuka
   window.initDataGajiPage = function () {
     populateDataGajiDeptFilters();
@@ -183,7 +223,7 @@
         '<td class="text-end">' + otText + '</td>' +
         '<td class="text-end">' + ritText + '</td>' +
         '<td class="text-end">' + tunjText + '</td>' +
-        '<td class="text-end fw-bold text-success fs-6 bg-success-subtle">' + formatRupiahVal(emp.grandTotal) + '</td>' +
+        '<td class="text-end"><span class="badge bg-success text-white px-2.5 py-1.5" style="font-size: 0.875rem; font-weight: 700; box-shadow: 0 1px 2px rgba(16,185,129,0.25);">' + formatRupiahVal(emp.grandTotal) + '</span></td>' +
         '<td class="text-center"><span class="badge ' + (emp.daysCount > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-muted border') + ' fw-semibold">' + emp.daysCount + ' Hari</span></td>' +
         '<td class="text-center text-nowrap">' +
         '  <div class="action-group">' +
@@ -497,7 +537,7 @@
 
     var confirmHtml =
       '<div class="text-start extra-small p-2.5 rounded bg-light border mb-2">' +
-      '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Tanggal Kerja:</span><strong class="text-dark">' + escapeHTML(formatDateDMY(tanggal)) + '</strong></div>' +
+      '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Tanggal Kerja:</span><strong class="text-dark">' + escapeHTML(formatDateWithDay(tanggal)) + '</strong></div>' +
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Karyawan:</span><strong class="text-dark">' + escapeHTML(empName) + ' (' + escapeHTML(empId) + ')</strong></div>' +
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Gaji Pokok (Basic):</span><strong>' + formatRupiahVal(basic) + '</strong></div>' +
       '<hr class="my-1">' +
@@ -563,7 +603,11 @@
     if (!emp) return;
 
     var titleEl = document.getElementById('rincianEmpTitle');
-    if (titleEl) titleEl.innerText = emp.name + ' (' + emp.id + ')';
+    if (titleEl) {
+      titleEl.innerText = emp.name + ' (' + emp.id + ')';
+      titleEl.className = 'text-white fw-bold';
+      titleEl.style.color = '#ffffff';
+    }
 
     var deptJabatanEl = document.getElementById('rincianEmpDeptJabatan');
     if (deptJabatanEl) deptJabatanEl.innerText = (emp.dept || '-') + ' / ' + (emp.jabatan || '-');
@@ -632,11 +676,11 @@
       var tr = document.createElement('tr');
       tr.innerHTML =
         '<td class="text-center text-muted extra-small">' + (idx + 1) + '</td>' +
-        '<td class="fw-bold text-nowrap"><i class="bi bi-calendar-event me-1 text-primary"></i>' + escapeHTML(formatDateDMY(log.tanggal)) + '</td>' +
+        '<td class="fw-bold text-nowrap"><i class="bi bi-calendar-event me-1 text-primary"></i>' + escapeHTML(formatDateWithDay(log.tanggal)) + '</td>' +
         '<td class="text-end">' + otStr + '</td>' +
         '<td class="text-end">' + ritStr + '</td>' +
         '<td class="text-end fw-semibold">' + (tunj > 0 ? formatRupiahVal(tunj) : '<span class="text-muted extra-small">-</span>') + '</td>' +
-        '<td class="text-end fw-bold text-success">' + formatRupiahVal(totalHariItu) + '</td>' +
+        '<td class="text-end"><span class="badge bg-success text-white px-2.5 py-1.5" style="font-size: 0.85rem; font-weight: 700; box-shadow: 0 1px 2px rgba(16,185,129,0.25);">' + formatRupiahVal(totalHariItu) + '</span></td>' +
         '<td><small class="text-muted">' + escapeHTML(log.catatan || '-') + '</small></td>' +
         '<td class="text-center text-nowrap">' +
         '  <div class="action-group">' +
@@ -663,7 +707,7 @@
   window.deleteLogFromRincian = function (logId, date) {
     Swal.fire({
       title: 'Hapus Catatan Harian Ini?',
-      html: 'Hapus data lembur / ritase untuk tanggal <strong>' + escapeHTML(formatDateDMY(date)) + '</strong>?<br><span class="text-muted extra-small">Total gaji karyawan akan otomatis berkurang sesuai catatan yang dihapus.</span>',
+      html: 'Hapus data lembur / ritase untuk tanggal <strong>' + escapeHTML(formatDateWithDay(date)) + '</strong>?<br><span class="text-muted extra-small">Total gaji karyawan akan otomatis berkurang sesuai catatan yang dihapus.</span>',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Ya, Hapus',
