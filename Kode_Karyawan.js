@@ -34,7 +34,8 @@ function getInitialData(token) {
         email: String(userData[i][6] || ''),
         polaRoster: String(userData[i][8] || 'Non-Roster').trim() || 'Non-Roster',
         tglMulaiKerja: tglMulai,
-        hasSlipPin: Boolean(String(userData[i][10] || '').trim())
+        hasSlipPin: Boolean(String(userData[i][10] || '').trim()),
+        gajiPokok: Number(userData[i][11]) || 0
       });
     }
   }
@@ -334,7 +335,9 @@ function saveKaryawan(token, payload) {
         payload.email || '',
         new Date(),
         payload.polaRoster || 'Non-Roster',
-        payload.tglMulaiKerja || ''
+        payload.tglMulaiKerja || '',
+        '', // Col 11 PIN Slip
+        Number(payload.gajiPokok) || 0 // Col 12 Gaji Pokok
       ]);
     } else {
       // Edit Karyawan (ID bisa diubah)
@@ -370,6 +373,7 @@ function saveKaryawan(token, payload) {
       }
       userSheet.getRange(foundIndex, 9).setValue(payload.polaRoster || 'Non-Roster');
       userSheet.getRange(foundIndex, 10).setValue(payload.tglMulaiKerja || '');
+      userSheet.getRange(foundIndex, 12).setValue(Number(payload.gajiPokok) || 0);
 
       // Sync SlipGaji records (update ID & Nama Karyawan)
       const slipSheet = ss.getSheetByName('SlipGaji');
@@ -455,6 +459,8 @@ function importKaryawanBatch(token, karyawanList) {
       const hashedPass = hashPassword(rawPass, empId);
       const roleStr = String(k.role || k['Role'] || '').trim().toLowerCase();
       const role = (roleStr === 'admin' || roleStr === 'hrd') ? 'Admin' : 'Karyawan';
+      const rawGaji = k.gajiPokok || k['Gaji Pokok'] || k['Basic'] || k['Gaji'] || 0;
+      const gajiPokok = Number(String(rawGaji).replace(/[^\d]/g, '')) || 0;
 
       const existingRow = existingMap[empId];
 
@@ -466,8 +472,9 @@ function importKaryawanBatch(token, karyawanList) {
           userSheet.getRange(existingRow, 5).setValue(hashedPass);
         }
         userSheet.getRange(existingRow, 6).setValue(role);
+        userSheet.getRange(existingRow, 12).setValue(gajiPokok);
       } else {
-        userSheet.appendRow([empId, empName, jabatan, dept, hashedPass, role]);
+        userSheet.appendRow([empId, empName, jabatan, dept, hashedPass, role, '', new Date(), 'Non-Roster', '', '', gajiPokok]);
         existingMap[empId] = userSheet.getLastRow();
       }
       successCount++;

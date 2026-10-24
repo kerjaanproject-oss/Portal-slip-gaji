@@ -17,6 +17,9 @@ function ensureUserSheetColumns(userSheet) {
   if (lastCol < 11) {
     userSheet.getRange(1, 11).setValue('PIN Slip Hash').setFontWeight('bold').setBackground('#e2e8f0');
   }
+  if (lastCol < 12) {
+    userSheet.getRange(1, 12).setValue('Gaji Pokok').setFontWeight('bold').setBackground('#e2e8f0');
+  }
 }
 
 // --- INITIAL DATABASE SETUP ---

@@ -1,7 +1,7 @@
 // ==========================================================================
-// MODUL INPUT & PENGELOLAAN DATA GAJI KARYAWAN
+// MODUL INPUT & PENGELOLAAN DATA GAJI KARYAWAN (INPUT HARIAN & REKAPITULASI)
 // File: Kode_DataGaji.js
-// Berisi fungsi inisialisasi sheet DataGaji, CRUD data gaji, dan kalkulasi
+// Berisi fungsi inisialisasi sheet DataGaji, CRUD data gaji harian, dan kalkulasi
 // ==========================================================================
 
 function getOrCreateDataGajiSheet(ss) {
@@ -13,7 +13,7 @@ function getOrCreateDataGajiSheet(ss) {
   if (sheet.getLastRow() === 0) {
     const headers = [
       'ID Gaji',
-      'Tanggal Input',
+      'Tanggal Kerja',
       'Bulan',
       'Tahun',
       'Departemen',
@@ -28,7 +28,7 @@ function getOrCreateDataGajiSheet(ss) {
       'Tarif Ritase',
       'Total Ritase',
       'Tunjangan Harian',
-      'Total Gaji',
+      'Total Harian',
       'Catatan',
       'Diinput Oleh'
     ];
@@ -74,7 +74,7 @@ function getDataGaji(token, filterBulan, filterTahun, filterDept) {
   const tarifRitIdx = headers.findIndex(function (h) { return h.includes('tarif ritase') || h.includes('harga ritase'); });
   const totalRitIdx = headers.findIndex(function (h) { return h.includes('total ritase'); });
   const tunjIdx = headers.findIndex(function (h) { return h.includes('tunjangan harian') || h.includes('tunjangan'); });
-  const totalGajiIdx = headers.findIndex(function (h) { return h.includes('total gaji'); });
+  const totalHarianIdx = headers.findIndex(function (h) { return h.includes('total harian') || h.includes('total gaji'); });
   const noteIdx = headers.findIndex(function (h) { return h.includes('catatan') || h.includes('keterangan'); });
   const authorIdx = headers.findIndex(function (h) { return h.includes('diinput') || h.includes('oleh'); });
 
@@ -91,9 +91,15 @@ function getDataGaji(token, filterBulan, filterTahun, filterDept) {
     if (filterDept && filterDept !== 'SEMUA' && rowDept.toLowerCase() !== String(filterDept).trim().toLowerCase()) continue;
 
     const rawTgl = tglIdx !== -1 ? row[tglIdx] : row[1];
-    const tglStr = rawTgl instanceof Date
-      ? Utilities.formatDate(rawTgl, 'Asia/Jakarta', 'yyyy-MM-dd HH:mm')
-      : String(rawTgl || '').trim();
+    let tglStr = '';
+    if (rawTgl instanceof Date) {
+      tglStr = Utilities.formatDate(rawTgl, 'Asia/Jakarta', 'yyyy-MM-dd');
+    } else {
+      tglStr = String(rawTgl || '').trim();
+      if (tglStr.length > 10 && tglStr.includes('T')) {
+        tglStr = tglStr.split('T')[0];
+      }
+    }
 
     const basic = basicIdx !== -1 ? Number(row[basicIdx] || 0) : Number(row[8] || 0);
     const jamOt = jamOtIdx !== -1 ? Number(row[jamOtIdx] || 0) : Number(row[9] || 0);
@@ -103,7 +109,7 @@ function getDataGaji(token, filterBulan, filterTahun, filterDept) {
     const tarifRit = tarifRitIdx !== -1 ? Number(row[tarifRitIdx] || 0) : Number(row[13] || 0);
     const totalRit = totalRitIdx !== -1 ? Number(row[totalRitIdx] || 0) : (ritase * tarifRit);
     const tunjangan = tunjIdx !== -1 ? Number(row[tunjIdx] || 0) : Number(row[15] || 0);
-    const totalGaji = totalGajiIdx !== -1 ? Number(row[totalGajiIdx] || 0) : (basic + totalOt + totalRit + tunjangan);
+    const totalHarian = totalHarianIdx !== -1 && row[totalHarianIdx] !== '' ? Number(row[totalHarianIdx]) : (totalOt + totalRit + tunjangan);
 
     list.push({
       id: idIdx !== -1 && row[idIdx] ? String(row[idIdx]).trim() : ('GJ-' + i),
@@ -122,14 +128,21 @@ function getDataGaji(token, filterBulan, filterTahun, filterDept) {
       tarifRitase: tarifRit,
       totalRitase: totalRit,
       tunjanganHarian: tunjangan,
-      totalGaji: totalGaji,
+      totalHarian: totalHarian,
+      totalGaji: (basic + totalHarian),
       catatan: noteIdx !== -1 ? String(row[noteIdx] || '').trim() : String(row[17] || '').trim(),
       author: authorIdx !== -1 ? String(row[authorIdx] || '').trim() : String(row[18] || '').trim()
     });
   }
 
-  // Urutkan data terbaru di paling atas
-  list.reverse();
+  // Urutkan tanggal terbaru di paling atas
+  list.sort(function (a, b) {
+    if (a.tanggal && b.tanggal) {
+      return b.tanggal.localeCompare(a.tanggal);
+    }
+    return 0;
+  });
+
   return { success: true, list: list };
 }
 
@@ -147,19 +160,52 @@ function saveDataGaji(token, payload) {
     return { success: false, message: 'Data gaji tidak valid.' };
   }
 
-  const bulan = String(payload.bulan || '').trim();
-  const tahun = String(payload.tahun || '').trim();
+  const tanggal = String(payload.tanggal || '').trim() || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
+  let bulan = String(payload.bulan || '').trim();
+  let tahun = String(payload.tahun || '').trim();
+
+  // Jika bulan/tahun belum terisi, ekstrak dari tanggal (yyyy-MM-dd)
+  if (!bulan || !tahun) {
+    const parts = tanggal.split('-');
+    if (parts.length >= 2) {
+      tahun = parts[0];
+      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const mIdx = parseInt(parts[1], 10) - 1;
+      if (mIdx >= 0 && mIdx < 12) bulan = monthNames[mIdx];
+    }
+  }
+
   const dept = String(payload.dept || '').trim();
   const empId = String(payload.empId || '').trim();
   const empName = String(payload.empName || '').trim();
   const jabatan = String(payload.jabatan || '').trim();
 
-  if (!bulan || !tahun || !dept || !empId || !empName) {
-    return { success: false, message: 'Mohon lengkapi Periode (Bulan & Tahun), Departemen, dan Karyawan.' };
+  if (!tanggal || !bulan || !tahun || !dept || !empId || !empName) {
+    return { success: false, message: 'Mohon lengkapi Tanggal, Periode, Departemen, dan Nama Karyawan.' };
   }
 
-  // Komponen numerik bersifat fleksibel (tidak wajib isi, default 0 jika kosong)
-  const basic = Math.max(0, Number(payload.basic || 0));
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Basic salary diambil dari payload atau dicari dari master Data Karyawan (sheet Users col 12)
+  let basic = Math.max(0, Number(payload.basic || 0));
+  if (basic === 0) {
+    try {
+      const userSheet = ss.getSheetByName('Users');
+      if (userSheet) {
+        const uData = userSheet.getDataRange().getValues();
+        for (let u = 1; u < uData.length; u++) {
+          if (String(uData[u][0] || '').trim().toLowerCase() === empId.toLowerCase()) {
+            basic = Number(uData[u][11] || 0);
+            break;
+          }
+        }
+      }
+    } catch (ue) {
+      console.warn('Lookup basic error:', ue);
+    }
+  }
+
+  // Komponen numerik harian bersifat fleksibel (default 0 jika tidak ada)
   const jamOt = Math.max(0, Number(payload.jamOvertime || 0));
   const tarifOt = Math.max(0, Number(payload.tarifOvertime || 0));
   const totalOt = jamOt * tarifOt;
@@ -169,15 +215,14 @@ function saveDataGaji(token, payload) {
   const totalRit = ritase * tarifRit;
 
   const tunjangan = Math.max(0, Number(payload.tunjanganHarian || 0));
-  const totalGaji = basic + totalOt + totalRit + tunjangan;
+  const totalHarian = totalOt + totalRit + tunjangan;
   const catatan = String(payload.catatan || '').trim();
   const author = String(session.user.username || 'Admin').trim();
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = getOrCreateDataGajiSheet(ss);
   const data = sheet.getDataRange().getValues();
 
-  // Cek apakah mode Edit (payload memiliki ID yang sudah ada)
+  // Cek apakah mode Edit
   const editId = String(payload.id || '').trim();
   let existingRowIndex = -1;
 
@@ -190,14 +235,11 @@ function saveDataGaji(token, payload) {
     }
   }
 
-  const now = new Date();
-  const tglFormatted = Utilities.formatDate(now, 'Asia/Jakarta', 'yyyy-MM-dd HH:mm');
-
   if (existingRowIndex > 0) {
     // Mode Update
     sheet.getRange(existingRowIndex, 1, 1, 19).setValues([[
       editId,
-      tglFormatted,
+      tanggal,
       bulan,
       tahun,
       dept,
@@ -212,17 +254,18 @@ function saveDataGaji(token, payload) {
       tarifRit,
       totalRit,
       tunjangan,
-      totalGaji,
+      totalHarian,
       catatan,
       author
     ]]);
-    return { success: true, message: 'Data gaji berhasil diperbarui.', id: editId };
+    return { success: true, message: 'Data gaji harian berhasil diperbarui.', id: editId };
   } else {
-    // Mode Tambah Baru: Generate ID Unik
-    const newId = 'GJ-' + Utilities.formatDate(now, 'Asia/Jakarta', 'yyyyMM') + '-' + Utilities.getUuid().slice(0, 6).toUpperCase();
+    // Mode Tambah Baru: Generate ID Unik Harian
+    const now = new Date();
+    const newId = 'GJ-' + tanggal.replace(/-/g, '') + '-' + Utilities.getUuid().slice(0, 6).toUpperCase();
     sheet.appendRow([
       newId,
-      tglFormatted,
+      tanggal,
       bulan,
       tahun,
       dept,
@@ -237,11 +280,11 @@ function saveDataGaji(token, payload) {
       tarifRit,
       totalRit,
       tunjangan,
-      totalGaji,
+      totalHarian,
       catatan,
       author
     ]);
-    return { success: true, message: 'Data gaji berhasil disimpan.', id: newId };
+    return { success: true, message: 'Data gaji harian berhasil disimpan.', id: newId };
   }
 }
 
@@ -255,17 +298,15 @@ function deleteDataGaji(token, id) {
     return { success: false, message: 'Akses ditolak: Hanya Admin/HRD yang dapat menghapus data gaji.' };
   }
 
-  const targetId = String(id || '').trim();
-  if (!targetId) {
-    return { success: false, message: 'ID data gaji tidak valid.' };
-  }
+  const cleanId = String(id || '').trim();
+  if (!cleanId) return { success: false, message: 'ID data gaji tidak valid.' };
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = getOrCreateDataGajiSheet(ss);
   const data = sheet.getDataRange().getValues();
 
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0] || '').trim() === targetId) {
+    if (String(data[i][0] || '').trim() === cleanId) {
       sheet.deleteRow(i + 1);
       return { success: true, message: 'Data gaji berhasil dihapus.' };
     }

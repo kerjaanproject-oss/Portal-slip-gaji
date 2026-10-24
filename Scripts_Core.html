@@ -198,6 +198,39 @@
         return div.innerHTML;
       }
 
+      function formatRupiahVal(val) {
+        if (val === null || val === undefined || val === '') return 'Rp 0';
+        var num = typeof val === 'number' ? val : parseInt(String(val).replace(/[^\d]/g, ''), 10);
+        if (isNaN(num)) num = 0;
+        return 'Rp ' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      }
+
+      function parseRupiahVal(val) {
+        if (!val) return 0;
+        var clean = String(val).replace(/[^\d]/g, '');
+        var num = parseInt(clean, 10);
+        return isNaN(num) ? 0 : num;
+      }
+
+      function setupRupiahMask(inputEl) {
+        if (!inputEl) return;
+        inputEl.addEventListener('input', function (e) {
+          var val = this.value.replace(/[^\d]/g, '');
+          if (!val) {
+            this.value = '';
+            return;
+          }
+          var num = parseInt(val, 10);
+          this.value = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        });
+        inputEl.addEventListener('blur', function () {
+          if (!this.value.trim()) return;
+          var num = parseRupiahVal(this.value);
+          this.value = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        });
+      }
+
+
       function showFormValidationWarning(elementOrId, message, title) {
         var el = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
         Swal.fire({

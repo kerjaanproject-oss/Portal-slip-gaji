@@ -211,7 +211,7 @@
           var tr = document.createElement('tr');
           tr.innerHTML = '<td class="fw-bold text-dark">' + escapeHTML(k.id) + '</td>' +
             '<td class="fw-bold">' + escapeHTML(k.name) + (k.email ? '<br><small class="text-muted fw-normal"><i class="bi bi-envelope me-1"></i>' + escapeHTML(k.email) + '</small>' : '') + '</td>' +
-            '<td>' + escapeHTML(k.jabatan) + '</td>' +
+            '<td>' + escapeHTML(k.jabatan) + (k.gajiPokok ? '<br><small class="text-success fw-semibold"><i class="bi bi-wallet2 me-1"></i>' + formatRupiahVal(k.gajiPokok) + '</small>' : '<br><small class="text-muted extra-small">Basic: -</small>') + '</td>' +
             '<td>' + escapeHTML(k.dept) + '</td>' +
             '<td><span class="badge ' + (k.role === 'Admin' ? 'bg-danger' : 'bg-info') + '">' + escapeHTML(k.role) + '</span></td>' +
             '<td>' + rosterBadge + '</td>' +
@@ -272,6 +272,8 @@
           document.getElementById('empIdHelpText').style.display = 'block';
           document.getElementById('empName').value = item.name;
           document.getElementById('empJabatan').value = item.jabatan;
+          var gajiEl = document.getElementById('empGajiPokok');
+          if (gajiEl) { gajiEl.value = item.gajiPokok ? formatRupiahVal(item.gajiPokok) : 'Rp 0'; setupRupiahMask(gajiEl); }
           document.getElementById('empEmail').value = item.email || '';
           populateEmpDeptSelect(item.dept);
           populateModalRosterSelect(item.polaRoster);
@@ -286,6 +288,8 @@
           document.getElementById('editOldId').value = '';
           document.getElementById('formKaryawan').reset();
           document.getElementById('empEmail').value = '';
+          var newGajiEl = document.getElementById('empGajiPokok');
+          if (newGajiEl) { newGajiEl.value = 'Rp 0'; setupRupiahMask(newGajiEl); }
           populateEmpDeptSelect();
           populateModalRosterSelect('Non-Roster');
           document.getElementById('empTglMulaiKerja').value = '';
@@ -310,7 +314,8 @@
           pass: document.getElementById('empPass').value.trim(),
           role: document.getElementById('empRole').value,
           polaRoster: document.getElementById('empPolaRoster').value || 'Non-Roster',
-          tglMulaiKerja: document.getElementById('empTglMulaiKerja').value || ''
+          tglMulaiKerja: document.getElementById('empTglMulaiKerja').value || '',
+          gajiPokok: parseRupiahVal(document.getElementById('empGajiPokok') ? document.getElementById('empGajiPokok').value : 0)
         };
 
         if (!payload.id) {
