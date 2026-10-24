@@ -1,0 +1,488 @@
+  // ==========================================================================
+  // MASTER DATA KARYAWAN & DEPARTEMEN
+  // File: Scripts_Karyawan.html
+  // ==========================================================================
+
+      function getDeptNames() {
+        var depts = [];
+        dbDepartemen.forEach(function (d) {
+          if (d.name && !depts.includes(d.name)) depts.push(d.name);
+        });
+        dbKaryawan.forEach(function (k) {
+          if (k.dept && !depts.includes(k.dept)) depts.push(k.dept);
+        });
+        depts.sort();
+        return depts;
+      }
+
+      function populateKaryawanDeptFilter() {
+        var sel = document.getElementById('filterKaryawanDept');
+        if (!sel) return;
+        var currentVal = sel.value || 'SEMUA';
+        sel.innerHTML = '<option value="SEMUA">Semua Departemen</option>';
+        getDeptNames().forEach(function (d) {
+          sel.innerHTML += '<option value="' + escapeHTML(d) + '">' + escapeHTML(d) + '</option>';
+        });
+        sel.value = getDeptNames().includes(currentVal) ? currentVal : 'SEMUA';
+      }
+
+      function populateUploadDeptSelect(selectedDept) {
+        var sel = document.getElementById('uploadDept');
+        if (!sel) return;
+        var currentVal = selectedDept || sel.value || '';
+        sel.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+
+        getDeptNames().forEach(function (d) {
+          sel.innerHTML += '<option value="' + escapeHTML(d) + '">' + escapeHTML(d) + '</option>';
+        });
+
+        sel.value = getDeptNames().includes(currentVal) ? currentVal : '';
+      }
+
+      window.resetDepartemenFilters = function () {
+        var search = document.getElementById('searchDepartemen');
+        if (search) search.value = '';
+        currentPageDepartemen = 1;
+        renderDepartemenTable();
+      };
+
+      window.renderDepartemenTable = function () {
+        var searchEl = document.getElementById('searchDepartemen');
+        var search = searchEl ? (searchEl.value || '').trim().toLowerCase() : '';
+        var tbody = document.getElementById('tableDepartemen');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        var filtered = dbDepartemen.filter(function (d) {
+          return !search ||
+            d.id.toLowerCase().includes(search) ||
+            d.name.toLowerCase().includes(search);
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Belum ada data departemen.</td></tr>';
+          renderPaginationControls('paginationDepartemen', 0, 1, function () { });
+          return;
+        }
+
+        var totalPages = Math.ceil(filtered.length / pageSize) || 1;
+        if (currentPageDepartemen > totalPages) currentPageDepartemen = totalPages;
+
+        var pageData = filtered.slice((currentPageDepartemen - 1) * pageSize, currentPageDepartemen * pageSize);
+
+        pageData.forEach(function (d) {
+          var empCount = dbKaryawan.filter(function (k) {
+            return (k.dept || '').trim().toLowerCase() === (d.name || '').trim().toLowerCase();
+          }).length;
+
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td class="text-center fw-bold text-dark">' + (filtered.indexOf(d) + 1) + '</td>' +
+            '<td class="fw-bold">' + escapeHTML(d.name) + '</td>' +
+            '<td class="text-center"><span class="badge rounded-pill text-bg-primary">' + empCount + ' Karyawan</span></td>' +
+            '<td class="text-center text-nowrap"><div class="action-group">' +
+            '<button class="btn btn-sm btn-action btn-action-edit" onclick="openModalDepartemen(\'' + escapeHTML(d.id) + '\')" title="Edit Departemen"><i class="bi bi-pencil-square"></i>Edit</button>' +
+            '<button class="btn btn-sm btn-action btn-action-delete" onclick="deleteDepartemen(\'' + escapeHTML(d.id) + '\')" title="Hapus Departemen"><i class="bi bi-trash"></i>Hapus</button>' +
+            '</div></td>';
+          tbody.appendChild(tr);
+        });
+
+        renderPaginationControls('paginationDepartemen', filtered.length, currentPageDepartemen, function (newPage) {
+          currentPageDepartemen = newPage;
+          renderDepartemenTable();
+        });
+      };
+
+      window.openModalDepartemen = function (deptId) {
+        if (!bsModalDepartemen) {
+          bsModalDepartemen = new bootstrap.Modal(document.getElementById('modalDepartemen'));
+        }
+
+        if (deptId) {
+          var item = dbDepartemen.find(function (d) { return d.id === deptId; });
+          if (!item) return;
+          document.getElementById('modalDepartemenTitle').innerText = 'Edit Departemen';
+          document.getElementById('deptId').value = item.id;
+          document.getElementById('deptName').value = item.name;
+          document.getElementById('deptNote').value = item.note || '';
+        } else {
+          document.getElementById('modalDepartemenTitle').innerText = 'Tambah Departemen';
+          document.getElementById('formDepartemen').reset();
+          document.getElementById('deptId').value = '';
+        }
+
+        bsModalDepartemen.show();
+      };
+
+      window.handleSaveDepartemen = function () {
+        var payload = {
+          id: document.getElementById('deptId').value.trim(),
+          name: document.getElementById('deptName').value.trim(),
+          note: document.getElementById('deptNote').value.trim()
+        };
+
+        if (!payload.name) {
+          showFormValidationWarning('deptName', 'Nama departemen wajib diisi.');
+          return;
+        }
+
+        showFullPageLoading('Menyimpan departemen...');
+        gasRun('saveDepartemen', Auth.getToken(), payload).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            bsModalDepartemen.hide();
+            Swal.fire('Berhasil', 'Data departemen telah disimpan.', 'success');
+            loadPageData('master');
+          } else {
+            Swal.fire('Gagal', res.message || 'Gagal menyimpan departemen.', 'error');
+          }
+        });
+      };
+
+      window.deleteDepartemen = function (deptId) {
+        Swal.fire({
+          title: 'Hapus Departemen?',
+          text: 'Departemen hanya bisa dihapus jika belum dipakai oleh data karyawan.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Hapus'
+        }).then(function (res) {
+          if (res.isConfirmed) {
+            showFullPageLoading('Menghapus departemen...');
+            gasRun('deleteDepartemen', Auth.getToken(), deptId).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp.success) {
+                Swal.fire('Terhapus', 'Departemen telah dihapus.', 'success');
+                loadPageData('master');
+              } else {
+                Swal.fire('Gagal', resp.message || 'Gagal menghapus departemen.', 'error');
+              }
+            });
+          }
+        });
+      };
+
+
+  // --- MASTER KARYAWAN CRUD ---
+
+      window.resetKaryawanFilters = function () {
+        var search = document.getElementById('searchKaryawan');
+        if (search) search.value = '';
+        var filterDept = document.getElementById('filterKaryawanDept');
+        if (filterDept) filterDept.value = 'SEMUA';
+        currentPageKaryawan = 1;
+        renderKaryawanTable();
+      };
+
+      window.renderKaryawanTable = function () {
+        var search = (document.getElementById('searchKaryawan').value || '').toLowerCase();
+        var filterDept = document.getElementById('filterKaryawanDept') ? document.getElementById('filterKaryawanDept').value : 'SEMUA';
+        var tbody = document.getElementById('tableKaryawan');
+        tbody.innerHTML = '';
+
+        var filtered = dbKaryawan.filter(function (k) {
+          var matchSearch = k.id.toLowerCase().includes(search) || k.name.toLowerCase().includes(search) || (k.dept || '').toLowerCase().includes(search);
+          var matchDept = (filterDept === 'SEMUA') || ((k.dept || '').trim() === filterDept);
+          return matchSearch && matchDept;
+        });
+
+        var badgeTotal = document.getElementById('badgeTotalKaryawan');
+        if (badgeTotal) badgeTotal.innerText = filtered.length + ' Karyawan';
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada data karyawan.</td></tr>';
+          renderPaginationControls('paginationKaryawan', 0, 1, function () { });
+          return;
+        }
+
+        var pageData = filtered.slice((currentPageKaryawan - 1) * pageSize, currentPageKaryawan * pageSize);
+
+        pageData.forEach(function (k) {
+          var rosterBadge = '';
+          if (k.polaRoster && k.polaRoster !== 'Non-Roster') {
+            rosterBadge = '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">' + escapeHTML(k.polaRoster) + '</span>' +
+              (k.tglMulaiKerja ? '<br><small class="extra-small text-muted"><i class="bi bi-geo-alt me-1"></i>Site: ' + escapeHTML(formatDateDMY(k.tglMulaiKerja)) + '</small>' : '');
+          } else {
+            rosterBadge = '<span class="badge bg-light text-muted border">Reguler</span>';
+          }
+
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td class="fw-bold text-dark">' + escapeHTML(k.id) + '</td>' +
+            '<td class="fw-bold">' + escapeHTML(k.name) + (k.email ? '<br><small class="text-muted fw-normal"><i class="bi bi-envelope me-1"></i>' + escapeHTML(k.email) + '</small>' : '') + '</td>' +
+            '<td>' + escapeHTML(k.jabatan) + '</td>' +
+            '<td>' + escapeHTML(k.dept) + '</td>' +
+            '<td><span class="badge ' + (k.role === 'Admin' ? 'bg-danger' : 'bg-info') + '">' + escapeHTML(k.role) + '</span></td>' +
+            '<td>' + rosterBadge + '</td>' +
+            '<td class="text-center text-nowrap"><div class="action-group">' +
+            '<button class="btn btn-sm btn-action btn-action-edit" onclick="openModalKaryawan(\'' + escapeHTML(k.id) + '\')" title="Edit Karyawan"><i class="bi bi-pencil-square"></i>Edit</button>' +
+            (k.hasSlipPin ? '<button class="btn btn-sm btn-action text-warning border-warning" onclick="handleAdminResetPin(\'' + escapeHTML(k.id) + '\', \'' + escapeHTML(k.name) + '\')" title="Reset PIN Slip Gaji Karyawan"><i class="bi bi-shield-x"></i>Reset PIN</button>' : '') +
+            '<button class="btn btn-sm btn-action btn-action-delete" onclick="deleteKaryawan(\'' + escapeHTML(k.id) + '\')" title="Hapus Karyawan"><i class="bi bi-trash"></i>Hapus</button>' +
+            '</div></td>';
+          tbody.appendChild(tr);
+        });
+
+        renderPaginationControls('paginationKaryawan', filtered.length, currentPageKaryawan, function (newPage) {
+          currentPageKaryawan = newPage;
+          renderKaryawanTable();
+        });
+      };
+
+      function populateEmpDeptSelect(selectedDept) {
+        var sel = document.getElementById('empDept');
+        if (!sel) return;
+        var hasSelected = false;
+        sel.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+        dbDepartemen.forEach(function (d) {
+          if (d.name) {
+            sel.innerHTML += '<option value="' + escapeHTML(d.name) + '">' + escapeHTML(d.name) + '</option>';
+            if (d.name === selectedDept) hasSelected = true;
+          }
+        });
+        if (selectedDept && !hasSelected) {
+          sel.innerHTML += '<option value="' + escapeHTML(selectedDept) + '">' + escapeHTML(selectedDept) + '</option>';
+        }
+        sel.value = selectedDept || '';
+      }
+
+      function populateModalRosterSelect(selectedRoster) {
+        var sel = document.getElementById('empPolaRoster');
+        if (!sel) return;
+        sel.innerHTML = '<option value="Non-Roster">Non-Roster / Reguler</option>';
+        dbRoster.forEach(function (r) {
+          sel.innerHTML += '<option value="' + escapeHTML(r.name) + '">' + escapeHTML(r.name) + ' (Kerja ' + r.workDays + ' hr, Cuti ' + r.leaveDays + ' hr)</option>';
+        });
+        sel.value = selectedRoster || 'Non-Roster';
+      }
+
+      window.openModalKaryawan = function (empId) {
+        if (!bsModalKaryawan) {
+          bsModalKaryawan = new bootstrap.Modal(document.getElementById('modalKaryawan'));
+        }
+
+        if (empId) {
+          var item = dbKaryawan.find(function (k) { return k.id === empId; });
+          if (!item) return;
+          document.getElementById('modalKaryawanTitle').innerText = 'Edit Karyawan';
+          document.getElementById('editIsNew').value = 'false';
+          document.getElementById('editOldId').value = item.id;
+          document.getElementById('empId').value = item.id;
+          document.getElementById('empId').readOnly = false;
+          document.getElementById('empIdHelpText').style.display = 'block';
+          document.getElementById('empName').value = item.name;
+          document.getElementById('empJabatan').value = item.jabatan;
+          document.getElementById('empEmail').value = item.email || '';
+          populateEmpDeptSelect(item.dept);
+          populateModalRosterSelect(item.polaRoster);
+          document.getElementById('empTglMulaiKerja').value = item.tglMulaiKerja || '';
+          document.getElementById('empPass').value = '';
+          document.getElementById('empPass').required = false;
+          document.getElementById('passHelpText').style.display = 'block';
+          document.getElementById('empRole').value = item.role;
+        } else {
+          document.getElementById('modalKaryawanTitle').innerText = 'Tambah Karyawan Baru';
+          document.getElementById('editIsNew').value = 'true';
+          document.getElementById('editOldId').value = '';
+          document.getElementById('formKaryawan').reset();
+          document.getElementById('empEmail').value = '';
+          populateEmpDeptSelect();
+          populateModalRosterSelect('Non-Roster');
+          document.getElementById('empTglMulaiKerja').value = '';
+          document.getElementById('empId').readOnly = false;
+          document.getElementById('empIdHelpText').style.display = 'none';
+          document.getElementById('empPass').required = true;
+          document.getElementById('passHelpText').style.display = 'none';
+        }
+        bsModalKaryawan.show();
+      };
+
+      window.handleSaveKaryawan = function () {
+        var isNew = document.getElementById('editIsNew').value === 'true';
+        var payload = {
+          isNew: isNew,
+          oldId: document.getElementById('editOldId').value.trim(),
+          id: document.getElementById('empId').value.trim(),
+          name: document.getElementById('empName').value.trim(),
+          email: document.getElementById('empEmail').value.trim(),
+          jabatan: document.getElementById('empJabatan').value.trim(),
+          dept: document.getElementById('empDept').value.trim(),
+          pass: document.getElementById('empPass').value.trim(),
+          role: document.getElementById('empRole').value,
+          polaRoster: document.getElementById('empPolaRoster').value || 'Non-Roster',
+          tglMulaiKerja: document.getElementById('empTglMulaiKerja').value || ''
+        };
+
+        if (!payload.id) {
+          showFormValidationWarning('empId', 'ID Karyawan wajib diisi.');
+          return;
+        }
+        if (!payload.name) {
+          showFormValidationWarning('empName', 'Nama lengkap karyawan wajib diisi.');
+          return;
+        }
+        if (!payload.jabatan) {
+          showFormValidationWarning('empJabatan', 'Jabatan karyawan wajib diisi.');
+          return;
+        }
+        if (!payload.dept) {
+          showFormValidationWarning('empDept', 'Departemen wajib dipilih.');
+          return;
+        }
+        if (isNew && !payload.pass) {
+          showFormValidationWarning('empPass', 'Password login wajib diisi untuk akun karyawan baru.');
+          return;
+        }
+
+        showFullPageLoading('Menyimpan data karyawan...');
+
+        gasRun('saveKaryawan', Auth.getToken(), payload).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            bsModalKaryawan.hide();
+            Swal.fire('Berhasil', 'Data karyawan telah disimpan.', 'success');
+            var loggedInUser = Auth.getUser();
+            if (loggedInUser && (String(loggedInUser.username || '').toLowerCase() === String(payload.id || '').toLowerCase() || String(loggedInUser.username || '').toLowerCase() === String(payload.oldId || '').toLowerCase())) {
+              loggedInUser.polaRoster = payload.polaRoster;
+              loggedInUser.tglMulaiKerja = payload.tglMulaiKerja;
+              loggedInUser.dept = payload.dept;
+              loggedInUser.jabatan = payload.jabatan;
+              loggedInUser.fullname = payload.name;
+              Auth.setUser(loggedInUser);
+            }
+            loadPageData('karyawan');
+          } else {
+            Swal.fire('Gagal', res.message || 'Gagal menyimpan.', 'error');
+          }
+        });
+      };
+
+      window.deleteKaryawan = function (empId) {
+        Swal.fire({
+          title: 'Hapus Karyawan?',
+          text: 'Semua data dan akses login karyawan ini akan dihapus.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Hapus'
+        }).then(function (res) {
+          if (res.isConfirmed) {
+            showFullPageLoading('Menghapus karyawan...');
+            gasRun('deleteKaryawan', Auth.getToken(), empId).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp.success) {
+                Swal.fire('Terhapus', 'Karyawan telah dihapus.', 'success');
+                loadPageData('karyawan');
+              } else {
+                Swal.fire('Gagal', resp.message || 'Gagal menghapus.', 'error');
+              }
+            });
+          }
+        });
+      };
+
+      window.handleAdminResetPin = function (empId, empName) {
+        Swal.fire({
+          title: 'Reset PIN Slip Gaji?',
+          html: 'PIN Slip Gaji untuk karyawan <strong>' + escapeHTML(empName) + '</strong> (' + escapeHTML(empId) + ') akan dihapus/direset.<br><small class="text-muted">Karyawan dapat membuat PIN baru saat membuka slip gaji.</small>',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#f59e0b',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Ya, Reset PIN',
+          cancelButtonText: 'Batal'
+        }).then(function (result) {
+          if (result.isConfirmed) {
+            showFullPageLoading('Mereset PIN karyawan...');
+            gasRun('adminResetSlipPin', Auth.getToken(), empId).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp.success) {
+                Swal.fire('Berhasil!', resp.message || 'PIN berhasil direset.', 'success');
+                var k = (dbKaryawan || []).find(function (item) { return item.id === empId; });
+                if (k) k.hasSlipPin = false;
+                renderKaryawanTable();
+              } else {
+                Swal.fire('Gagal', resp.message || 'Gagal mereset PIN.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error Server', err.message || err.toString(), 'error');
+            });
+          }
+        });
+      };
+
+
+  // --- IMPORT KARYAWAN BATCH (EXCEL) ---
+
+      window.downloadTemplateKaryawanExcel = function () {
+        var data = [
+          ["ID Karyawan", "Nama Lengkap", "Jabatan", "Departemen", "Password", "Role"],
+          ["EMP001", "Budi Santoso", "Staff HRD", "Human Resource", "123456", "Admin"],
+          ["EMP002", "Siti Aminah", "Software Engineer", "IT Software", "123456", "Karyawan"],
+          ["EMP003", "Ahmad Fauzi", "Accountant", "Finance", "123456", "Karyawan"]
+        ];
+
+        var ws = XLSX.utils.aoa_to_sheet(data);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Template Karyawan");
+        XLSX.writeFile(wb, "Template_Import_Karyawan.xlsx");
+      };
+
+      window.openModalImportKaryawan = function () {
+        if (!bsModalImportKaryawan) {
+          var modalEl = document.getElementById('modalImportKaryawan');
+          if (modalEl) bsModalImportKaryawan = new bootstrap.Modal(modalEl);
+        }
+        document.getElementById('formImportKaryawan').reset();
+        if (bsModalImportKaryawan) bsModalImportKaryawan.show();
+      };
+
+      window.handleImportKaryawanExcel = function () {
+        var fileInput = document.getElementById('importFileExcel');
+        if (!fileInput.files || fileInput.files.length === 0) {
+          showFormValidationWarning('importFileExcel', 'Silakan pilih file Excel (.xlsx / .xls / .csv) terlebih dahulu.');
+          return;
+        }
+
+        var file = fileInput.files[0];
+        showFullPageLoading('Membaca & Mengimpor File Excel...');
+
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            var data = new Uint8Array(e.target.result);
+            var workbook = XLSX.read(data, { type: 'array' });
+            var firstSheetName = workbook.SheetNames[0];
+            var worksheet = workbook.Sheets[firstSheetName];
+            var json = XLSX.utils.sheet_to_json(worksheet);
+
+            if (!json || json.length === 0) {
+              hideFullPageLoading();
+              Swal.fire('Gagal', 'File Excel kosong atau tidak terbaca.', 'error');
+              return;
+            }
+
+            gasRun('importKaryawanBatch', Auth.getToken(), json).then(function (res) {
+              hideFullPageLoading();
+              if (handleSessionExpired(res)) return;
+              if (res.success) {
+                if (bsModalImportKaryawan) bsModalImportKaryawan.hide();
+                Swal.fire('Berhasil Impor!', res.message || 'Data karyawan berhasil diimpor.', 'success');
+                loadPageData('karyawan');
+              } else {
+                Swal.fire('Gagal Import', res.message || 'Gagal menyimpan data.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error Server', err.message || err.toString(), 'error');
+            });
+          } catch (err) {
+            hideFullPageLoading();
+            Swal.fire('Error File', 'Format file tidak valid: ' + err.message, 'error');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      };
+

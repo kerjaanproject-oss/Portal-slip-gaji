@@ -1,0 +1,602 @@
+  // ==========================================================================
+  // PENDAFTARAN MANDIRI KARYAWAN & PERSETUJUAN AKUN OLEH HRD
+  // File: Scripts_Pendaftaran.html
+  // ==========================================================================
+
+      // ==========================================
+      // FITUR PENDAFTARAN AKUN MANDIRI & PERSETUJUAN HRD
+      // ==========================================
+      var dbPendaftar = [];
+      var currentPagePendaftar = 1;
+      var publicDepartments = [];
+
+      window.openModalRegister = function () {
+        var form = document.getElementById('formRegister');
+        if (form) form.reset();
+
+        var fb = document.getElementById('regPasswordMatchFeedback');
+        if (fb) {
+          fb.style.display = 'none';
+          fb.innerText = '';
+        }
+
+        // Reset visibility icons
+        ['regPassword', 'regPasswordConfirm'].forEach(function (id) {
+          var input = document.getElementById(id);
+          if (input) input.type = 'password';
+        });
+
+        loadPublicDepartments(true);
+
+        var modalEl = document.getElementById('modalRegister');
+        if (modalEl) {
+          var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+          modal.show();
+        }
+      };
+
+      function loadPublicDepartments(forceRefresh) {
+        var sel = document.getElementById('regDepartemen');
+        if (!sel) return;
+
+        if (!forceRefresh && publicDepartments && publicDepartments.length > 0) {
+          populateDeptSelectOptions(sel, publicDepartments);
+          return;
+        }
+
+        sel.innerHTML = '<option value="">Memuat data master departemen...</option>';
+        gasRun('getPublicDepartments').then(function (res) {
+          var list = [];
+          if (res && res.success) {
+            list = res.departemen || res.departments || [];
+          }
+          if (Array.isArray(list) && list.length > 0) {
+            publicDepartments = list;
+            populateDeptSelectOptions(sel, publicDepartments);
+          } else {
+            publicDepartments = [];
+            sel.innerHTML = '<option value="">-- Belum ada master departemen --</option>';
+          }
+        }).catch(function () {
+          publicDepartments = [];
+          sel.innerHTML = '<option value="">Gagal memuat master departemen</option>';
+        });
+      }
+
+      function populateDeptSelectOptions(selectEl, deptList) {
+        if (!selectEl) return;
+        var currentVal = selectEl.value || '';
+        selectEl.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+        deptList.forEach(function (d) {
+          var opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = d;
+          selectEl.appendChild(opt);
+        });
+        if (currentVal && deptList.includes(currentVal)) {
+          selectEl.value = currentVal;
+        }
+      }
+
+      window.checkRegisterPasswordMatch = function () {
+        var p1 = document.getElementById('regPassword') ? document.getElementById('regPassword').value : '';
+        var p2 = document.getElementById('regPasswordConfirm') ? document.getElementById('regPasswordConfirm').value : '';
+        var fb = document.getElementById('regPasswordMatchFeedback');
+        if (!fb) return;
+
+        if (!p2) {
+          fb.style.display = 'none';
+          fb.innerText = '';
+          return;
+        }
+
+        fb.style.display = 'block';
+        if (p1.length < 6) {
+          fb.className = 'form-text extra-small mt-1 fw-semibold text-warning';
+          fb.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Password minimal 6 karakter';
+        } else if (p1 !== p2) {
+          fb.className = 'form-text extra-small mt-1 fw-semibold text-danger';
+          fb.innerHTML = '<i class="bi bi-x-circle me-1"></i>Konfirmasi password tidak cocok!';
+        } else {
+          fb.className = 'form-text extra-small mt-1 fw-semibold text-success';
+          fb.innerHTML = '<i class="bi bi-check-circle me-1"></i>Password cocok!';
+        }
+      };
+
+      window.submitRegister = function () {
+        var idKaryawan = (document.getElementById('regIdKaryawan')?.value || '').trim();
+        var fullname = (document.getElementById('regNamaLengkap')?.value || '').trim();
+        var dept = (document.getElementById('regDepartemen')?.value || '').trim();
+        var jabatan = (document.getElementById('regJabatan')?.value || '').trim();
+        var kontak = (document.getElementById('regKontak')?.value || '').trim();
+        var pass = document.getElementById('regPassword')?.value || '';
+        var passConfirm = document.getElementById('regPasswordConfirm')?.value || '';
+
+        if (!idKaryawan) {
+          showFormValidationWarning('regIdKaryawan', 'ID Karyawan / NIK wajib diisi.');
+          return;
+        }
+        if (!fullname) {
+          showFormValidationWarning('regNamaLengkap', 'Nama lengkap sesuai KTP wajib diisi.');
+          return;
+        }
+        if (!dept) {
+          showFormValidationWarning('regDepartemen', 'Departemen wajib dipilih.');
+          return;
+        }
+        if (!jabatan) {
+          showFormValidationWarning('regJabatan', 'Jabatan karyawan wajib diisi.');
+          return;
+        }
+        if (!kontak) {
+          showFormValidationWarning('regKontak', 'Email karyawan wajib diisi.');
+          return;
+        }
+        if (!pass) {
+          showFormValidationWarning('regPassword', 'Password akun wajib diisi.');
+          return;
+        }
+        if (pass.length < 6) {
+          showFormValidationWarning('regPassword', 'Password minimal 6 karakter demi keamanan akun Anda.');
+          return;
+        }
+        if (!passConfirm) {
+          showFormValidationWarning('regPasswordConfirm', 'Konfirmasi password wajib diisi.');
+          return;
+        }
+        if (pass !== passConfirm) {
+          showFormValidationWarning('regPasswordConfirm', 'Konfirmasi password harus persis sama dengan password yang dibuat.');
+          return;
+        }
+
+        var btn = document.getElementById('btnSubmitRegister');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Mengirim...';
+        }
+
+        gasRun('registerNewUser', {
+          id: idKaryawan,
+          username: idKaryawan,
+          name: fullname,
+          fullname: fullname,
+          dept: dept,
+          departemen: dept,
+          jabatan: jabatan,
+          kontak: kontak,
+          email: kontak,
+          password: pass
+        }).then(function (res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-check me-1"></i>Kirim Pendaftaran';
+          }
+          if (res.success) {
+            var modalEl = document.getElementById('modalRegister');
+            var modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            Swal.fire({
+              icon: 'success',
+              title: 'Pendaftaran Berhasil!',
+              text: res.message,
+              confirmButtonColor: '#0d6efd'
+            });
+
+            // Isi username di halaman login agar user mudah mengingat
+            var loginUserEl = document.getElementById('loginUsername');
+            if (loginUserEl) loginUserEl.value = idKaryawan;
+          } else {
+            Swal.fire('Pendaftaran Gagal', res.message || 'Terjadi kesalahan sistem saat mendaftar.', 'error');
+          }
+        }).catch(function (err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-check me-1"></i>Kirim Pendaftaran';
+          }
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      // --- LOGIKA PERSETUJUAN HRD (APPROVAL) ---
+
+      window.loadPendaftarList = function (forceRefresh, silent) {
+        if (!Auth.isVerified()) return;
+        var token = Auth.getToken();
+        var tbody = document.getElementById('tablePendaftar');
+
+        if (!silent) {
+          showFullPageLoading('Mengambil data pendaftar...');
+        }
+
+        gasRun('getPendaftarList', token).then(function (res) {
+          if (!silent) hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+
+          if (res.success) {
+            dbPendaftar = res.list || [];
+            var pendingCount = 0;
+            dbPendaftar.forEach(function (p) {
+              if (p.status === 'Menunggu Persetujuan') pendingCount++;
+            });
+            updatePendingPendaftarBadge(pendingCount);
+            populatePendaftarDeptFilter();
+            renderPendaftarTable();
+          } else {
+            if (tbody) {
+              tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">' +
+                '<i class="bi bi-exclamation-circle me-1"></i>' + escapeHTML(res.message || 'Gagal memuat data pendaftar.') +
+                '</td></tr>';
+            }
+          }
+        }).catch(function (err) {
+          if (!silent) hideFullPageLoading();
+          if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">' +
+              '<i class="bi bi-exclamation-triangle me-1"></i>Error server: ' + escapeHTML(err.message || err.toString()) +
+              '</td></tr>';
+          }
+        });
+      };
+
+      window.updatePendingPendaftarBadge = function (count) {
+        count = parseInt(count, 10) || 0;
+
+        var bNav = document.getElementById('badgePendingPendaftar');
+        if (bNav) {
+          bNav.innerText = count;
+          if (count > 0) {
+            bNav.classList.remove('d-none');
+          } else {
+            bNav.classList.add('d-none');
+          }
+        }
+
+        var bDash = document.getElementById('badgeDashPendaftar');
+        if (bDash) {
+          bDash.innerText = count;
+          if (count > 0) {
+            bDash.classList.remove('d-none');
+          } else {
+            bDash.classList.add('d-none');
+          }
+        }
+
+        var bHead = document.getElementById('badgePendingPendaftarHeader');
+        if (bHead) {
+          bHead.innerText = count + ' Menunggu';
+          if (count > 0) {
+            bHead.className = 'badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1';
+          } else {
+            bHead.className = 'badge bg-secondary-subtle text-muted border border-secondary-subtle rounded-pill px-2.5 py-1';
+          }
+        }
+      };
+
+      window.populatePendaftarDeptFilter = function () {
+        var sel = document.getElementById('filterDeptPendaftar');
+        if (!sel) return;
+        var currentVal = sel.value || 'SEMUA';
+
+        var depts = [];
+        dbPendaftar.forEach(function (p) {
+          if (p.dept && !depts.includes(p.dept)) depts.push(p.dept);
+        });
+        if (Array.isArray(dbDepartemen)) {
+          dbDepartemen.forEach(function (d) {
+            if (d.name && !depts.includes(d.name)) depts.push(d.name);
+          });
+        }
+        depts.sort();
+
+        sel.innerHTML = '<option value="SEMUA">Semua Departemen</option>';
+        depts.forEach(function (d) {
+          var opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = d;
+          sel.appendChild(opt);
+        });
+        sel.value = depts.includes(currentVal) ? currentVal : 'SEMUA';
+      };
+
+      window.resetPendaftarFilters = function () {
+        var search = document.getElementById('searchPendaftar');
+        if (search) search.value = '';
+
+        var status = document.getElementById('filterStatusPendaftar');
+        if (status) status.value = 'SEMUA';
+
+        var dept = document.getElementById('filterDeptPendaftar');
+        if (dept) dept.value = 'SEMUA';
+
+        currentPagePendaftar = 1;
+        renderPendaftarTable();
+      };
+
+      function formatDateDMY(val) {
+        if (!val || val === '-') return '-';
+        var s = String(val).trim();
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+        try {
+          var d = new Date(s);
+          if (!isNaN(d.getTime())) {
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            var year = d.getFullYear();
+            return day + '/' + month + '/' + year;
+          }
+          var parts = s.split(/[\sT]+/)[0].split(/[-/]/);
+          if (parts.length === 3) {
+            if (parts[0].length === 4) { // yyyy-mm-dd
+              return parts[2].padStart(2, '0') + '/' + parts[1].padStart(2, '0') + '/' + parts[0];
+            } else if (parts[2].length === 4) { // dd-mm-yyyy
+              return parts[0].padStart(2, '0') + '/' + parts[1].padStart(2, '0') + '/' + parts[2];
+            }
+          }
+          return s;
+        } catch (e) {
+          return s;
+        }
+      }
+
+      window.renderPendaftarTable = function () {
+        var tbody = document.getElementById('tablePendaftar');
+        if (!tbody) return;
+
+        var searchVal = (document.getElementById('searchPendaftar')?.value || '').toLowerCase().trim();
+        var statusFilter = document.getElementById('filterStatusPendaftar')?.value || 'SEMUA';
+        var deptFilter = document.getElementById('filterDeptPendaftar')?.value || 'SEMUA';
+
+        var filtered = dbPendaftar.filter(function (p) {
+          var matchSearch = true;
+          if (searchVal) {
+            var hay = ((p.idKaryawan || '') + ' ' + (p.name || '') + ' ' + (p.dept || '') + ' ' + (p.jabatan || '') + ' ' + (p.kontak || '')).toLowerCase();
+            matchSearch = hay.includes(searchVal);
+          }
+          var matchStatus = (statusFilter === 'SEMUA') || (p.status === statusFilter);
+          var matchDept = (deptFilter === 'SEMUA') || (p.dept === deptFilter);
+
+          return matchSearch && matchStatus && matchDept;
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted">' +
+            '<div class="py-3">' +
+            '<i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>' +
+            '<div class="fw-semibold">Tidak ada data pendaftaran</div>' +
+            '<div class="extra-small text-muted">Belum ada karyawan baru yang mendaftar atau data tidak cocok dengan filter.</div>' +
+            '</div></td></tr>';
+          var pagContainer = document.getElementById('paginationPendaftar');
+          if (pagContainer) pagContainer.innerHTML = '';
+          return;
+        }
+
+        var totalPages = Math.ceil(filtered.length / pageSize) || 1;
+        if (currentPagePendaftar > totalPages) currentPagePendaftar = totalPages;
+        if (currentPagePendaftar < 1) currentPagePendaftar = 1;
+
+        var startIdx = (currentPagePendaftar - 1) * pageSize;
+        var pageItems = filtered.slice(startIdx, startIdx + pageSize);
+
+        var html = '';
+        pageItems.forEach(function (item) {
+          var statusBadge = '';
+          var actions = '';
+
+          if (item.status === 'Menunggu Persetujuan') {
+            statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1">' +
+              '<i class="bi bi-clock me-1"></i>Menunggu</span>';
+            actions = '<div class="d-flex justify-content-center gap-1.5">' +
+              '<button type="button" class="btn btn-sm btn-success text-white px-2.5 py-1 fw-semibold extra-small shadow-sm" ' +
+              'onclick="handleApprovePendaftar(\'' + escapeHTML(item.regId) + '\', \'' + escapeHTML(item.name) + '\', \'' + escapeHTML(item.idKaryawan) + '\', \'' + escapeHTML(item.dept) + '\', \'' + escapeHTML(item.jabatan) + '\')" title="Setujui dan Aktifkan Akun">' +
+              '<i class="bi bi-check-lg me-1"></i>Setujui</button>' +
+              '<button type="button" class="btn btn-sm btn-danger text-white px-2.5 py-1 fw-semibold extra-small shadow-sm" ' +
+              'onclick="handleRejectPendaftar(\'' + escapeHTML(item.regId) + '\', \'' + escapeHTML(item.name) + '\', \'' + escapeHTML(item.idKaryawan) + '\')" title="Tolak Pendaftaran">' +
+              '<i class="bi bi-x-lg me-1"></i>Tolak</button>' +
+              '</div>';
+          } else if (item.status === 'Disetujui') {
+            statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">' +
+              '<i class="bi bi-check-circle me-1"></i>Disetujui</span>';
+            actions = '<div class="d-flex justify-content-center">' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary px-2.5 py-1 extra-small" ' +
+              'onclick="showPendaftarDetail(\'' + escapeHTML(item.regId) + '\')" title="Lihat Detail Riwayat">' +
+              '<i class="bi bi-info-circle me-1"></i>Detail</button>' +
+              '</div>';
+          } else {
+            statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1">' +
+              '<i class="bi bi-x-circle me-1"></i>Ditolak</span>';
+            actions = '<div class="d-flex justify-content-center">' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary px-2.5 py-1 extra-small" ' +
+              'onclick="showPendaftarDetail(\'' + escapeHTML(item.regId) + '\')" title="Lihat Alasan Penolakan">' +
+              '<i class="bi bi-info-circle me-1"></i>Detail</button>' +
+              '</div>';
+          }
+
+          var tglDisplay = formatDateDMY(item.tanggalDaftar);
+
+          html += '<tr>' +
+            '<td class="ps-3 text-muted extra-small text-nowrap"><i class="bi bi-calendar3 me-1"></i>' + escapeHTML(tglDisplay) + '</td>' +
+            '<td class="fw-bold text-dark font-monospace">' + escapeHTML(item.idKaryawan) + '</td>' +
+            '<td class="fw-semibold">' + escapeHTML(item.name) + '</td>' +
+            '<td><span class="badge bg-light text-dark border px-2 py-1">' + escapeHTML(item.dept) + '</span></td>' +
+            '<td class="small text-secondary fw-semibold">' + escapeHTML(item.jabatan) + '</td>' +
+            '<td class="small"><i class="bi bi-telephone text-muted me-1"></i>' + escapeHTML(item.kontak) + '</td>' +
+            '<td class="text-center">' + statusBadge + '</td>' +
+            '<td class="text-center pe-3">' + actions + '</td>' +
+            '</tr>';
+        });
+
+        tbody.innerHTML = html;
+        renderPaginationControls('paginationPendaftar', filtered.length, currentPagePendaftar, function (p) {
+          currentPagePendaftar = p;
+          renderPendaftarTable();
+        });
+      };
+
+      window.handleApprovePendaftar = function (regId, name, idKaryawan, dept, jabatan) {
+        var rosterOptions = '<option value="Non-Roster" selected>Non-Roster (Jam Kerja Reguler)</option>';
+        if (dbRoster && dbRoster.length > 0) {
+          dbRoster.forEach(function (r) {
+            if (r.namaPola && r.namaPola !== 'Non-Roster') {
+              rosterOptions += '<option value="' + escapeHTML(r.namaPola) + '">' + escapeHTML(r.namaPola) + (r.keterangan ? ' - ' + escapeHTML(r.keterangan) : '') + '</option>';
+            }
+          });
+        }
+
+        var htmlContent =
+          '<div class="text-start">' +
+          '<div class="alert alert-light border py-2 px-3 small mb-3">' +
+          '<div class="row g-1">' +
+          '<div class="col-4 text-muted">ID Karyawan:</div><div class="col-8 fw-bold text-dark font-monospace">' + escapeHTML(idKaryawan) + '</div>' +
+          '<div class="col-4 text-muted">Nama:</div><div class="col-8 fw-bold text-dark">' + escapeHTML(name) + '</div>' +
+          '<div class="col-4 text-muted">Departemen:</div><div class="col-8">' + escapeHTML(dept) + '</div>' +
+          '<div class="col-4 text-muted">Jabatan:</div><div class="col-8">' + escapeHTML(jabatan) + '</div>' +
+          '</div>' +
+          '</div>' +
+          '<div class="mb-3">' +
+          '<label class="form-label small fw-semibold text-dark">Pilih Pola Roster Kerja</label>' +
+          '<select id="swalApproveRoster" class="form-select form-select-sm">' + rosterOptions + '</select>' +
+          '<div class="form-text extra-small text-muted">Pola kerja roster untuk perhitungan kalender cuti.</div>' +
+          '</div>' +
+          '<div class="mb-2">' +
+          '<label class="form-label small fw-semibold text-dark">Catatan HRD (Opsional)</label>' +
+          '<textarea id="swalApproveCatatan" class="form-control form-control-sm" rows="2" placeholder="Contoh: Disetujui, berkas lengkap"></textarea>' +
+          '</div>' +
+          '</div>';
+
+        Swal.fire({
+          title: 'Setujui Pendaftaran Akun?',
+          html: htmlContent,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: '<i class="bi bi-check-lg me-1"></i>Ya, Setujui Akun',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#198754',
+          cancelButtonColor: '#6c757d',
+          focusConfirm: false,
+          preConfirm: function () {
+            var roster = document.getElementById('swalApproveRoster')?.value || 'Non-Roster';
+            var catatan = (document.getElementById('swalApproveCatatan')?.value || '').trim();
+            return { roster: roster, catatan: catatan };
+          }
+        }).then(function (result) {
+          if (result.isConfirmed && result.value) {
+            showFullPageLoading('Menyetujui pendaftaran dan mengaktifkan akun...');
+            gasRun('processApprovalPendaftar', Auth.getToken(), regId, 'Setujui', result.value.catatan, result.value.roster)
+              .then(function (res) {
+                hideFullPageLoading();
+                if (handleSessionExpired(res)) return;
+                if (res.success) {
+                  Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil Disetujui!',
+                    text: res.message,
+                    confirmButtonColor: '#198754'
+                  });
+                  loadPendaftarList(true);
+                  // Refresh database karyawan agar akun baru langsung tampak di kelola karyawan
+                  gasRun('getInitialData', Auth.getToken()).then(function (initRes) {
+                    if (initRes.success) {
+                      dbKaryawan = initRes.karyawan || [];
+                    }
+                  }).catch(function () { });
+                } else {
+                  Swal.fire('Gagal Menyetujui', res.message || 'Terjadi kesalahan sistem.', 'error');
+                }
+              }).catch(function (err) {
+                hideFullPageLoading();
+                Swal.fire('Error Server', err.message || err.toString(), 'error');
+              });
+          }
+        });
+      };
+
+      window.handleRejectPendaftar = function (regId, name, idKaryawan) {
+        Swal.fire({
+          title: 'Tolak Pendaftaran Akun?',
+          html: '<div class="text-start small mb-2 text-muted">Masukkan alasan penolakan pendaftaran untuk <b>' + escapeHTML(name) + ' (' + escapeHTML(idKaryawan) + ')</b>. Alasan ini akan ditampilkan ke karyawan saat mencoba login:</div>',
+          input: 'textarea',
+          inputPlaceholder: 'Contoh: ID Karyawan tidak terdaftar di sistem HRD / Data duplikat',
+          inputAttributes: {
+            'aria-label': 'Alasan penolakan',
+            'rows': 3
+          },
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: '<i class="bi bi-x-circle me-1"></i>Tolak Pendaftaran',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#dc3545',
+          cancelButtonColor: '#6c757d',
+          inputValidator: function (value) {
+            if (!value || value.trim().length < 5) {
+              return 'Mohon isi alasan penolakan secara jelas (minimal 5 karakter).';
+            }
+          }
+        }).then(function (result) {
+          if (result.isConfirmed && result.value) {
+            var alasan = result.value.trim();
+            showFullPageLoading('Memproses penolakan pendaftaran...');
+            gasRun('processApprovalPendaftar', Auth.getToken(), regId, 'Tolak', alasan, '')
+              .then(function (res) {
+                hideFullPageLoading();
+                if (handleSessionExpired(res)) return;
+                if (res.success) {
+                  Swal.fire({
+                    icon: 'info',
+                    title: 'Pendaftaran Ditolak',
+                    text: res.message,
+                    confirmButtonColor: '#0d6efd'
+                  });
+                  loadPendaftarList(true);
+                } else {
+                  Swal.fire('Gagal Menolak', res.message || 'Terjadi kesalahan sistem.', 'error');
+                }
+              }).catch(function (err) {
+                hideFullPageLoading();
+                Swal.fire('Error Server', err.message || err.toString(), 'error');
+              });
+          }
+        });
+      };
+
+      window.showPendaftarDetail = function (regId) {
+        var item = dbPendaftar.find(function (p) { return p.regId === regId; });
+        if (!item) return;
+
+        var statusBadge = '';
+        if (item.status === 'Disetujui') {
+          statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">Disetujui</span>';
+        } else if (item.status === 'Ditolak') {
+          statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1">Ditolak</span>';
+        } else {
+          statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1">Menunggu Persetujuan</span>';
+        }
+
+        var html =
+          '<div class="text-start small">' +
+          '<div class="table-responsive">' +
+          '<table class="table table-sm table-bordered align-middle mb-0">' +
+          '<tr><th class="bg-light" style="width: 35%;">ID Pendaftaran</th><td><code>' + escapeHTML(item.regId) + '</code></td></tr>' +
+          '<tr><th class="bg-light">ID Karyawan</th><td class="fw-bold font-monospace">' + escapeHTML(item.idKaryawan) + '</td></tr>' +
+          '<tr><th class="bg-light">Nama Lengkap</th><td class="fw-bold">' + escapeHTML(item.name) + '</td></tr>' +
+          '<tr><th class="bg-light">Departemen</th><td>' + escapeHTML(item.dept) + '</td></tr>' +
+          '<tr><th class="bg-light">Jabatan</th><td>' + escapeHTML(item.jabatan) + '</td></tr>' +
+          '<tr><th class="bg-light">Email</th><td>' + escapeHTML(item.kontak) + '</td></tr>' +
+          '<tr><th class="bg-light">Tanggal Mendaftar</th><td>' + escapeHTML(formatDateDMY(item.tanggalDaftar)) + '</td></tr>' +
+          '<tr><th class="bg-light">Status Saat Ini</th><td>' + statusBadge + '</td></tr>' +
+          '<tr><th class="bg-light">Tanggal Diproses</th><td>' + escapeHTML(formatDateDMY(item.tanggalDiproses)) + '</td></tr>' +
+          '<tr><th class="bg-light">Diproses Oleh</th><td>' + escapeHTML(item.diprosesOleh || '-') + '</td></tr>' +
+          '<tr><th class="bg-light">Catatan / Alasan</th><td class="text-break">' + escapeHTML(item.catatan || '-') + '</td></tr>' +
+          '</table>' +
+          '</div>' +
+          '</div>';
+
+        Swal.fire({
+          title: 'Detail Pendaftaran Akun',
+          html: html,
+          icon: 'info',
+          confirmButtonText: 'Tutup',
+          confirmButtonColor: '#0d6efd'
+        });
+      };
+

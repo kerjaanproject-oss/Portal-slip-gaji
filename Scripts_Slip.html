@@ -1,0 +1,929 @@
+  // ==========================================================================
+  // PENGOLAHAN SLIP GAJI, PDF VIEWER, RESI & NOTIFIKASI EMAIL
+  // File: Scripts_Slip.html
+  // ==========================================================================
+
+      window.populateEmpSelect = function (selectedEmpId) {
+        var sel = document.getElementById('uploadEmpId');
+        if (!sel) return;
+        var deptSel = document.getElementById('uploadDept');
+        var selectedDept = deptSel ? deptSel.value : '';
+        var currentEmpId = selectedEmpId || sel.value || '';
+
+        if (!selectedDept) {
+          sel.innerHTML = '<option value="">-- Pilih departemen dulu --</option>';
+          return;
+        }
+
+        sel.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
+        var count = 0;
+        dbKaryawan.forEach(function (k) {
+          if (k.role !== 'Admin' && k.dept === selectedDept) {
+            sel.innerHTML += '<option value="' + escapeHTML(k.id) + '">' + escapeHTML(k.id + ' - ' + k.name) + '</option>';
+            count++;
+          }
+        });
+
+        if (count === 0) {
+          sel.innerHTML = '<option value="">Tidak ada karyawan di departemen ini</option>';
+          return;
+        }
+
+        var exists = dbKaryawan.some(function (k) {
+          return k.id === currentEmpId && k.role !== 'Admin' && k.dept === selectedDept;
+        });
+        sel.value = exists ? currentEmpId : '';
+      };
+
+      var MAX_FILE_SIZE_BYTES = 1048576; // 1 MB
+
+      window.validateUploadFileSize = function () {
+        var fileInput = document.getElementById('uploadFilePdf');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) return true;
+        var file = fileInput.files[0];
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          Swal.fire('Peringatan', 'Ukuran file melebihi batas maksimal 1 MB. Silakan pilih file PDF yang lebih kecil.', 'warning');
+          fileInput.value = '';
+          return false;
+        }
+        return true;
+      };
+
+      window.openModalUploadPdf = function (slipId) {
+        try {
+          if (!bsModalUploadPdf) {
+            var modalEl = document.getElementById('modalUploadPdf');
+            if (modalEl) {
+              bsModalUploadPdf = new bootstrap.Modal(modalEl);
+            }
+          }
+
+          var resiInput = document.getElementById('uploadFileResi');
+          var existingResiWrapper = document.getElementById('existingResiWrapper');
+          var existingResiName = document.getElementById('existingResiName');
+          var checkDeleteResi = document.getElementById('checkDeleteResi');
+          if (resiInput) resiInput.value = '';
+          if (checkDeleteResi) checkDeleteResi.checked = false;
+
+          if (slipId) {
+            var item = dbSlips.find(function (s) { return String(s.id) === String(slipId); });
+            if (!item) {
+              Swal.fire('Error', 'Data slip gaji tidak ditemukan.', 'error');
+              return;
+            }
+            var karyawanSlip = dbKaryawan.find(function (k) { return k.id === item.empId; }) || {};
+            document.getElementById('modalUploadPdfTitle').innerText = 'Edit Data Slip Gaji & Resi';
+            document.getElementById('uploadSlipId').value = item.id;
+            populateUploadDeptSelect(karyawanSlip.dept || '');
+            populateEmpSelect(item.empId);
+            document.getElementById('uploadBulan').value = item.bulan;
+            document.getElementById('uploadTahun').value = item.tahun;
+            document.getElementById('uploadCatatan').value = item.catatan || '';
+            document.getElementById('uploadFilePdf').value = '';
+            document.getElementById('uploadFilePdf').required = false;
+            document.getElementById('helpFilePdf').innerText = 'Kosongkan jika tidak ingin mengganti file PDF slip. Maksimal ukuran file 1 MB.';
+
+            if (item.hasResi && item.resiFileName) {
+              if (existingResiWrapper) existingResiWrapper.classList.remove('d-none');
+              if (existingResiName) existingResiName.innerText = item.resiFileName;
+            } else {
+              if (existingResiWrapper) existingResiWrapper.classList.add('d-none');
+            }
+
+            document.getElementById('btnSubmitUploadPdf').innerHTML = '<i class="bi bi-check-circle me-1"></i>Simpan Perubahan Slip';
+          } else {
+            document.getElementById('modalUploadPdfTitle').innerText = 'Upload File PDF Slip Gaji & Resi';
+            document.getElementById('uploadSlipId').value = '';
+            document.getElementById('formUploadPdf').reset();
+            if (existingResiWrapper) existingResiWrapper.classList.add('d-none');
+            populateUploadDeptSelect();
+            populateEmpSelect();
+            document.getElementById('uploadFilePdf').required = true;
+            document.getElementById('helpFilePdf').innerText = 'Format file WAJIB PDF dengan ukuran maksimal 1 MB.';
+            document.getElementById('btnSubmitUploadPdf').innerHTML = '<i class="bi bi-cloud-arrow-up me-1"></i>Upload & Terbitkan Slip';
+          }
+
+          if (bsModalUploadPdf) {
+            bsModalUploadPdf.show();
+          }
+        } catch (err) {
+          console.error('Error opening upload modal:', err);
+          Swal.fire('Error', err.message || err.toString(), 'error');
+        }
+      };
+
+      function readFileAsBase64(file) {
+        return new Promise(function (resolve, reject) {
+          if (!file) {
+            resolve(null);
+            return;
+          }
+          var reader = new FileReader();
+          reader.onload = function (e) {
+            var parts = e.target.result.split(',');
+            resolve({
+              name: file.name,
+              type: file.type || 'application/octet-stream',
+              data: parts[1]
+            });
+          };
+          reader.onerror = function (err) {
+            reject(err);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      window.handleSaveSlipPdf = function () {
+        var slipId = document.getElementById('uploadSlipId').value.trim();
+        var dept = document.getElementById('uploadDept').value;
+        var empId = document.getElementById('uploadEmpId').value;
+        var bulan = document.getElementById('uploadBulan').value;
+        var tahun = document.getElementById('uploadTahun').value;
+        var fileInput = document.getElementById('uploadFilePdf');
+        var resiFileInput = document.getElementById('uploadFileResi');
+        var checkDeleteResi = document.getElementById('checkDeleteResi');
+        var catatan = document.getElementById('uploadCatatan').value.trim();
+
+        if (!dept) {
+          showFormValidationWarning('uploadDept', 'Silakan pilih departemen terlebih dahulu.');
+          return;
+        }
+
+        if (!empId) {
+          showFormValidationWarning('uploadEmpId', 'Silakan pilih karyawan penerima slip gaji.');
+          return;
+        }
+
+        if (!bulan) {
+          showFormValidationWarning('uploadBulan', 'Silakan pilih bulan periode slip gaji.');
+          return;
+        }
+
+        if (!tahun) {
+          showFormValidationWarning('uploadTahun', 'Silakan pilih tahun periode slip gaji.');
+          return;
+        }
+
+        var isNew = !slipId;
+        var hasNewSlipFile = fileInput.files && fileInput.files.length > 0;
+        var hasNewResiFile = resiFileInput && resiFileInput.files && resiFileInput.files.length > 0;
+
+        if (isNew && !hasNewSlipFile) {
+          showFormValidationWarning('uploadFilePdf', 'Silakan pilih berkas PDF slip gaji.');
+          return;
+        }
+
+        if (hasNewSlipFile) {
+          var slipFile = fileInput.files[0];
+          if (slipFile.type !== 'application/pdf') {
+            Swal.fire('Peringatan', 'Format file slip gaji wajib .PDF', 'warning');
+            return;
+          }
+          if (slipFile.size > MAX_FILE_SIZE_BYTES) {
+            Swal.fire('Peringatan', 'Ukuran file slip PDF melebihi batas maksimal 1 MB.', 'warning');
+            return;
+          }
+        }
+
+        if (hasNewResiFile) {
+          var resiFile = resiFileInput.files[0];
+          var allowedResiTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+          var isAllowed = allowedResiTypes.includes(resiFile.type) || /\.(pdf|jpe?g|png)$/i.test(resiFile.name);
+          if (!isAllowed) {
+            Swal.fire('Peringatan', 'Format file resi wajib PDF, JPG, atau PNG.', 'warning');
+            return;
+          }
+          if (resiFile.size > 2097152) { // 2 MB
+            Swal.fire('Peringatan', 'Ukuran file resi melebihi batas maksimal 2 MB.', 'warning');
+            return;
+          }
+        }
+
+        showFullPageLoading(isNew ? 'Mengunggah Slip & Resi ke Server...' : 'Menyimpan perubahan data slip...');
+
+        var slipFileToRead = hasNewSlipFile ? fileInput.files[0] : null;
+        var resiFileToRead = hasNewResiFile ? resiFileInput.files[0] : null;
+
+        Promise.all([
+          readFileAsBase64(slipFileToRead),
+          readFileAsBase64(resiFileToRead)
+        ]).then(function (results) {
+          var slipObj = results[0];
+          var resiObj = results[1];
+
+          var payload = {
+            slipId: slipId,
+            empId: empId,
+            bulan: bulan,
+            tahun: tahun,
+            catatan: catatan
+          };
+
+          if (slipObj) {
+            payload.fileName = slipObj.name;
+            payload.fileData = slipObj.data;
+            payload.mimeType = slipObj.type;
+          }
+
+          if (resiObj) {
+            payload.resiFileName = resiObj.name;
+            payload.resiFileData = resiObj.data;
+            payload.resiMimeType = resiObj.type;
+          } else if (checkDeleteResi && checkDeleteResi.checked) {
+            payload.deleteResi = true;
+          }
+
+          var apiFunc = isNew ? 'uploadSlipPdf' : 'updateSlipPdf';
+          return gasRun(apiFunc, Auth.getToken(), payload);
+        }).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+          if (res && res.success) {
+            if (bsModalUploadPdf) bsModalUploadPdf.hide();
+            Swal.fire('Berhasil!', isNew ? 'Slip gaji dan bukti transfer berhasil diunggah.' : 'Data slip gaji berhasil diperbarui.', 'success');
+            loadPageData('upload-slip');
+          } else {
+            Swal.fire('Gagal', (res && res.message) || 'Terjadi kesalahan saat memproses data.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.renderSlipHrdTable = function () {
+        var searchInput = document.getElementById('searchSlipHrd');
+        var search = searchInput ? (searchInput.value || '').toLowerCase() : '';
+
+        var filterDept = document.getElementById('filterSlipDept') ? document.getElementById('filterSlipDept').value : 'SEMUA';
+        var filterBulan = document.getElementById('filterSlipBulan') ? document.getElementById('filterSlipBulan').value : 'SEMUA';
+        var filterTahun = document.getElementById('filterSlipTahun') ? document.getElementById('filterSlipTahun').value : 'SEMUA';
+
+        var tbody = document.getElementById('tableSlipHrd');
+        tbody.innerHTML = '';
+
+        var filtered = dbSlips.filter(function (s) {
+          var k = dbKaryawan.find(function (item) { return item.id === s.empId; }) || {};
+          var dept = k.dept || '';
+          var jabatan = k.jabatan || '';
+          var catatan = s.catatan || '';
+
+          var matchSearch = !search ||
+            s.empName.toLowerCase().includes(search) ||
+            s.empId.toLowerCase().includes(search) ||
+            s.bulan.toLowerCase().includes(search) ||
+            s.tahun.toLowerCase().includes(search) ||
+            s.fileName.toLowerCase().includes(search) ||
+            dept.toLowerCase().includes(search) ||
+            jabatan.toLowerCase().includes(search) ||
+            catatan.toLowerCase().includes(search);
+
+          var matchDept = (filterDept === 'SEMUA') || (dept === filterDept);
+          var matchBulan = (filterBulan === 'SEMUA') || (s.bulan === filterBulan);
+          var matchTahun = (filterTahun === 'SEMUA') || (s.tahun === filterTahun);
+
+          return matchSearch && matchDept && matchBulan && matchTahun;
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Belum ada slip terbit sesuai filter.</td></tr>';
+          renderPaginationControls('paginationUploadSlip', 0, 1, function () { });
+          return;
+        }
+
+        var pageData = filtered.slice((currentPageUploadSlip - 1) * pageSize, currentPageUploadSlip * pageSize);
+
+        pageData.forEach(function (s, index) {
+          var globalIndex = (currentPageUploadSlip - 1) * pageSize + index + 1;
+          var k = dbKaryawan.find(function (item) { return item.id === s.empId; }) || {};
+          var dept = k.dept || '-';
+          var jabatan = k.jabatan || '-';
+
+          var isSent = (s.emailStatus && s.emailStatus.startsWith('Terkirim'));
+          var statusBadge = isSent
+            ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small" title="' + escapeHTML(s.emailStatus) + '"><i class="bi bi-check-circle-fill me-1"></i>' + escapeHTML(s.emailStatus) + '</span>'
+            : '<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1 small"><i class="bi bi-clock me-1"></i>Belum</span>';
+
+          var tr = document.createElement('tr');
+          var resiBtnHtml = s.hasResi
+            ? '<button class="btn btn-sm btn-action btn-action-resi btn-view-resi" title="Lihat Bukti Transfer"><i class="bi bi-receipt"></i>Resi</button>'
+            : '';
+
+          tr.innerHTML = '<td class="text-center fw-semibold text-muted">' + globalIndex + '</td>' +
+            '<td><code class="fw-bold text-primary">' + escapeHTML(s.empId) + '</code></td>' +
+            '<td><div class="fw-bold text-dark">' + escapeHTML(s.empName) + '</div></td>' +
+            '<td><div class="fw-bold text-dark">' + escapeHTML(dept) + '</div></td>' +
+            '<td><div class="fw-bold text-dark">' + escapeHTML(jabatan) + '</div></td>' +
+            '<td class="text-center"><span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold px-2 py-1">' + escapeHTML(s.bulan + ' ' + s.tahun) + '</span></td>' +
+            '<td><div class="small text-danger fw-semibold text-truncate" style="max-width: 170px;" title="' + escapeHTML(s.fileName) + '"><i class="bi bi-file-earmark-pdf me-1"></i>' + escapeHTML(s.fileName) + '</div>' +
+            (s.hasResi ? '<div class="extra-small text-warning-emphasis fw-semibold text-truncate" style="max-width: 170px;" title="' + escapeHTML(s.resiFileName || 'Ada Resi') + '"><i class="bi bi-receipt me-1"></i>' + escapeHTML(s.resiFileName || 'Bukti Transfer') + '</div>' : '') +
+            '</td>' +
+            '<td class="text-center text-nowrap">' + statusBadge + '</td>' +
+            '<td><div class="small text-muted" style="max-width: 150px; max-height: 52px; overflow-y: auto; overflow-x: hidden; word-break: break-word; padding-right: 4px;">' + escapeHTML(s.catatan || '-') + '</div></td>' +
+            '<td class="text-center text-nowrap"><div class="action-group">' +
+            '<button class="btn btn-sm btn-action btn-action-view btn-view-pdf" title="Lihat PDF"><i class="bi bi-eye"></i>Slip</button>' +
+            resiBtnHtml +
+            '<button class="btn btn-sm btn-action btn-action-email btn-send-email" title="Kirim Email Notifikasi"><i class="bi bi-envelope-at"></i>Email</button>' +
+            '<button class="btn btn-sm btn-action btn-action-edit btn-edit-slip" title="Edit Data"><i class="bi bi-pencil-square"></i>Edit</button>' +
+            '<button class="btn btn-sm btn-action btn-action-delete btn-delete-slip" title="Hapus Data"><i class="bi bi-trash"></i>Hapus</button>' +
+            '</div></td>';
+
+          var btnView = tr.querySelector('.btn-view-pdf');
+          if (btnView) {
+            btnView.addEventListener('click', function () {
+              openPdfModal(s.id);
+            });
+          }
+
+          var btnResi = tr.querySelector('.btn-view-resi');
+          if (btnResi) {
+            btnResi.addEventListener('click', function () {
+              openResiModal(s.id);
+            });
+          }
+
+          var btnEmail = tr.querySelector('.btn-send-email');
+          if (btnEmail) {
+            btnEmail.addEventListener('click', function () {
+              sendSlipEmailSingle(s.id);
+            });
+          }
+
+          var btnEdit = tr.querySelector('.btn-edit-slip');
+          if (btnEdit) {
+            btnEdit.addEventListener('click', function () {
+              openModalUploadPdf(s.id);
+            });
+          }
+
+          var btnDelete = tr.querySelector('.btn-delete-slip');
+          if (btnDelete) {
+            btnDelete.addEventListener('click', function () {
+              deletePdfSlip(s.id);
+            });
+          }
+
+          tbody.appendChild(tr);
+        });
+
+        renderPaginationControls('paginationUploadSlip', filtered.length, currentPageUploadSlip, function (newPage) {
+          currentPageUploadSlip = newPage;
+          renderSlipHrdTable();
+        });
+      };
+
+      window.sendSlipEmailSingle = function (slipId) {
+        var slip = dbSlips.find(function (s) { return s.id === slipId; });
+        if (!slip) return;
+
+        var k = dbKaryawan.find(function (item) { return item.id === slip.empId; }) || {};
+        var email = k.email || '';
+
+        if (!email || !email.includes('@')) {
+          Swal.fire('Email Tidak Tersedia', 'Karyawan <b>' + escapeHTML(slip.empName) + '</b> (' + escapeHTML(slip.empId) + ') belum memiliki alamat email yang terdaftar.<br><small class="text-muted">Silakan tambahkan email karyawan pada menu Data Karyawan terlebih dahulu.</small>', 'warning');
+          return;
+        }
+
+        Swal.fire({
+          title: 'Kirim Email Notifikasi?',
+          html: 'Email notifikasi beserta lampiran PDF akan dikirimkan ke:<br><strong class="text-primary">' + escapeHTML(email) + '</strong> (' + escapeHTML(slip.empName) + ') untuk periode <strong>' + escapeHTML(slip.bulan + ' ' + slip.tahun) + '</strong>.',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#16a34a',
+          confirmButtonText: 'Kirim Email Sekarang',
+          cancelButtonText: 'Batal'
+        }).then(function (res) {
+          if (res.isConfirmed) {
+            showFullPageLoading('Mengirim Email Notifikasi...');
+            gasRun('sendSlipEmailNotification', Auth.getToken(), slipId).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp && resp.success) {
+                Swal.fire('Berhasil Terkirim!', resp.message || 'Email notifikasi telah terkirim ke inbox karyawan.', 'success');
+                loadPageData('upload-slip');
+              } else {
+                Swal.fire('Gagal Mengirim', (resp && resp.message) || 'Gagal mengirim email.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error', err.message || err.toString(), 'error');
+            });
+          }
+        });
+      };
+
+      window.sendSlipEmailBatchProcess = function () {
+        var filterDept = document.getElementById('filterSlipDept') ? document.getElementById('filterSlipDept').value : 'SEMUA';
+        var filterBulan = document.getElementById('filterSlipBulan') ? document.getElementById('filterSlipBulan').value : 'SEMUA';
+        var filterTahun = document.getElementById('filterSlipTahun') ? document.getElementById('filterSlipTahun').value : 'SEMUA';
+        var search = (document.getElementById('searchSlipHrd') ? document.getElementById('searchSlipHrd').value : '').toLowerCase();
+
+        var filtered = dbSlips.filter(function (s) {
+          var k = dbKaryawan.find(function (item) { return item.id === s.empId; }) || {};
+          var dept = k.dept || '';
+          var jabatan = k.jabatan || '';
+          var catatan = s.catatan || '';
+
+          var matchSearch = !search ||
+            s.empName.toLowerCase().includes(search) ||
+            s.empId.toLowerCase().includes(search) ||
+            s.bulan.toLowerCase().includes(search) ||
+            s.tahun.toLowerCase().includes(search) ||
+            s.fileName.toLowerCase().includes(search) ||
+            dept.toLowerCase().includes(search) ||
+            jabatan.toLowerCase().includes(search) ||
+            catatan.toLowerCase().includes(search);
+
+          var matchDept = (filterDept === 'SEMUA') || (dept === filterDept);
+          var matchBulan = (filterBulan === 'SEMUA') || (s.bulan === filterBulan);
+          var matchTahun = (filterTahun === 'SEMUA') || (s.tahun === filterTahun);
+
+          return matchSearch && matchDept && matchBulan && matchTahun;
+        });
+
+        if (filtered.length === 0) {
+          Swal.fire('Peringatan', 'Tidak ada slip gaji terbit yang sesuai dengan filter saat ini.', 'warning');
+          return;
+        }
+
+        var slipIds = filtered.map(function (s) { return s.id; });
+
+        Swal.fire({
+          title: 'Kirim Email Massal?',
+          html: 'Akan mengirimkan email notifikasi ke <strong>' + filtered.length + ' slip gaji</strong> yang sesuai dengan filter halaman saat ini.<br><br><small class="text-muted">Proses pengiriman berlangsung beberapa detik tergantung jumlah penerima.</small>',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#16a34a',
+          confirmButtonText: 'Kirim ' + filtered.length + ' Email',
+          cancelButtonText: 'Batal'
+        }).then(function (res) {
+          if (res.isConfirmed) {
+            showFullPageLoading('Mengirim ' + filtered.length + ' Email Notifikasi...');
+            gasRun('sendSlipEmailNotificationBatch', Auth.getToken(), slipIds).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp && resp.success) {
+                var msg = '<strong>' + resp.successCount + ' dari ' + resp.total + ' email berhasil terkirim.</strong>';
+                if (resp.failedCount > 0) {
+                  msg += '<br><span class="text-danger">' + resp.failedCount + ' gagal (email tidak terdaftar/tidak valid).</span>';
+                }
+                Swal.fire('Proses Pengiriman Selesai', msg, (resp.failedCount > 0 ? 'info' : 'success'));
+                loadPageData('upload-slip');
+              } else {
+                Swal.fire('Gagal Batch Email', (resp && resp.message) || 'Gagal memproses batch email.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error Server', err.message || err.toString(), 'error');
+            });
+          }
+        });
+      };
+
+
+      window.deletePdfSlip = function (id) {
+        if (!id) return;
+        Swal.fire({
+          title: 'Hapus Slip Gaji?',
+          text: 'File PDF di database juga akan dihapus.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          confirmButtonText: 'Hapus',
+          cancelButtonText: 'Batal'
+        }).then(function (res) {
+          if (res.isConfirmed) {
+            showFullPageLoading('Menghapus slip...');
+            gasRun('deleteSlipPdf', Auth.getToken(), String(id)).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp && resp.success) {
+                Swal.fire('Terhapus', 'Slip gaji PDF telah dihapus.', 'success');
+                loadPageData('upload-slip');
+              } else {
+                Swal.fire('Gagal', (resp && resp.message) || 'Gagal menghapus.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error', err.message || err.toString(), 'error');
+            });
+          }
+        });
+      };
+
+      function formatTanggalSlip(dateStr) {
+        if (!dateStr || dateStr === '-') return '-';
+        var parts = String(dateStr).split(' ');
+        var datePart = (parts[0] || '').split('-');
+        if (datePart.length < 3) return dateStr;
+        var year = parseInt(datePart[0], 10);
+        var month = parseInt(datePart[1], 10);
+        var day = parseInt(datePart[2], 10);
+        var d = new Date(year, month - 1, day);
+        var hari = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][d.getDay()];
+        var dd = ('0' + day).slice(-2);
+        var mm = ('0' + month).slice(-2);
+        return hari + ', ' + dd + '/' + mm + '/' + year;
+      }
+
+      function syncSlipYearFilterOptions() {
+        var selTahun = document.getElementById('filterTahun');
+        if (!selTahun) return;
+
+        var currentSelected = selTahun.value || '';
+        var years = [];
+        if (Array.isArray(dbSlips)) {
+          dbSlips.forEach(function (s) {
+            var y = String(s.tahun || '').trim();
+            if (y && years.indexOf(y) === -1) {
+              years.push(y);
+            }
+          });
+        }
+        years.sort().reverse();
+
+        var optHtml = '<option value="SEMUA">Semua Tahun</option>';
+        years.forEach(function (y) {
+          optHtml += '<option value="' + escapeHTML(y) + '">' + escapeHTML(y) + '</option>';
+        });
+        ['2026', '2025'].forEach(function (defY) {
+          if (years.indexOf(defY) === -1) {
+            optHtml += '<option value="' + defY + '">' + defY + '</option>';
+          }
+        });
+        selTahun.innerHTML = optHtml;
+
+        if (currentSelected && (currentSelected === 'SEMUA' || years.indexOf(currentSelected) !== -1)) {
+          selTahun.value = currentSelected;
+        } else if (years.length > 0) {
+          selTahun.value = years[0];
+        } else {
+          selTahun.value = 'SEMUA';
+        }
+      }
+
+      window.resetSlipKaryawanFilters = function () {
+        var selBulan = document.getElementById('filterBulan');
+        var selTahun = document.getElementById('filterTahun');
+        if (selBulan) selBulan.value = 'SEMUA';
+        if (selTahun) selTahun.value = 'SEMUA';
+        renderSlipKaryawan();
+      };
+
+      window.renderSlipKaryawan = function () {
+        var selBulan = document.getElementById('filterBulan');
+        var selTahun = document.getElementById('filterTahun');
+        var bulan = selBulan ? selBulan.value : 'SEMUA';
+        var tahun = selTahun ? selTahun.value : 'SEMUA';
+        var container = document.getElementById('containerSlipCards');
+        if (!container) return;
+        container.innerHTML = '';
+
+        var list = (dbSlips || []).filter(function (s) {
+          var matchBulan = (bulan === 'SEMUA') ? true : (String(s.bulan || '').toLowerCase() === String(bulan || '').toLowerCase());
+          var matchTahun = (tahun === 'SEMUA') ? true : (String(s.tahun || '').trim() === String(tahun || '').trim());
+          return matchBulan && matchTahun;
+        });
+
+        var monthMap = {
+          'januari': 1, 'februari': 2, 'maret': 3, 'april': 4,
+          'mei': 5, 'juni': 6, 'juli': 7, 'agustus': 8,
+          'september': 9, 'oktober': 10, 'november': 11, 'desember': 12
+        };
+        list.sort(function (a, b) {
+          var yA = parseInt(a.tahun, 10) || 0;
+          var yB = parseInt(b.tahun, 10) || 0;
+          if (yA !== yB) return yB - yA;
+          var mA = monthMap[String(a.bulan || '').toLowerCase()] || 0;
+          var mB = monthMap[String(b.bulan || '').toLowerCase()] || 0;
+          return mB - mA;
+        });
+
+        if (list.length === 0) {
+          container.innerHTML = '<div class="col-12"><div class="alert alert-info text-center py-4"><i class="bi bi-info-circle me-2"></i>Belum ada slip gaji PDF yang tersedia untuk periode ini.</div></div>';
+          return;
+        }
+
+        list.forEach(function (s) {
+          var col = document.createElement('div');
+          col.className = 'col-md-4';
+          var resiBtnHtml = s.hasResi
+            ? '<button class="btn btn-outline-warning text-dark w-100 fw-semibold" onclick="openResiModal(\'' + escapeHTML(s.id) + '\')"><i class="bi bi-receipt me-2"></i>Lihat Bukti Transfer</button>'
+            : '';
+
+          col.innerHTML = '<div class="pdf-card p-4 h-100 d-flex flex-column justify-content-between">' +
+            '<div>' +
+            '<div class="d-flex align-items-center gap-3 mb-3">' +
+            '<div class="pdf-icon-box">' +
+            '<i class="bi bi-file-earmark-pdf-fill"></i>' +
+            '</div>' +
+            '<div>' +
+            '<span class="badge bg-primary fs-6 mb-1">' + escapeHTML(s.bulan + ' ' + s.tahun) + '</span>' +
+            '<div class="extra-small text-muted">Tanggal: ' + escapeHTML(formatTanggalSlip(s.uploadDate)) + '</div>' +
+            '</div>' +
+            '</div>' +
+            '<h6 class="fw-bold text-dark mb-1">' + escapeHTML(s.fileName) + '</h6>' +
+            (s.hasResi ? '<div class="extra-small text-warning-emphasis fw-semibold mb-2"><i class="bi bi-receipt me-1"></i>Bukti Transfer Tersedia</div>' : '') +
+            '<p class="text-muted small mb-3">' + escapeHTML(s.catatan || 'Dokumen Slip Gaji Resmi') + '</p>' +
+            '</div>' +
+            '<div class="d-flex flex-column gap-2">' +
+            '<button class="btn btn-danger w-100 fw-semibold" onclick="openPdfModal(\'' + escapeHTML(s.id) + '\')">' +
+            '<i class="bi bi-download me-2"></i>Lihat Slip Gaji' +
+            '</button>' +
+            resiBtnHtml +
+            '</div>' +
+            '</div>';
+          container.appendChild(col);
+        });
+      };
+
+      var pdfDoc = null;
+      var pdfCurrentPageNum = 1;
+      var pdfScale = 1.25;
+      var currentPdfBase64 = null;
+      var currentPdfFileName = 'Slip_Gaji.pdf';
+
+      window.openPdfModal = function (slipId, explicitPin) {
+        var slip = dbSlips.find(function (s) { return s.id === slipId; });
+        if (!slip) return;
+
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        var isHRD = user && (user.role === 'Admin' || user.role === 'HRD');
+        var isOwner = user && String(user.username || '').toLowerCase() === String(slip.empId || '').toLowerCase();
+
+        // Verifikasi PIN untuk pemilik slip gaji (atau karyawan non-admin)
+        if (isOwner || !isHRD) {
+          var pinToUse = explicitPin || (isSlipPinSessionValid() ? _verifiedSlipPin : null);
+          if (!pinToUse) {
+            if (user && user.hasSlipPin === false) {
+              Swal.fire({
+                icon: 'info',
+                title: 'Atur PIN Keamanan Terlebih Dahulu',
+                text: 'Demi menjaga kerahasiaan nominal gaji Anda, silakan buat 6 digit PIN keamanan sebelum melihat slip gaji.',
+                confirmButtonText: 'Buat PIN Sekarang'
+              }).then(function () {
+                _pendingSlipIdToOpen = slipId;
+                openManageSlipPinModal();
+              });
+              return;
+            } else {
+              openVerifySlipPinModal(slipId);
+              return;
+            }
+          }
+        }
+
+        document.getElementById('pdfViewFileName').innerText = slip.fileName;
+        document.getElementById('pdfViewEmpName').innerText = slip.empName;
+        document.getElementById('pdfViewEmpId').innerText = slip.empId;
+        document.getElementById('pdfViewPeriode').innerText = slip.bulan + ' ' + slip.tahun;
+
+        var spinner = document.getElementById('pdfLoadingSpinner');
+        var renderWrapper = document.getElementById('pdfRenderWrapper');
+        if (spinner) {
+          spinner.classList.remove('d-none');
+          spinner.innerHTML = '<div class="spinner-border text-primary mb-3" role="status"></div><p class="fw-semibold mb-0">Memuat Dokumen Slip Gaji...</p><small class="text-light opacity-75">Mengambil data dari server...</small>';
+        }
+        if (renderWrapper) renderWrapper.classList.add('d-none');
+
+        if (!bsModalViewPdf) {
+          bsModalViewPdf = new bootstrap.Modal(document.getElementById('modalViewPdf'));
+        }
+        bsModalViewPdf.show();
+
+        currentPdfBase64 = null;
+        currentPdfFileName = slip.fileName || 'Slip_Gaji.pdf';
+
+        var pinArg = explicitPin || (isSlipPinSessionValid() ? _verifiedSlipPin : '');
+        gasRun('getSlipPdfBase64', Auth.getToken(), slipId, pinArg).then(function (resp) {
+          if (handleSessionExpired(resp)) return;
+          if (resp && resp.needPin) {
+            clearSlipPinSession();
+            if (bsModalViewPdf) bsModalViewPdf.hide();
+            openVerifySlipPinModal(slipId);
+            return;
+          }
+          if (resp && resp.success && resp.base64) {
+            if (pinArg) setSlipPinSessionVerified(pinArg);
+            currentPdfBase64 = resp.base64;
+            currentPdfFileName = resp.fileName || slip.fileName;
+            loadPdfFromBase64(resp.base64);
+          } else {
+            if (spinner) {
+              spinner.innerHTML = '<div class="alert alert-danger mx-4 my-4"><i class="bi bi-exclamation-triangle-fill me-2"></i>' + (resp.message || 'Gagal mengambil file PDF dari server.') + '</div>';
+            }
+          }
+        }).catch(function (err) {
+          if (spinner) {
+            spinner.innerHTML = '<div class="alert alert-danger mx-4 my-4"><i class="bi bi-exclamation-triangle-fill me-2"></i>' + (err.message || err.toString()) + '</div>';
+          }
+        });
+      };
+
+      function loadPdfFromBase64(base64Data) {
+        try {
+          var raw = window.atob(base64Data);
+          var rawLength = raw.length;
+          var array = new Uint8Array(new ArrayBuffer(rawLength));
+
+          for (var i = 0; i < rawLength; i++) {
+            array[i] = raw.charCodeAt(i);
+          }
+
+          if (typeof pdfjsLib === 'undefined') {
+            Swal.fire('Error', 'Library PDF.js belum dimuat.', 'error');
+            return;
+          }
+
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+          var loadingTask = pdfjsLib.getDocument({ data: array });
+          loadingTask.promise.then(function (pdf) {
+            pdfDoc = pdf;
+            pdfCurrentPageNum = 1;
+            pdfScale = 1.25;
+            document.getElementById('pdfTotalPages').innerText = pdf.numPages;
+            document.getElementById('pdfLoadingSpinner').classList.add('d-none');
+            document.getElementById('pdfRenderWrapper').classList.remove('d-none');
+            renderPdfPage(pdfCurrentPageNum);
+          }).catch(function (error) {
+            console.error('PDF.js Load Error:', error);
+            var spinner = document.getElementById('pdfLoadingSpinner');
+            if (spinner) {
+              spinner.innerHTML = '<div class="alert alert-danger mx-4 my-4"><i class="bi bi-exclamation-triangle-fill me-2"></i>Gagal merender PDF. File mungkin rusak atau tidak kompatibel.</div>';
+            }
+          });
+        } catch (e) {
+          console.error('Decode PDF error:', e);
+        }
+      }
+
+      function renderPdfPage(num) {
+        if (!pdfDoc) return;
+        pdfDoc.getPage(num).then(function (page) {
+          var viewport = page.getViewport({ scale: pdfScale });
+          var canvas = document.getElementById('pdfCanvas');
+          var ctx = canvas.getContext('2d');
+
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          var renderContext = {
+            canvasContext: ctx,
+            viewport: viewport
+          };
+
+          page.render(renderContext).promise.then(function () {
+            document.getElementById('pdfCurrentPage').innerText = num;
+            document.getElementById('pdfZoomLabel').innerText = Math.round(pdfScale * 100) + '%';
+
+            var btnPrev = document.getElementById('btnPdfPrevPage');
+            var btnNext = document.getElementById('btnPdfNextPage');
+            if (btnPrev) btnPrev.disabled = (num <= 1);
+            if (btnNext) btnNext.disabled = (num >= pdfDoc.numPages);
+          });
+        });
+      }
+
+
+      window.changePdfPage = function (delta) {
+        if (!pdfDoc) return;
+        var newPage = pdfCurrentPageNum + delta;
+        if (newPage >= 1 && newPage <= pdfDoc.numPages) {
+          pdfCurrentPageNum = newPage;
+          renderPdfPage(pdfCurrentPageNum);
+        }
+      };
+
+      window.zoomPdf = function (delta) {
+        var newScale = pdfScale + delta;
+        if (newScale >= 0.5 && newScale <= 3.0) {
+          pdfScale = newScale;
+          renderPdfPage(pdfCurrentPageNum);
+        }
+      };
+
+      window.resetPdfZoom = function () {
+        pdfScale = 1.25;
+        renderPdfPage(pdfCurrentPageNum);
+      };
+
+      window.downloadCurrentPdf = function () {
+        if (!currentPdfBase64) {
+          Swal.fire('Peringatan', 'Dokumen PDF belum selesai dimuat.', 'warning');
+          return;
+        }
+        var link = document.createElement('a');
+        link.href = 'data:application/pdf;base64,' + currentPdfBase64;
+        link.download = currentPdfFileName || 'Slip_Gaji.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      var bsModalViewResi = null;
+      var currentResiBase64 = null;
+      var currentResiMimeType = null;
+      var currentResiFileName = 'Bukti_Transfer';
+
+      window.openResiModal = function (slipId) {
+        var slip = dbSlips.find(function (s) { return String(s.id) === String(slipId); });
+        if (!slip) return;
+
+        document.getElementById('resiViewFileName').innerText = slip.resiFileName || 'Bukti_Transfer';
+        document.getElementById('resiViewEmpName').innerText = slip.empName;
+        document.getElementById('resiViewEmpId').innerText = slip.empId;
+        document.getElementById('resiViewPeriode').innerText = slip.bulan + ' ' + slip.tahun;
+
+        var spinner = document.getElementById('resiLoadingSpinner');
+        var imgWrapper = document.getElementById('resiImageWrapper');
+        var pdfWrapper = document.getElementById('resiPdfWrapper');
+
+        if (spinner) {
+          spinner.classList.remove('d-none');
+          spinner.innerHTML = '<div class="spinner-border text-warning mb-3" role="status"></div><p class="fw-semibold mb-0">Memuat Dokumen Bukti Transfer...</p><small class="text-muted">Mengambil data dari server...</small>';
+        }
+        if (imgWrapper) imgWrapper.classList.add('d-none');
+        if (pdfWrapper) pdfWrapper.classList.add('d-none');
+
+        if (!bsModalViewResi) {
+          var modalEl = document.getElementById('modalViewResi');
+          if (modalEl) bsModalViewResi = new bootstrap.Modal(modalEl);
+        }
+        if (bsModalViewResi) bsModalViewResi.show();
+
+        currentResiBase64 = null;
+        currentResiMimeType = null;
+        currentResiFileName = slip.resiFileName || 'Bukti_Transfer';
+
+        gasRun('getResiFileBase64', Auth.getToken(), slipId).then(function (resp) {
+          if (handleSessionExpired(resp)) return;
+          if (resp && resp.success && resp.base64) {
+            currentResiBase64 = resp.base64;
+            currentResiMimeType = resp.mimeType || 'image/jpeg';
+            currentResiFileName = resp.fileName || slip.resiFileName || 'Bukti_Transfer';
+
+            if (spinner) spinner.classList.add('d-none');
+
+            if (resp.mimeType === 'application/pdf') {
+              if (pdfWrapper) pdfWrapper.classList.remove('d-none');
+              renderResiPdf(resp.base64);
+            } else {
+              if (imgWrapper) {
+                imgWrapper.classList.remove('d-none');
+                var img = document.getElementById('resiPreviewImg');
+                img.src = 'data:' + (resp.mimeType || 'image/jpeg') + ';base64,' + resp.base64;
+              }
+            }
+          } else {
+            if (spinner) {
+              spinner.innerHTML = '<div class="alert alert-danger mx-3 my-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>' + (resp.message || 'Gagal mengambil file bukti transfer dari server.') + '</div>';
+            }
+          }
+        }).catch(function (err) {
+          if (spinner) {
+            spinner.innerHTML = '<div class="alert alert-danger mx-3 my-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>' + (err.message || err.toString()) + '</div>';
+          }
+        });
+      };
+
+      function renderResiPdf(base64Data) {
+        try {
+          var raw = window.atob(base64Data);
+          var rawLength = raw.length;
+          var array = new Uint8Array(new ArrayBuffer(rawLength));
+          for (var i = 0; i < rawLength; i++) {
+            array[i] = raw.charCodeAt(i);
+          }
+          if (typeof pdfjsLib === 'undefined') return;
+          pdfjsLib.getDocument({ data: array }).promise.then(function (pdf) {
+            pdf.getPage(1).then(function (page) {
+              var viewport = page.getViewport({ scale: 1.25 });
+              var canvas = document.getElementById('resiPdfCanvas');
+              if (!canvas) return;
+              var ctx = canvas.getContext('2d');
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+              page.render({ canvasContext: ctx, viewport: viewport });
+            });
+          });
+        } catch (e) {
+          console.error('Render Resi PDF error:', e);
+        }
+      }
+
+      window.downloadCurrentResi = function () {
+        if (!currentResiBase64) {
+          Swal.fire('Peringatan', 'Dokumen bukti transfer belum selesai dimuat.', 'warning');
+          return;
+        }
+        var link = document.createElement('a');
+        var mime = currentResiMimeType || 'image/jpeg';
+        link.href = 'data:' + mime + ';base64,' + currentResiBase64;
+        link.download = currentResiFileName || 'Bukti_Transfer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+

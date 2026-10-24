@@ -1,0 +1,1145 @@
+  // ==========================================================================
+  // CORE STATE, AUTH CLOSURE, RUNNER, NAVIGATION & UTILITY HELPERS
+  // File: Scripts_Core.html
+  // ==========================================================================
+
+
+      // --- AUTH CLOSURE MODULE ---
+      var Auth = (function () {
+        var _verified = false, _token = null, _user = null, _verifyKey = null;
+        var STORAGE_KEY_TOKEN = 'eslip_auth_token';
+        var STORAGE_KEY_USER = 'eslip_auth_user';
+        var STORAGE_KEY_REMEMBER = 'eslip_remember_me';
+        var STORAGE_KEY_USERNAME = 'eslip_saved_username';
+
+        return {
+          init: function () {
+            _verifyKey = 'vk_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+            this.restoreSession();
+            return _verifyKey;
+          },
+          login: function (token, user, key, rememberMe) {
+            if (key !== _verifyKey) return false;
+            _token = token;
+            _user = user;
+            _verified = true;
+
+            try {
+              if (rememberMe) {
+                localStorage.setItem(STORAGE_KEY_TOKEN, token);
+                localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+                localStorage.setItem(STORAGE_KEY_REMEMBER, 'true');
+                if (user && user.username) {
+                  localStorage.setItem(STORAGE_KEY_USERNAME, user.username);
+                }
+                sessionStorage.removeItem(STORAGE_KEY_TOKEN);
+                sessionStorage.removeItem(STORAGE_KEY_USER);
+              } else {
+                sessionStorage.setItem(STORAGE_KEY_TOKEN, token);
+                sessionStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+                localStorage.removeItem(STORAGE_KEY_TOKEN);
+                localStorage.removeItem(STORAGE_KEY_USER);
+                localStorage.removeItem(STORAGE_KEY_REMEMBER);
+                localStorage.removeItem(STORAGE_KEY_USERNAME);
+              }
+            } catch (e) {
+              console.warn('Gagal menyimpan sesi browser:', e);
+            }
+            return true;
+          },
+          restoreSession: function () {
+            try {
+              var token = localStorage.getItem(STORAGE_KEY_TOKEN) || sessionStorage.getItem(STORAGE_KEY_TOKEN);
+              var userStr = localStorage.getItem(STORAGE_KEY_USER) || sessionStorage.getItem(STORAGE_KEY_USER);
+              if (token && userStr) {
+                var userObj = JSON.parse(userStr);
+                if (userObj && token.indexOf('.') !== -1) {
+                  _token = token;
+                  _user = userObj;
+                  _verified = true;
+                  return true;
+                }
+              }
+            } catch (e) {
+              console.warn('Gagal memulihkan sesi:', e);
+            }
+            _verified = false;
+            _token = null;
+            _user = null;
+            return false;
+          },
+          isVerified: function () { return _verified === true && !!_token && !!_user; },
+          getToken: function () { return _token; },
+          getUser: function () { return _user ? JSON.parse(JSON.stringify(_user)) : null; },
+          getRole: function () { return _user ? _user.role : null; },
+          setUser: function (user) { _user = user; },
+          getSavedUsername: function () {
+            try {
+              return localStorage.getItem(STORAGE_KEY_USERNAME) || '';
+            } catch (e) {
+              return '';
+            }
+          },
+          isRememberMeChecked: function () {
+            try {
+              return localStorage.getItem(STORAGE_KEY_REMEMBER) === 'true';
+            } catch (e) {
+              return false;
+            }
+          },
+          clear: function () {
+            _verified = false;
+            _token = null;
+            _user = null;
+            try {
+              var savedUser = localStorage.getItem(STORAGE_KEY_USERNAME);
+              var rememberState = localStorage.getItem(STORAGE_KEY_REMEMBER);
+              localStorage.removeItem(STORAGE_KEY_TOKEN);
+              localStorage.removeItem(STORAGE_KEY_USER);
+              sessionStorage.removeItem(STORAGE_KEY_TOKEN);
+              sessionStorage.removeItem(STORAGE_KEY_USER);
+              if (rememberState === 'true' && savedUser) {
+                localStorage.setItem(STORAGE_KEY_USERNAME, savedUser);
+                localStorage.setItem(STORAGE_KEY_REMEMBER, 'true');
+              } else {
+                localStorage.removeItem(STORAGE_KEY_USERNAME);
+                localStorage.removeItem(STORAGE_KEY_REMEMBER);
+              }
+            } catch (e) {
+              console.warn('Gagal membersihkan sesi:', e);
+            }
+          }
+        };
+      })();
+
+      var activePage = 'karyawan';
+      var authKey = Auth.init();
+      var bsModalKaryawan = null;
+      var bsModalDepartemen = null;
+      var bsModalImportKaryawan = null;
+      var bsModalUploadPdf = null;
+      var bsModalViewPdf = null;
+      var bsModalLogout = null;
+      var bsModalDetailCuti = null;
+      var bsModalViewLampiranCuti = null;
+      var bsModalRoster = null;
+      var bsModalPengajuanCuti = null;
+      var bsModalPengumumanLogin = null;
+      var bsModalFormPengumuman = null;
+      var bsModalDetailPengumuman = null;
+      var currentActiveAnnouncement = null;
+
+      var dbKaryawan = [];
+      var dbSlips = [];
+      var dbDepartemen = [];
+      var dbCutiList = [];
+      var dbRoster = [];
+      var dbPengumuman = [];
+      var lastCutiDebugInfo = null;
+      var currentLampiranBase64 = null;
+      var currentLampiranFileName = null;
+
+      var currentPageKaryawan = 1;
+      var currentPageDepartemen = 1;
+      var currentPageUploadSlip = 1;
+      var currentPageRoster = 1;
+      var currentPagePengumuman = 1;
+      var pageSize = 10;
+
+      // --- GAS RUNNER PROMISE HELPER (GAS & EXTERNAL PWA CORS SUPPORT) ---
+      function gasRun(funcName) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        return new Promise(function (resolve, reject) {
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            var runner = google.script.run
+              .withSuccessHandler(resolve)
+              .withFailureHandler(function (err) {
+                hideFullPageLoading();
+                Swal.fire('Error Server', err.message || err.toString(), 'error');
+                reject(err);
+              });
+            runner[funcName].apply(runner, args);
+          } else if (window.GAS_API_URL) {
+            fetch(window.GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: funcName, args: args })
+            })
+              .then(function (res) { return res.text(); })
+              .then(function (text) {
+                if (!text || !text.trim()) {
+                  resolve({ success: true });
+                  return;
+                }
+                try {
+                  var json = JSON.parse(text);
+                  resolve(json);
+                } catch (e) {
+                  console.log('API Text response note:', text);
+                  resolve({ success: true, rawText: text });
+                }
+              })
+              .catch(function (err) {
+                hideFullPageLoading();
+                Swal.fire('Error Server', err.message || err.toString(), 'error');
+                reject(err);
+              });
+          } else {
+            reject(new Error('Google Apps Script environment not available'));
+          }
+        });
+      }
+
+      function escapeHTML(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(String(str)));
+        return div.innerHTML;
+      }
+
+      function showFormValidationWarning(elementOrId, message, title) {
+        var el = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
+        Swal.fire({
+          icon: 'warning',
+          title: title || 'Data Belum Lengkap',
+          text: message,
+          confirmButtonColor: '#2563eb'
+        }).then(function () {
+          if (el) {
+            try {
+              if (typeof el.scrollIntoView === 'function') {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+              el.focus();
+              el.classList.add('is-invalid');
+              var removeInvalid = function () {
+                el.classList.remove('is-invalid');
+                el.removeEventListener('input', removeInvalid);
+                el.removeEventListener('change', removeInvalid);
+              };
+              el.addEventListener('input', removeInvalid);
+              el.addEventListener('change', removeInvalid);
+            } catch (e) { }
+          }
+        });
+      }
+
+      function handleSessionExpired(res) {
+        if (res && res.sessionExpired) {
+          logout();
+          Swal.fire('Sesi Berakhir', 'Sesi Anda telah berakhir, silakan login ulang.', 'warning');
+          return true;
+        }
+        return false;
+      }
+
+      function showFullPageLoading(msg) {
+        var loader = document.getElementById('fullPageLoader');
+        var text = document.getElementById('loaderText');
+        if (text) text.innerText = msg || 'Memproses data...';
+        if (loader) loader.style.setProperty('display', 'flex', 'important');
+      }
+
+      function hideFullPageLoading() {
+        var loader = document.getElementById('fullPageLoader');
+        if (loader) loader.style.setProperty('display', 'none', 'important');
+      }
+
+      window.togglePasswordVisibility = function (inputId, btn) {
+        var input = document.getElementById(inputId);
+        if (!input) return;
+        var icon = btn.querySelector('i');
+        if (input.type === 'password') {
+          input.type = 'text';
+          if (icon) icon.className = 'bi bi-eye-slash';
+        } else {
+          input.type = 'password';
+          if (icon) icon.className = 'bi bi-eye';
+        }
+      };
+
+      function isMobileSidebar() {
+        return window.matchMedia('(max-width: 767.98px)').matches;
+      }
+
+      function updateSidebarToggleState() {
+        var mainApp = document.getElementById('mainApp');
+        var toggle = document.getElementById('sidebarToggle');
+        if (!mainApp || !toggle) return;
+
+        var isCollapsed = mainApp.classList.contains('sidebar-collapsed');
+        var isVisible = isMobileSidebar()
+          ? mainApp.classList.contains('sidebar-open')
+          : !isCollapsed;
+
+        toggle.setAttribute('aria-expanded', String(isVisible));
+        toggle.setAttribute('aria-label', isVisible ? 'Sembunyikan sidebar' : 'Tampilkan sidebar');
+        toggle.setAttribute('title', isVisible ? 'Sembunyikan sidebar (Minimize)' : 'Tampilkan sidebar');
+
+        var toggleIcon = document.getElementById('sidebarToggleIcon');
+        if (toggleIcon) {
+          if (isCollapsed) {
+            toggleIcon.className = 'bi bi-layout-sidebar fs-4';
+            toggle.classList.add('sidebar-toggle-highlight');
+          } else {
+            toggleIcon.className = 'bi bi-list fs-4';
+            toggle.classList.remove('sidebar-toggle-highlight');
+          }
+        }
+      }
+
+      function restoreSidebarState() {
+        if (isMobileSidebar()) return;
+        var mainApp = document.getElementById('mainApp');
+        if (!mainApp) return;
+        try {
+          var saved = localStorage.getItem('berkah_sidebar_collapsed');
+          if (saved === 'true') {
+            mainApp.classList.add('sidebar-collapsed');
+          } else if (saved === 'false') {
+            mainApp.classList.remove('sidebar-collapsed');
+          }
+        } catch (e) { }
+        updateSidebarToggleState();
+      }
+
+      window.toggleSidebar = function () {
+        if (isMobileSidebar()) return;
+        var mainApp = document.getElementById('mainApp');
+        if (!mainApp) return;
+
+        var isCollapsed = mainApp.classList.toggle('sidebar-collapsed');
+        try {
+          localStorage.setItem('berkah_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+        } catch (e) { }
+        updateSidebarToggleState();
+      };
+
+      window.closeSidebar = function () {
+        var mainApp = document.getElementById('mainApp');
+        if (!mainApp) return;
+        mainApp.classList.remove('sidebar-open');
+        document.body.classList.remove('sidebar-open');
+        updateSidebarToggleState();
+      };
+
+      var sidebarWasMobile = isMobileSidebar();
+      window.addEventListener('resize', function () {
+        var sidebarIsMobile = isMobileSidebar();
+        if (sidebarIsMobile !== sidebarWasMobile) {
+          var mainApp = document.getElementById('mainApp');
+          if (mainApp) {
+            mainApp.classList.remove('sidebar-open');
+            if (sidebarIsMobile) {
+              mainApp.classList.remove('sidebar-collapsed');
+            } else {
+              restoreSidebarState();
+            }
+            document.body.classList.remove('sidebar-open');
+          }
+          sidebarWasMobile = sidebarIsMobile;
+          updateSidebarToggleState();
+        }
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') closeSidebar();
+      });
+
+      function showWelcomeModal() {
+        var user = Auth.getUser();
+        if (!user) return;
+        Swal.fire({
+          icon: 'success',
+          title: 'Selamat Datang!',
+          html: '<div class="my-2"><h5 class="fw-bold text-primary mb-1">' + escapeHTML(user.fullname) + '</h5><span class="badge bg-primary fs-6 px-3 py-2">Role: ' + escapeHTML(user.role) + ' (' + escapeHTML(user.username) + ')</span></div><p class="text-muted small mt-2">Anda berhasil masuk ke sistem Berkah Smart.</p>',
+          confirmButtonText: '<i class="bi bi-speedometer2 me-1"></i> Masuk ke Aplikasi',
+          confirmButtonColor: '#2563eb',
+          timer: 3500,
+          timerProgressBar: true
+        });
+      }
+
+
+  // --- CORE NAVIGATION, DASHBOARD & INITIAL DATA LOAD ---
+
+      window.switchBottomNav = function (targetKey, btnEl) {
+        if (!Auth.isVerified()) return;
+        var user = Auth.getUser();
+        var isAtasan = (user.role === 'Supervisor' || user.role === 'supervisor' || (typeof isJobAtasan === 'function' && isJobAtasan(user.jabatan, user.role)));
+
+        if (targetKey === 'dashboard') {
+          showPage('dashboard', document.getElementById('nav-item-dashboard'));
+        } else if (targetKey === 'slip') {
+          if (user.role === 'Admin') {
+            showPage('upload-slip', document.getElementById('nav-item-upload-slip'));
+          } else {
+            showPage('slip-saya', document.getElementById('nav-item-slip-saya'));
+          }
+        } else if (targetKey === 'cuti') {
+          if (user.role === 'Admin' || isAtasan) {
+            var pendingApprovals = (dbCutiList && dbCutiList.length) ? dbCutiList.filter(function (c) {
+              if (user.role === 'Admin') return c.status === 'Disetujui Atasan' || c.status === 'Menunggu Persetujuan';
+              return c.status === 'Menunggu Persetujuan';
+            }).length : 0;
+            if (pendingApprovals > 0) {
+              showPage('persetujuan-cuti', document.getElementById('subitem-persetujuan-cuti'));
+            } else {
+              showPage('pengajuan-cuti', document.getElementById('subitem-pengajuan-cuti'));
+            }
+          } else {
+            showPage('pengajuan-cuti', document.getElementById('subitem-pengajuan-cuti'));
+          }
+        } else if (targetKey === 'pengumuman') {
+          showPage('pengumuman', document.getElementById('nav-item-pengumuman'));
+        } else if (targetKey === 'profil') {
+          showPage('profil', document.getElementById('nav-item-profil'));
+        }
+      };
+
+      window.showPage = function (pageName, navEl, isFirstLogin) {
+        if (!Auth.isVerified()) { logout(); return; }
+
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        if (pageName === 'pengumuman' && (!user || user.role !== 'Admin')) {
+          pageName = 'dashboard';
+          navEl = document.getElementById('nav-item-dashboard');
+        }
+
+        if (isMobileSidebar()) closeSidebar();
+
+        activePage = pageName;
+
+        document.querySelectorAll('.app-page').forEach(function (p) {
+          p.classList.add('d-none');
+        });
+
+        var target = document.getElementById('page-' + pageName);
+        if (target) target.classList.remove('d-none');
+
+        document.querySelectorAll('.nav-item-custom, .nav-subitem-custom').forEach(function (item) {
+          item.classList.remove('active');
+        });
+        if (navEl) navEl.classList.add('active');
+
+        // Update Bottom Nav active state
+        document.querySelectorAll('.bottom-nav-item').forEach(function (btn) {
+          btn.classList.remove('active');
+        });
+        if (pageName === 'dashboard') {
+          var bDash = document.getElementById('bnav-dashboard');
+          if (bDash) bDash.classList.add('active');
+        } else if (pageName === 'slip-saya' || pageName === 'upload-slip') {
+          var bSlip = document.getElementById('bnav-slip');
+          if (bSlip) bSlip.classList.add('active');
+        } else if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'kalender-cuti' || pageName === 'master-roster') {
+          var bCuti = document.getElementById('bnav-cuti');
+          if (bCuti) bCuti.classList.add('active');
+        } else if (pageName === 'pengumuman') {
+          var bPeng = document.getElementById('bnav-pengumuman');
+          if (bPeng) bPeng.classList.add('active');
+        } else if (pageName === 'profil') {
+          var bProf = document.getElementById('bnav-profil');
+          if (bProf) bProf.classList.add('active');
+        }
+
+        if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'kalender-cuti' || pageName === 'master-roster') {
+          var subm = document.getElementById('submenuCuti');
+          if (subm) subm.classList.remove('d-none');
+          var dropEl = document.getElementById('dropdownMenuCuti');
+          if (dropEl) dropEl.classList.add('submenu-open');
+          var subItem = document.getElementById('subitem-' + pageName);
+          if (subItem) subItem.classList.add('active');
+        }
+
+        var titles = {
+          'dashboard': 'Beranda Utama',
+          'profil': 'Profil & Keamanan Akun',
+          'karyawan': 'Kelola Data Karyawan',
+          'master': 'Master Data Departemen',
+          'persetujuan-pendaftar': 'Persetujuan Pendaftaran Akun',
+          'upload-slip': 'Upload PDF Slip Gaji Karyawan',
+          'slip-saya': 'Daftar Slip Gaji Saya',
+          'pengajuan-cuti': 'Formulir Pengajuan Cuti',
+          'riwayat-cuti': 'Riwayat Cuti Saya',
+          'persetujuan-cuti': 'Persetujuan Cuti Karyawan',
+          'kalender-cuti': 'Kalender Cuti Tim & Departemen',
+          'master-roster': 'Master Pola Roster Perusahaan',
+          'pengumuman': 'Pengumuman Perusahaan'
+        };
+        document.getElementById('pageTitle').innerText = titles[pageName] || 'Portal Slip Gaji';
+
+        loadPageData(pageName, isFirstLogin);
+      };
+
+      function startDashboardClock() {
+        if (window._dashClockTimer) clearInterval(window._dashClockTimer);
+        function updateClock() {
+          var now = new Date();
+          var timeEl = document.getElementById('dashLiveClock');
+          var dateEl = document.getElementById('dashLiveDate');
+          if (timeEl) {
+            var hh = String(now.getHours()).padStart(2, '0');
+            var mm = String(now.getMinutes()).padStart(2, '0');
+            var ss = String(now.getSeconds()).padStart(2, '0');
+            timeEl.textContent = hh + ':' + mm + ':' + ss + ' WIB';
+          }
+          if (dateEl) {
+            var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            var months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            dateEl.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+          }
+        }
+        updateClock();
+        window._dashClockTimer = setInterval(updateClock, 1000);
+      }
+
+      window.renderDashboard = function () {
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        if (!user) return;
+
+        var elFullname = document.getElementById('dashUserFullname');
+        if (elFullname) elFullname.textContent = user.fullname || user.username;
+        var elRole = document.getElementById('dashRoleBadge');
+        if (elRole) elRole.textContent = user.role === 'Admin' ? 'HRD / Administrator' : (user.role || 'Karyawan');
+        var elDept = document.getElementById('dashDeptBadge');
+        if (elDept) elDept.textContent = user.dept || 'TRIOP';
+        var elId = document.getElementById('dashIdBadge');
+        if (elId) elId.textContent = 'ID: ' + user.username;
+
+        var hour = new Date().getHours();
+        var greeting = 'Selamat Pagi';
+        if (hour >= 11 && hour < 15) greeting = 'Selamat Siang';
+        else if (hour >= 15 && hour < 18) greeting = 'Selamat Sore';
+        else if (hour >= 18 || hour < 5) greeting = 'Selamat Malam';
+        var elGreeting = document.getElementById('dashGreetingText');
+        if (elGreeting) elGreeting.innerHTML = greeting + ', <span id="dashUserFullname">' + (user.fullname || user.username) + '</span>';
+
+        startDashboardClock();
+
+        var empFromDb = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) {
+          return String(k.id || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+        }) : null;
+        var pola = (empFromDb && empFromDb.polaRoster) ? empFromDb.polaRoster : (user.polaRoster || 'Non-Roster');
+        var tglMulai = (empFromDb && empFromDb.tglMulaiKerja) ? empFromDb.tglMulaiKerja : (user.tglMulaiKerja || '');
+
+        var elPola = document.getElementById('dashRosterPolaText');
+        var elStint = document.getElementById('dashRosterStintText');
+        var elBar = document.getElementById('dashRosterProgressBar');
+        var elBarLabel = document.getElementById('dashRosterProgressLabel');
+        var elBadge = document.getElementById('dashRosterBadge');
+
+        if (!pola || pola === 'Non-Roster') {
+          if (elPola) elPola.textContent = 'Non-Roster / Reguler';
+          if (elStint) elStint.textContent = 'Karyawan Reguler (Mengikuti hak cuti tahunan)';
+          if (elBar) { elBar.style.width = '100%'; elBar.className = 'progress-bar bg-secondary'; }
+          if (elBarLabel) elBarLabel.textContent = 'Reguler';
+          if (elBadge) { elBadge.className = 'badge bg-secondary-subtle text-secondary fw-semibold'; elBadge.textContent = 'Reguler'; }
+        } else if (!tglMulai) {
+          if (elPola) elPola.textContent = pola;
+          if (elStint) elStint.textContent = 'Tanggal mulai kerja belum diatur HRD';
+          if (elBar) { elBar.style.width = '0%'; elBar.className = 'progress-bar bg-warning'; }
+          if (elBarLabel) elBarLabel.textContent = 'Belum diatur';
+          if (elBadge) { elBadge.className = 'badge bg-warning-subtle text-warning fw-semibold'; elBadge.textContent = 'Perlu Setup'; }
+        } else {
+          if (elPola) elPola.textContent = pola;
+          var rItem = (dbRoster && dbRoster.length) ? dbRoster.find(function (item) {
+            var n = String(item.name || item.nama || '').trim().toLowerCase();
+            var p = String(pola || '').trim().toLowerCase();
+            return n === p || n.replace(/\s+/g, '') === p.replace(/\s+/g, '');
+          }) : null;
+
+          var wDays = rItem ? parseInt(rItem.workDays || rItem.kerja, 10) : 0;
+          var lDays = rItem ? parseInt(rItem.leaveDays || rItem.cuti, 10) : 0;
+
+          if (wDays <= 0 || lDays <= 0) {
+            if (pola.includes('12') && pola.includes('2')) { wDays = 90; lDays = 14; }
+            else if (pola.includes('8') && pola.includes('2')) { wDays = 56; lDays = 14; }
+            else if (pola.includes('6') && pola.includes('2')) { wDays = 42; lDays = 14; }
+            else if (pola.includes('4') && pola.includes('2')) { wDays = 28; lDays = 14; }
+            else if (pola.includes('60') && pola.includes('14')) { wDays = 60; lDays = 14; }
+            else {
+              var parts = pola.match(/\d+/g);
+              if (parts && parts.length >= 2) {
+                var p1 = parseInt(parts[0], 10);
+                var p2 = parseInt(parts[1], 10);
+                wDays = p1 <= 14 ? p1 * 7 : p1;
+                lDays = p2 <= 4 ? p2 * 7 : p2;
+              } else {
+                wDays = 60; lDays = 14;
+              }
+            }
+          }
+
+          var myEmpId = String(user.username || '').trim().toLowerCase();
+          var latestCutiRoster = (dbCutiList && dbCutiList.length) ? dbCutiList.find(function (c) {
+            var isMe = (c.empId && String(c.empId).trim().toLowerCase() === myEmpId);
+            var isRoster = c.jenisCuti && String(c.jenisCuti).toLowerCase().indexOf('roster') !== -1;
+            var notRejected = c.status !== 'Ditolak' && c.status !== 'Ditolak Atasan' && c.status !== 'Ditolak HRD';
+            return isMe && isRoster && notRejected;
+          }) : null;
+
+          var effectiveStintStart = (typeof parseDateToYMD === 'function' ? parseDateToYMD(tglMulai) : null) || tglMulai;
+          if (latestCutiRoster && latestCutiRoster.tanggalSelesai) {
+            var ymdEnd = (typeof parseDateToYMD === 'function' ? parseDateToYMD(latestCutiRoster.tanggalSelesai) : null) || latestCutiRoster.tanggalSelesai;
+            var dEndLast = new Date(ymdEnd + 'T00:00:00');
+            if (!isNaN(dEndLast.getTime())) {
+              dEndLast.setDate(dEndLast.getDate() + 1);
+              effectiveStintStart = (typeof toDateInputString === 'function') ? toDateInputString(dEndLast) : dEndLast.toISOString().split('T')[0];
+            }
+          }
+
+          var dStart = new Date(effectiveStintStart + 'T00:00:00');
+          var today = new Date();
+          today.setHours(0, 0, 0, 0);
+          var elapsedDays = 0;
+          if (!isNaN(dStart.getTime())) {
+            var diffMs = today.getTime() - dStart.getTime();
+            elapsedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+            if (elapsedDays < 1) elapsedDays = 1;
+          }
+
+          if (wDays > 0) {
+            var pct = Math.min(100, Math.round((elapsedDays / wDays) * 100));
+            if (elBar) {
+              elBar.style.width = pct + '%';
+              elBar.className = pct >= 100 ? 'progress-bar bg-danger' : (pct >= 80 ? 'progress-bar bg-warning' : 'progress-bar bg-primary');
+            }
+            if (elStint) elStint.textContent = 'Hari ke-' + elapsedDays + ' dari ' + wDays + ' hari onsite';
+            if (elBarLabel) elBarLabel.textContent = pct + '% masa kerja';
+            if (elBadge) {
+              elBadge.className = pct >= 100 ? 'badge bg-danger text-white fw-semibold' : 'badge bg-primary-subtle text-primary fw-semibold';
+              elBadge.textContent = pct >= 100 ? 'Siap Cuti' : 'Onsite';
+            }
+          } else {
+            if (elStint) elStint.textContent = 'Hari ke-' + elapsedDays + ' onsite';
+          }
+        }
+
+        // Slip Gaji Terakhir
+        var elSlipPeriod = document.getElementById('dashLatestSlipPeriod');
+        var elSlipDesc = document.getElementById('dashLatestSlipDesc');
+        var mySlips = (dbSlips && dbSlips.length) ? dbSlips.filter(function (s) {
+          return String(s.empId || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+        }) : [];
+
+        var monthMap = {
+          'januari': 1, 'februari': 2, 'maret': 3, 'april': 4,
+          'mei': 5, 'juni': 6, 'juli': 7, 'agustus': 8,
+          'september': 9, 'oktober': 10, 'november': 11, 'desember': 12
+        };
+        mySlips.sort(function (a, b) {
+          var yA = parseInt(a.tahun, 10) || 0;
+          var yB = parseInt(b.tahun, 10) || 0;
+          if (yA !== yB) return yB - yA;
+          var mA = monthMap[String(a.bulan || '').toLowerCase()] || 0;
+          var mB = monthMap[String(b.bulan || '').toLowerCase()] || 0;
+          return mB - mA;
+        });
+
+        if (mySlips.length > 0) {
+          var latestSlip = mySlips[0];
+          if (elSlipPeriod) elSlipPeriod.textContent = latestSlip.bulan + ' ' + latestSlip.tahun;
+          if (elSlipDesc) elSlipDesc.textContent = 'Slip gaji periode ' + latestSlip.bulan + ' ' + latestSlip.tahun + ' siap diakses.';
+        } else {
+          if (elSlipPeriod) elSlipPeriod.textContent = 'Belum Ada';
+          if (elSlipDesc) elSlipDesc.textContent = 'Belum ada data slip gaji yang diterbitkan untuk akun Anda.';
+        }
+
+        // Status Pengajuan Cuti / Approval
+        var isAtasan = (user.role === 'Supervisor' || user.role === 'supervisor' || (typeof isJobAtasan === 'function' && isJobAtasan(user.jabatan, user.role)));
+        var elCutiTitle = document.getElementById('dashCutiCardTitle');
+        var elCutiCount = document.getElementById('dashCutiCountText');
+        var elCutiDesc = document.getElementById('dashCutiDescText');
+        var elCutiBtn = document.getElementById('dashCutiActionBtn');
+
+        if (user.role === 'Admin' || isAtasan) {
+          var pendingCount = (dbCutiList && dbCutiList.length) ? dbCutiList.filter(function (c) {
+            if (user.role === 'Admin') return c.status === 'Disetujui Atasan' || c.status === 'Menunggu Persetujuan';
+            return c.status === 'Menunggu Persetujuan';
+          }).length : 0;
+
+          if (pendingCount > 0) {
+            if (elCutiTitle) elCutiTitle.textContent = 'Persetujuan Cuti Menunggu';
+            if (elCutiCount) elCutiCount.innerHTML = '<span class="text-danger">' + pendingCount + ' Permohonan</span>';
+            if (elCutiDesc) elCutiDesc.textContent = 'Ada cuti anggota tim yang membutuhkan persetujuan Anda.';
+            if (elCutiBtn) {
+              elCutiBtn.innerHTML = '<i class="bi bi-shield-check me-1"></i> Buka Persetujuan Cuti';
+              elCutiBtn.onclick = function () { showPage('persetujuan-cuti'); };
+            }
+          } else {
+            if (elCutiTitle) elCutiTitle.textContent = 'Persetujuan Cuti Tim';
+            if (elCutiCount) elCutiCount.textContent = 'Semua Selesai';
+            if (elCutiDesc) elCutiDesc.textContent = 'Tidak ada permohonan cuti tertunda saat ini.';
+            if (elCutiBtn) {
+              elCutiBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Buat Pengajuan Cuti';
+              elCutiBtn.onclick = function () { showPage('pengajuan-cuti'); };
+            }
+          }
+        } else {
+          var myLeaves = (dbCutiList && dbCutiList.length) ? dbCutiList.filter(function (c) {
+            return String(c.empId || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+          }) : [];
+          if (elCutiTitle) elCutiTitle.textContent = 'Pengajuan Cuti Saya';
+          if (elCutiCount) elCutiCount.textContent = myLeaves.length + ' Pengajuan';
+          if (elCutiDesc) elCutiDesc.textContent = 'Total permohonan cuti yang telah Anda ajukan.';
+          if (elCutiBtn) {
+            elCutiBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Buat Pengajuan Cuti';
+            elCutiBtn.onclick = function () { showPage('pengajuan-cuti'); };
+          }
+        }
+
+        // Preview Pengumuman Terkini jika ada
+        var elAnnCard = document.getElementById('dashAnnouncementCard');
+        var elAnnBody = document.getElementById('dashAnnouncementBody');
+        if (elAnnCard && elAnnBody && typeof dbPengumuman !== 'undefined' && dbPengumuman && dbPengumuman.length > 0) {
+          var activeAnn = dbPengumuman.find(function (a) { return a.status === 'Aktif'; }) || dbPengumuman[0];
+          if (activeAnn) {
+            elAnnCard.style.display = 'block';
+            elAnnBody.innerHTML =
+              '<div class="d-flex align-items-start justify-content-between gap-3">' +
+              '<div>' +
+              '<div class="d-flex align-items-center gap-2 mb-1.5">' +
+              '<span class="badge ' + (activeAnn.tipe === 'Mendesak' ? 'bg-danger' : (activeAnn.tipe === 'Penting' ? 'bg-warning text-dark' : 'bg-primary')) + ' rounded-pill px-2.5 py-1 extra-small">' + activeAnn.tipe + '</span>' +
+              '<span class="text-muted extra-small"><i class="bi bi-calendar3 me-1"></i>' + (activeAnn.tanggalDibuat || '') + '</span>' +
+              '</div>' +
+              '<h6 class="fw-bold text-dark mb-1">' + activeAnn.judul + '</h6>' +
+              '<p class="text-muted small mb-0" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">' + (activeAnn.isi || '').replace(/\n/g, ' ') + '</p>' +
+              '</div>' +
+              '</div>';
+          } else {
+            elAnnCard.style.display = 'none';
+          }
+        }
+      };
+
+      window.renderProfilePage = function () {
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        if (!user) return;
+
+        var empFromDb = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) {
+          return String(k.id || '').trim().toLowerCase() === String(user.username || '').trim().toLowerCase();
+        }) : null;
+
+        var fullname = (empFromDb && empFromDb.name) ? empFromDb.name : (user.fullname || user.username);
+        var dept = (empFromDb && empFromDb.dept) ? empFromDb.dept : (user.dept || '-');
+        var jabatan = (empFromDb && empFromDb.jabatan) ? empFromDb.jabatan : (user.jabatan || '-');
+        var pola = (empFromDb && empFromDb.polaRoster) ? empFromDb.polaRoster : (user.polaRoster || 'Non-Roster');
+        var tglMasuk = (empFromDb && empFromDb.tglMulaiKerja) ? empFromDb.tglMulaiKerja : (user.tglMulaiKerja || '-');
+        var email = (empFromDb && empFromDb.email) ? empFromDb.email : (user.email || '-');
+
+        var initials = '--';
+        if (fullname) {
+          var parts = fullname.trim().split(/\s+/);
+          if (parts.length >= 2) {
+            initials = (parts[0][0] + parts[1][0]).toUpperCase();
+          } else if (parts.length === 1 && parts[0].length > 0) {
+            initials = parts[0].substring(0, 2).toUpperCase();
+          }
+        }
+
+        var elAvatar = document.getElementById('profileAvatarText');
+        if (elAvatar) elAvatar.textContent = initials;
+        var elFullname = document.getElementById('profileFullnameText');
+        if (elFullname) elFullname.textContent = fullname;
+        var elRole = document.getElementById('profileRoleBadge');
+        if (elRole) elRole.textContent = user.role === 'Admin' ? 'HRD / Administrator' : (user.role || 'Karyawan');
+        var elId = document.getElementById('profileIdBadge');
+        if (elId) elId.textContent = 'ID: ' + user.username;
+
+        var elDept = document.getElementById('profileDeptText');
+        if (elDept) elDept.textContent = dept;
+        var elJab = document.getElementById('profileJabatanText');
+        if (elJab) elJab.textContent = jabatan;
+        var elRoster = document.getElementById('profileRosterText');
+        if (elRoster) elRoster.textContent = pola;
+        var elTgl = document.getElementById('profileTglMasukText');
+        if (elTgl) elTgl.textContent = tglMasuk && tglMasuk !== '-' ? formatDateIndo(tglMasuk) : '-';
+        var elEmail = document.getElementById('profileEmailText');
+        if (elEmail) elEmail.textContent = email;
+
+        var elPin = document.getElementById('profilePinStatusText');
+        if (elPin) {
+          if (user.hasSlipPin) {
+            elPin.innerHTML = '<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>PIN Aktif (6 Digit)</span>';
+          } else {
+            elPin.innerHTML = '<span class="text-warning fw-semibold"><i class="bi bi-exclamation-circle-fill me-1"></i>PIN Belum Dibuat</span>';
+          }
+        }
+
+        var elTheme = document.getElementById('profileThemeStatusText');
+        if (elTheme) {
+          var currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+          elTheme.textContent = currentTheme === 'dark' ? 'Mode Gelap (Dark Mode Aktif)' : 'Mode Terang (Light Mode Aktif)';
+        }
+      };
+
+      function loadPageData(pageName, isFirstLogin) {
+        if (!Auth.isVerified()) return;
+        var token = Auth.getToken();
+
+        showFullPageLoading('Mengambil data...');
+
+        if (pageName === 'dashboard' || pageName === 'profil' || pageName === 'karyawan' || pageName === 'master' || pageName === 'upload-slip' || pageName === 'persetujuan-pendaftar') {
+          gasRun('getInitialData', token).then(function (res) {
+            hideFullPageLoading();
+            if (handleSessionExpired(res)) return;
+            if (res.success) {
+              dbKaryawan = res.karyawan || [];
+              dbSlips = res.slips || [];
+              dbDepartemen = res.departemen || [];
+              dbRoster = res.roster || [];
+              if (res.cuti) dbCutiList = res.cuti || [];
+              if (res.announcements) dbPengumuman = res.announcements;
+              if (res.pendingPendaftarCount !== undefined) {
+                updatePendingPendaftarBadge(res.pendingPendaftarCount);
+              }
+
+              var me = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) {
+                return String(k.id || '').trim().toLowerCase() === String(Auth.getUser().username || '').trim().toLowerCase();
+              }) : null;
+              if (me) {
+                var currentUser = Auth.getUser();
+                currentUser.polaRoster = me.polaRoster;
+                currentUser.tglMulaiKerja = me.tglMulaiKerja;
+                currentUser.dept = me.dept;
+                currentUser.jabatan = me.jabatan;
+                currentUser.fullname = me.name;
+                currentUser.email = me.email;
+                currentUser.hasSlipPin = me.hasSlipPin;
+                Auth.setUser(currentUser);
+              }
+
+              // Update Approval badges
+              var isAtasan = (currentUser && (currentUser.role === 'Supervisor' || currentUser.role === 'supervisor' || (typeof isJobAtasan === 'function' && isJobAtasan(currentUser.jabatan, currentUser.role))));
+              if (currentUser && (currentUser.role === 'Admin' || isAtasan)) {
+                var pendingApprovals = (dbCutiList && dbCutiList.length) ? dbCutiList.filter(function (c) {
+                  if (currentUser.role === 'Admin') return c.status === 'Disetujui Atasan' || c.status === 'Menunggu Persetujuan';
+                  return c.status === 'Menunggu Persetujuan';
+                }).length : 0;
+                var badgeBNav = document.getElementById('badgeBottomNavCuti');
+                if (badgeBNav) {
+                  if (pendingApprovals > 0) {
+                    badgeBNav.textContent = pendingApprovals;
+                    badgeBNav.classList.remove('d-none');
+                  } else {
+                    badgeBNav.classList.add('d-none');
+                  }
+                }
+              }
+
+              if (pageName === 'dashboard') {
+                renderDashboard();
+
+                var u = Auth.getUser();
+                if (u && u.role !== 'Admin') {
+                  gasRun('getSlipKaryawan', token, 'SEMUA', 'SEMUA').then(function (slipRes) {
+                    if (slipRes && slipRes.success && (slipRes.slips || slipRes.data)) {
+                      dbSlips = slipRes.slips || slipRes.data;
+                      renderDashboard();
+                    }
+                  }).catch(function () { });
+                }
+
+                if (!dbPengumuman || dbPengumuman.length === 0) {
+                  gasRun('getAnnouncements', token).then(function (annRes) {
+                    if (annRes && annRes.success && annRes.list) {
+                      dbPengumuman = annRes.list;
+                      renderDashboard();
+                    } else {
+                      gasRun('getActiveAnnouncement').then(function (actRes) {
+                        if (actRes && actRes.success && actRes.hasAnnouncement && actRes.announcement) {
+                          dbPengumuman = [actRes.announcement];
+                          renderDashboard();
+                        }
+                      }).catch(function () { });
+                    }
+                  }).catch(function () { });
+                }
+              }
+              if (pageName === 'profil') {
+                renderProfilePage();
+              }
+              if (pageName === 'karyawan') {
+                populateKaryawanDeptFilter();
+                currentPageKaryawan = 1;
+                renderKaryawanTable();
+              }
+              if (pageName === 'master') {
+                currentPageDepartemen = 1;
+                renderDepartemenTable();
+              }
+              if (pageName === 'persetujuan-pendaftar') {
+                currentPagePendaftar = 1;
+                loadPendaftarList(true);
+              }
+              if (pageName === 'upload-slip') {
+                populateUploadDeptSelect();
+                populateEmpSelect();
+                populateDeptFilter();
+                currentPageUploadSlip = 1;
+                renderSlipHrdTable();
+              }
+              if (isFirstLogin) {
+                showWelcomeModal();
+              }
+            }
+          }).catch(function (err) {
+            hideFullPageLoading();
+            if (pageName === 'dashboard') renderDashboard();
+            if (pageName === 'profil') renderProfilePage();
+            Swal.fire('Error Server', err.message || err.toString(), 'error');
+          });
+        } else if (pageName === 'slip-saya') {
+          gasRun('getSlipKaryawan', token, 'SEMUA', 'SEMUA').then(function (res) {
+            hideFullPageLoading();
+            if (handleSessionExpired(res)) return;
+            if (res.success) {
+              dbSlips = res.slips || res.data || [];
+              syncSlipYearFilterOptions();
+              renderSlipKaryawan();
+            } else {
+              Swal.fire('Info', res.message || 'Belum ada data slip gaji.', 'info');
+            }
+          }).catch(function (err) {
+            hideFullPageLoading();
+            Swal.fire('Error Server', err.message || err.toString(), 'error');
+          });
+        } else if (pageName === 'pengajuan-cuti') {
+          gasRun('getInitialData', token).then(function (res) {
+            hideFullPageLoading();
+            if (handleSessionExpired(res)) return;
+            if (res && res.success) {
+              dbKaryawan = res.karyawan || [];
+              dbSlips = res.slips || [];
+              dbDepartemen = res.departemen || [];
+              dbRoster = res.roster || [];
+              if (res.cuti) dbCutiList = res.cuti || [];
+
+              var me = (dbKaryawan && dbKaryawan.length) ? dbKaryawan.find(function (k) {
+                return String(k.id || '').toLowerCase() === String(Auth.getUser().username || '').toLowerCase();
+              }) : null;
+              if (me) {
+                var currentUser = Auth.getUser();
+                currentUser.polaRoster = me.polaRoster;
+                currentUser.tglMulaiKerja = me.tglMulaiKerja;
+                currentUser.dept = me.dept;
+                currentUser.jabatan = me.jabatan;
+                currentUser.fullname = me.name;
+                Auth.setUser(currentUser);
+              }
+            }
+            initPengajuanCutiForm();
+            populateCutiRosterSelect();
+          }).catch(function () {
+            hideFullPageLoading();
+            initPengajuanCutiForm();
+            populateCutiRosterSelect();
+          });
+        } else if (pageName === 'riwayat-cuti') {
+          hideFullPageLoading();
+          loadRiwayatCuti();
+        } else if (pageName === 'persetujuan-cuti') {
+          hideFullPageLoading();
+          loadRiwayatCuti();
+        } else if (pageName === 'kalender-cuti') {
+          hideFullPageLoading();
+          loadKalenderCuti();
+        } else if (pageName === 'master-roster') {
+          hideFullPageLoading();
+          loadRosterData();
+        } else if (pageName === 'pengumuman') {
+          hideFullPageLoading();
+          loadPengumuman();
+        }
+      }
+
+
+  // --- CORE SECURITY, SPLASH & THEME ---
+      // --- CONSOLE SECURITY & ANTI-INSPECT PROTECTION ---
+      function initConsoleSecurity() {
+        try {
+          console.clear();
+          console.log(
+            '%c⛔ PERINGATAN KEAMANAN!',
+            'color: #ef4444; font-size: 28px; font-weight: 800; font-family: sans-serif; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);'
+          );
+          console.log(
+            '%cFitur ini hanya untuk keperluan diagnostik pengembang sistem Berkah Smart.\n\n' +
+            'JANGAN PERNAH menyalin dan menempelkan (copy-paste) kode atau script apapun yang Anda dapatkan dari pihak lain ke tab Console ini.\n' +
+            'Menempelkan kode dari pihak luar adalah serangan manipulasi (Self-XSS) yang berpotensi membahayakan akun Anda.',
+            'font-size: 13px; color: #1e293b; line-height: 1.6; font-weight: 500;'
+          );
+        } catch (e) { }
+      }
+
+      function initInspectProtection() {
+        // 1. Nonaktifkan Menu Klik Kanan
+        document.addEventListener('contextmenu', function (e) {
+          e.preventDefault();
+        });
+
+        // 2. Blokir Shortcut Keyboard Developer Tools & View Source
+        document.addEventListener('keydown', function (e) {
+          var isCtrlOrMeta = e.ctrlKey || e.metaKey;
+
+          // F12 (DevTools)
+          if (e.key === 'F12' || e.keyCode === 123) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+
+          if (isCtrlOrMeta) {
+            // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+Shift+C (Element Picker)
+            if (e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c' || e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+            // Ctrl+U (View Source)
+            if (e.key === 'U' || e.key === 'u' || e.keyCode === 85) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+            // Ctrl+S (Save Page)
+            if (e.key === 'S' || e.key === 's' || e.keyCode === 83) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+          }
+        });
+      }
+
+      // --- SPLASH SCREEN LOGIC (Konsep A: Modern Corporate Glow) ---
+      var splashDismissed = false;
+      window.dismissSplashScreen = function (immediate) {
+        if (splashDismissed) return;
+        splashDismissed = true;
+        var splash = document.getElementById('appSplashScreen');
+        if (!splash) return;
+
+        splash.classList.add('splash-fade-out');
+        setTimeout(function () {
+          splash.style.setProperty('display', 'none', 'important');
+          if (window._pendingAnnouncementModal) {
+            var pending = window._pendingAnnouncementModal;
+            window._pendingAnnouncementModal = null;
+            renderAndShowLoginAnnouncementModal(pending);
+          }
+        }, immediate ? 50 : 500);
+      };
+
+      function initSplashScreen() {
+        var splash = document.getElementById('appSplashScreen');
+        if (!splash) return;
+
+        var splashLogo = document.getElementById('splashAppLogo');
+        var loginLogo = document.getElementById('loginAppLogo');
+        if (splashLogo && !splashLogo.getAttribute('src') && loginLogo && loginLogo.src) {
+          splashLogo.src = loginLogo.src;
+        }
+
+        document.addEventListener('keydown', function (e) {
+          if (!splashDismissed && splash.style.display !== 'none') {
+            dismissSplashScreen(true);
+          }
+        }, { once: true });
+
+        setTimeout(function () {
+          dismissSplashScreen(false);
+        }, 3000);
+      }
+
+      // --- THEME MANAGEMENT (DARK / LIGHT MODE) ---
+      function getStoredTheme() {
+        try {
+          var saved = localStorage.getItem('berkah_theme');
+          if (saved === 'dark' || saved === 'light') return saved;
+        } catch (e) { }
+        return 'light';
+      }
+
+      function updateThemeToggleUI(theme) {
+        var isDark = theme === 'dark';
+
+        // Topbar button
+        var icon = document.getElementById('themeToggleIcon');
+        var text = document.getElementById('themeToggleText');
+        var btn = document.getElementById('themeToggleBtn');
+        if (icon) {
+          icon.className = isDark ? 'bi bi-sun-fill text-warning fs-6' : 'bi bi-moon-stars-fill text-warning fs-6';
+        }
+        if (text) {
+          text.textContent = isDark ? 'Mode Terang' : 'Mode Gelap';
+        }
+        if (btn) {
+          btn.setAttribute('title', isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap');
+          btn.setAttribute('aria-label', isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap');
+        }
+
+        // Dropdown menu item
+        var ddIcon = document.getElementById('dropdownThemeIcon');
+        var ddText = document.getElementById('dropdownThemeText');
+        if (ddIcon) {
+          ddIcon.className = isDark ? 'bi bi-sun-fill text-warning me-2 fs-6' : 'bi bi-moon-stars-fill text-warning me-2 fs-6';
+        }
+        if (ddText) {
+          ddText.textContent = isDark ? 'Mode Terang' : 'Mode Gelap';
+        }
+      }
+
+      window.setAppTheme = function (theme) {
+        var targetTheme = (theme === 'dark') ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', targetTheme);
+        try {
+          localStorage.setItem('berkah_theme', targetTheme);
+        } catch (e) { }
+        updateThemeToggleUI(targetTheme);
+      };
+
+      window.toggleTheme = function () {
+        var currentTheme = document.documentElement.getAttribute('data-theme') || getStoredTheme();
+        var nextTheme = (currentTheme === 'dark') ? 'light' : 'dark';
+        window.setAppTheme(nextTheme);
+        if (typeof Swal !== 'undefined' && Swal.mixin) {
+          var Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 1500,
+            timerProgressBar: true
+          });
+          Toast.fire({
+            icon: 'success',
+            title: nextTheme === 'dark' ? 'Mode Gelap diaktifkan' : 'Mode Terang diaktifkan'
+          });
+        }
+      };
+
+      function initTheme() {
+        var initialTheme = getStoredTheme();
+        document.documentElement.setAttribute('data-theme', initialTheme);
+        updateThemeToggleUI(initialTheme);
+      }
+
+
+  // --- DOM READY INITIALIZATION ---
+      // --- INITIALIZATION ---
+      document.addEventListener('DOMContentLoaded', function () {
+        initTheme();
+        initConsoleSecurity();
+        initInspectProtection();
+        if (isMobileSidebar()) {
+          closeSidebar();
+        } else {
+          restoreSidebarState();
+        }
+        updateSidebarToggleState();
+        checkLoginState();
+        initSplashScreen();
+        initPinBoxesEvents();
+      });
+

@@ -1,0 +1,785 @@
+  // ==========================================================================
+  // AUTHENTICATION, PASSWORD RESET, LOGIN/LOGOUT & SLIP PIN SECURITY
+  // File: Scripts_Auth.html
+  // ==========================================================================
+
+      var bsModalForgotPassword = null;
+      var currentResetUsername = '';
+
+      window.openForgotPasswordModal = function () {
+        var modalEl = document.getElementById('modalForgotPassword');
+        if (!modalEl) {
+          alert('Modal reset password tidak ditemukan.');
+          return;
+        }
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          if (!bsModalForgotPassword) {
+            bsModalForgotPassword = new bootstrap.Modal(modalEl);
+          }
+        }
+        var forgotUserEl = document.getElementById('forgotUsername');
+        if (forgotUserEl) forgotUserEl.value = '';
+        var otpCodeEl = document.getElementById('otpCodeInput');
+        if (otpCodeEl) otpCodeEl.value = '';
+        var otpNewPassEl = document.getElementById('otpNewPassword');
+        if (otpNewPassEl) otpNewPassEl.value = '';
+        var otpConfirmPassEl = document.getElementById('otpConfirmPassword');
+        if (otpConfirmPassEl) otpConfirmPassEl.value = '';
+
+        showOtpStep1();
+        if (bsModalForgotPassword) {
+          bsModalForgotPassword.show();
+        } else {
+          modalEl.classList.add('show');
+          modalEl.style.display = 'block';
+        }
+      };
+
+      window.showOtpStep1 = function () {
+        document.getElementById('otpStep1').classList.remove('d-none');
+        document.getElementById('otpStep2').classList.add('d-none');
+      };
+
+      window.handleRequestOtp = function () {
+        var inputVal = document.getElementById('forgotUsername').value.trim();
+        if (!inputVal) {
+          showFormValidationWarning('forgotUsername', 'ID Karyawan atau Email terdaftar wajib diisi.');
+          return;
+        }
+
+        showFullPageLoading('Mengirim kode OTP ke Email...');
+
+        gasRun('requestPasswordReset', inputVal).then(function (res) {
+          hideFullPageLoading();
+          if (res.success) {
+            currentResetUsername = res.username;
+            document.getElementById('otpSentAlert').innerHTML = '<i class="bi bi-info-circle-fill me-1"></i> ' + escapeHTML(res.message);
+            document.getElementById('otpStep1').classList.add('d-none');
+            document.getElementById('otpStep2').classList.remove('d-none');
+          } else {
+            Swal.fire('Gagal Reset', res.message || 'Gagal mengirim OTP.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.handleVerifyAndResetPassword = function () {
+        var otpCode = document.getElementById('otpCodeInput').value.trim();
+        var newPass = document.getElementById('otpNewPassword').value.trim();
+        var confirmPass = document.getElementById('otpConfirmPassword').value.trim();
+
+        if (!otpCode) {
+          showFormValidationWarning('otpCodeInput', 'Kode OTP 6 digit wajib diisi.');
+          return;
+        }
+        if (!newPass) {
+          showFormValidationWarning('otpNewPassword', 'Password baru wajib diisi.');
+          return;
+        }
+        if (newPass.length < 6) {
+          showFormValidationWarning('otpNewPassword', 'Password baru minimal 6 karakter.');
+          return;
+        }
+        if (!confirmPass) {
+          showFormValidationWarning('otpConfirmPassword', 'Konfirmasi password baru wajib diisi.');
+          return;
+        }
+        if (newPass !== confirmPass) {
+          showFormValidationWarning('otpConfirmPassword', 'Konfirmasi password baru tidak cocok.');
+          return;
+        }
+
+        showFullPageLoading('Verifikasi OTP & Memperbarui Password...');
+
+        gasRun('verifyAndResetPassword', currentResetUsername, otpCode, newPass).then(function (res) {
+          hideFullPageLoading();
+          if (res.success) {
+            if (bsModalForgotPassword) bsModalForgotPassword.hide();
+            Swal.fire('Berhasil!', res.message || 'Password telah diubah. Silakan login.', 'success');
+            document.getElementById('loginUsername').value = currentResetUsername;
+            document.getElementById('loginPassword').value = '';
+          } else {
+            Swal.fire('Gagal Reset', res.message || 'Kode OTP salah.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      var bsModalChangePasswordSelf = null;
+
+      window.openChangePasswordSelfModal = function () {
+        var modalEl = document.getElementById('modalChangePasswordSelf');
+        if (!modalEl) {
+          alert('Modal ubah password tidak ditemukan.');
+          return;
+        }
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          if (!bsModalChangePasswordSelf) {
+            bsModalChangePasswordSelf = new bootstrap.Modal(modalEl);
+          }
+        }
+        document.getElementById('selfOldPassword').value = '';
+        document.getElementById('selfNewPassword').value = '';
+        document.getElementById('selfConfirmPassword').value = '';
+
+        if (bsModalChangePasswordSelf) {
+          bsModalChangePasswordSelf.show();
+        } else {
+          modalEl.classList.add('show');
+          modalEl.style.display = 'block';
+        }
+      };
+
+      window.handleSaveOwnPassword = function () {
+        var oldPass = document.getElementById('selfOldPassword').value.trim();
+        var newPass = document.getElementById('selfNewPassword').value.trim();
+        var confirmPass = document.getElementById('selfConfirmPassword').value.trim();
+
+        if (!oldPass) {
+          showFormValidationWarning('selfOldPassword', 'Password saat ini (lama) wajib diisi.');
+          return;
+        }
+        if (!newPass) {
+          showFormValidationWarning('selfNewPassword', 'Password baru wajib diisi.');
+          return;
+        }
+        if (newPass.length < 6) {
+          showFormValidationWarning('selfNewPassword', 'Password baru minimal 6 karakter.');
+          return;
+        }
+        if (!confirmPass) {
+          showFormValidationWarning('selfConfirmPassword', 'Konfirmasi password baru wajib diisi.');
+          return;
+        }
+        if (newPass !== confirmPass) {
+          showFormValidationWarning('selfConfirmPassword', 'Konfirmasi password baru tidak cocok.');
+          return;
+        }
+
+        showFullPageLoading('Memperbarui password Anda...');
+
+        gasRun('changeOwnPassword', Auth.getToken(), oldPass, newPass).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            if (bsModalChangePasswordSelf) bsModalChangePasswordSelf.hide();
+            Swal.fire('Berhasil!', res.message || 'Password Anda telah diperbarui.', 'success');
+          } else {
+            Swal.fire('Gagal Ubah Password', res.message || 'Gagal menyimpan password.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+
+  // --- SLIP SECURITY PIN STATE & CONTROLLER ---
+      // --- SLIP SECURITY PIN STATE & CONTROLLER ---
+      var _verifiedSlipPin = null;
+      var _verifiedSlipPinUntil = 0;
+      var _pendingSlipIdToOpen = null;
+      var _onPinSuccessCallback = null;
+      var bsModalVerifySlipPin = null;
+      var bsModalSetupSlipPin = null;
+      var bsModalResetSlipPinOtp = null;
+
+      function isSlipPinSessionValid() {
+        return Boolean(_verifiedSlipPin && Date.now() < _verifiedSlipPinUntil);
+      }
+
+      function setSlipPinSessionVerified(pin) {
+        _verifiedSlipPin = pin;
+        _verifiedSlipPinUntil = Date.now() + (5 * 60 * 1000); // 5 Menit sesi buka kunci
+      }
+
+      function clearSlipPinSession() {
+        _verifiedSlipPin = null;
+        _verifiedSlipPinUntil = 0;
+      }
+
+      function initPinBoxesEvents() {
+        var container = document.getElementById('verifyPinBoxes');
+        if (!container) return;
+        var inputs = container.querySelectorAll('.pin-digit-box');
+
+        inputs.forEach(function (inp, idx) {
+          inp.addEventListener('input', function () {
+            var val = inp.value.replace(/\D/g, '');
+            inp.value = val ? val[val.length - 1] : '';
+            if (inp.value && idx < inputs.length - 1) {
+              inputs[idx + 1].focus();
+            }
+            var fullPin = getVerifyBoxesPin();
+            if (fullPin.length === 6) {
+              submitVerifySlipPin();
+            }
+          });
+
+          inp.addEventListener('keydown', function (e) {
+            if (e.key === 'Backspace' && !inp.value && idx > 0) {
+              inputs[idx - 1].focus();
+            }
+          });
+
+          inp.addEventListener('paste', function (e) {
+            e.preventDefault();
+            var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+            if (pasted.length >= 6) {
+              for (var i = 0; i < 6; i++) {
+                inputs[i].value = pasted[i];
+              }
+              inputs[5].focus();
+              submitVerifySlipPin();
+            } else if (pasted.length > 0) {
+              for (var j = 0; j < Math.min(pasted.length, 6); j++) {
+                inputs[j].value = pasted[j];
+              }
+              if (pasted.length < 6) inputs[pasted.length].focus();
+            }
+          });
+        });
+      }
+
+      function getVerifyBoxesPin() {
+        var container = document.getElementById('verifyPinBoxes');
+        if (!container) return '';
+        var inputs = container.querySelectorAll('.pin-digit-box');
+        var pin = '';
+        inputs.forEach(function (inp) { pin += inp.value; });
+        return pin;
+      }
+
+      function clearVerifyBoxes() {
+        var container = document.getElementById('verifyPinBoxes');
+        if (!container) return;
+        var inputs = container.querySelectorAll('.pin-digit-box');
+        inputs.forEach(function (inp) { inp.value = ''; inp.classList.remove('is-invalid'); });
+        var alertEl = document.getElementById('verifyPinAlert');
+        if (alertEl) alertEl.classList.add('d-none');
+        if (inputs.length > 0) inputs[0].focus();
+      }
+
+      window.togglePinBoxesVisibility = function (wrapperId, btn) {
+        var container = document.getElementById(wrapperId);
+        if (!container) return;
+        var inputs = container.querySelectorAll('.pin-digit-box');
+        if (inputs.length === 0) return;
+        var isPass = inputs[0].type === 'password';
+        inputs.forEach(function (inp) { inp.type = isPass ? 'text' : 'password'; });
+        if (btn) {
+          btn.innerHTML = isPass ? '<i class="bi bi-eye-slash me-1"></i>Sembunyikan Angka' : '<i class="bi bi-eye me-1"></i>Tampilkan Angka';
+        }
+      };
+
+      window.openVerifySlipPinModal = function (slipId, onSuccessCb) {
+        _pendingSlipIdToOpen = slipId;
+        _onPinSuccessCallback = onSuccessCb || null;
+
+        var modalEl = document.getElementById('modalVerifySlipPin');
+        if (!modalEl) return;
+        if (!bsModalVerifySlipPin && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          bsModalVerifySlipPin = new bootstrap.Modal(modalEl);
+        }
+        clearVerifyBoxes();
+        if (bsModalVerifySlipPin) {
+          bsModalVerifySlipPin.show();
+          setTimeout(function () {
+            var firstBox = modalEl.querySelector('.pin-digit-box');
+            if (firstBox) firstBox.focus();
+          }, 350);
+        }
+      };
+
+      window.submitVerifySlipPin = function () {
+        var pin = getVerifyBoxesPin();
+        var alertEl = document.getElementById('verifyPinAlert');
+        var container = document.getElementById('verifyPinBoxes');
+
+        if (pin.length < 6) {
+          if (alertEl) {
+            alertEl.classList.remove('d-none');
+            alertEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>Masukkan 6 digit angka PIN lengkap.';
+          }
+          return;
+        }
+
+        var btn = document.getElementById('btnSubmitVerifyPin');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Memverifikasi...';
+        }
+
+        gasRun('verifyUserSlipPin', Auth.getToken(), pin).then(function (res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-unlock-fill me-1"></i> Buka Slip Gaji';
+          }
+          if (handleSessionExpired(res)) return;
+
+          if (res && res.success) {
+            setSlipPinSessionVerified(pin);
+            if (bsModalVerifySlipPin) bsModalVerifySlipPin.hide();
+
+            // Eksekusi callback atau buka slip
+            if (_onPinSuccessCallback) {
+              var cb = _onPinSuccessCallback;
+              _onPinSuccessCallback = null;
+              cb(pin);
+            } else if (_pendingSlipIdToOpen) {
+              var sId = _pendingSlipIdToOpen;
+              _pendingSlipIdToOpen = null;
+              openPdfModal(sId, pin);
+            }
+          } else {
+            // Tampilkan error & efek getar
+            if (container) {
+              container.classList.add('pin-shake');
+              setTimeout(function () { container.classList.remove('pin-shake'); }, 500);
+              var boxes = container.querySelectorAll('.pin-digit-box');
+              boxes.forEach(function (b) { b.classList.add('is-invalid'); });
+            }
+            if (alertEl) {
+              alertEl.classList.remove('d-none');
+              alertEl.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i>' + (res.message || 'PIN salah.');
+            }
+            setTimeout(function () {
+              clearVerifyBoxes();
+            }, 600);
+          }
+        }).catch(function (err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-unlock-fill me-1"></i> Buka Slip Gaji';
+          }
+          if (alertEl) {
+            alertEl.classList.remove('d-none');
+            alertEl.innerHTML = '<i class="bi bi-wifi-off me-1"></i>' + (err.message || err.toString());
+          }
+        });
+      };
+
+      window.openManageSlipPinModal = function () {
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        var modalEl = document.getElementById('modalSetupSlipPin');
+        if (!modalEl) return;
+
+        if (!bsModalSetupSlipPin && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          bsModalSetupSlipPin = new bootstrap.Modal(modalEl);
+        }
+
+        var oldPinGroup = document.getElementById('setupOldPinGroup');
+        var oldPinInput = document.getElementById('setupOldPin');
+        var titleEl = document.getElementById('setupPinTitle');
+        var descEl = document.getElementById('setupPinDesc');
+        var btnSubmit = document.getElementById('btnSubmitSetupPin');
+
+        document.getElementById('setupNewPin').value = '';
+        document.getElementById('setupConfirmPin').value = '';
+        if (oldPinInput) oldPinInput.value = '';
+
+        var hasPin = user && user.hasSlipPin;
+        if (hasPin) {
+          if (oldPinGroup) oldPinGroup.classList.remove('d-none');
+          if (titleEl) titleEl.innerText = 'Ubah PIN Keamanan Slip Gaji';
+          if (descEl) descEl.innerText = 'Silakan masukkan PIN lama Anda dan tentukan 6 digit PIN baru.';
+          if (btnSubmit) btnSubmit.innerHTML = '<i class="bi bi-check-circle me-1"></i>Perbarui PIN Keamanan';
+        } else {
+          if (oldPinGroup) oldPinGroup.classList.add('d-none');
+          if (titleEl) titleEl.innerText = 'Buat PIN Keamanan Slip Gaji';
+          if (descEl) descEl.innerText = 'Demi menjaga kerahasiaan nominal gaji Anda, silakan buat 6 digit PIN keamanan untuk membuka slip gaji.';
+          if (btnSubmit) btnSubmit.innerHTML = '<i class="bi bi-shield-lock-fill me-1"></i>Simpan PIN Keamanan';
+        }
+
+        if (bsModalSetupSlipPin) bsModalSetupSlipPin.show();
+      };
+
+      window.handleSaveSlipPin = function () {
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+        var hasPin = user && user.hasSlipPin;
+        var oldPin = hasPin && document.getElementById('setupOldPin') ? document.getElementById('setupOldPin').value.trim() : '';
+        var newPin = document.getElementById('setupNewPin').value.trim();
+        var confirmPin = document.getElementById('setupConfirmPin').value.trim();
+
+        if (hasPin && !oldPin) {
+          showFormValidationWarning('setupOldPin', 'PIN saat ini (lama) wajib diisi.');
+          return;
+        }
+        if (!newPin) {
+          showFormValidationWarning('setupNewPin', 'PIN baru 6 digit wajib diisi.');
+          return;
+        }
+        if (!/^\d{6}$/.test(newPin)) {
+          showFormValidationWarning('setupNewPin', 'PIN harus berupa 6 digit angka (0-9).');
+          return;
+        }
+        if (!confirmPin) {
+          showFormValidationWarning('setupConfirmPin', 'Konfirmasi PIN baru wajib diisi.');
+          return;
+        }
+        if (newPin !== confirmPin) {
+          showFormValidationWarning('setupConfirmPin', 'Konfirmasi PIN baru tidak cocok.');
+          return;
+        }
+
+        showFullPageLoading('Menyimpan PIN Keamanan Slip Gaji...');
+
+        gasRun('setUserSlipPin', Auth.getToken(), newPin, oldPin).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+
+          if (res && res.success) {
+            if (user) user.hasSlipPin = true;
+            setSlipPinSessionVerified(newPin);
+
+            if (bsModalSetupSlipPin) bsModalSetupSlipPin.hide();
+            Swal.fire({
+              icon: 'success',
+              title: 'PIN Berhasil Disimpan!',
+              text: res.message || 'PIN Keamanan Slip Gaji Anda telah aktif.',
+              confirmButtonText: 'OK'
+            }).then(function () {
+              if (_pendingSlipIdToOpen) {
+                var sId = _pendingSlipIdToOpen;
+                _pendingSlipIdToOpen = null;
+                openPdfModal(sId, newPin);
+              }
+            });
+          } else {
+            Swal.fire('Gagal Menyimpan PIN', res.message || 'Terjadi kesalahan saat menyimpan PIN.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.openResetSlipPinFromVerify = function () {
+        if (bsModalVerifySlipPin) bsModalVerifySlipPin.hide();
+        openResetSlipPinOtpModal();
+      };
+
+      window.openResetSlipPinOtpModal = function () {
+        var modalEl = document.getElementById('modalResetSlipPinOtp');
+        if (!modalEl) return;
+        if (!bsModalResetSlipPinOtp && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          bsModalResetSlipPinOtp = new bootstrap.Modal(modalEl);
+        }
+        document.getElementById('resetPinStep1').classList.remove('d-none');
+        document.getElementById('resetPinStep2').classList.add('d-none');
+        document.getElementById('resetPinOtpCode').value = '';
+        document.getElementById('resetPinNew').value = '';
+        document.getElementById('resetPinConfirm').value = '';
+
+        if (bsModalResetSlipPinOtp) bsModalResetSlipPinOtp.show();
+      };
+
+      window.sendResetSlipPinOtp = function () {
+        var btn = document.getElementById('btnSendResetPinOtp');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Mengirim OTP...';
+        }
+
+        gasRun('requestResetSlipPinOtp', Auth.getToken()).then(function (res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Kirim Kode OTP ke Email Saya';
+          }
+          if (handleSessionExpired(res)) return;
+
+          if (res && res.success) {
+            document.getElementById('resetPinStep1').classList.add('d-none');
+            document.getElementById('resetPinStep2').classList.remove('d-none');
+            Swal.fire('OTP Terkirim!', res.message || 'Silakan cek email Anda.', 'success');
+          } else {
+            Swal.fire('Gagal Kirim OTP', res.message || 'Terjadi kesalahan.', 'error');
+          }
+        }).catch(function (err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Kirim Kode OTP ke Email Saya';
+          }
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.submitVerifyAndResetSlipPin = function () {
+        var otp = document.getElementById('resetPinOtpCode').value.trim();
+        var newPin = document.getElementById('resetPinNew').value.trim();
+        var confirmPin = document.getElementById('resetPinConfirm').value.trim();
+
+        if (!otp) {
+          showFormValidationWarning('resetPinOtpCode', 'Kode OTP 6 digit wajib diisi.');
+          return;
+        }
+        if (!newPin) {
+          showFormValidationWarning('resetPinNew', 'PIN baru 6 digit wajib diisi.');
+          return;
+        }
+        if (!/^\d{6}$/.test(newPin)) {
+          showFormValidationWarning('resetPinNew', 'PIN harus berupa 6 digit angka (0-9).');
+          return;
+        }
+        if (!confirmPin) {
+          showFormValidationWarning('resetPinConfirm', 'Konfirmasi PIN baru wajib diisi.');
+          return;
+        }
+        if (newPin !== confirmPin) {
+          showFormValidationWarning('resetPinConfirm', 'Konfirmasi PIN baru tidak cocok.');
+          return;
+        }
+
+        showFullPageLoading('Verifikasi OTP & Reset PIN...');
+
+        gasRun('verifyAndResetSlipPin', Auth.getToken(), otp, newPin).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+
+          if (res && res.success) {
+            var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+            if (user) user.hasSlipPin = true;
+            setSlipPinSessionVerified(newPin);
+
+            if (bsModalResetSlipPinOtp) bsModalResetSlipPinOtp.hide();
+            Swal.fire({
+              icon: 'success',
+              title: 'PIN Berhasil Direset!',
+              text: res.message || 'PIN baru telah aktif. Silakan buka slip gaji Anda.',
+              confirmButtonText: 'Buka Slip Gaji'
+            }).then(function () {
+              if (_pendingSlipIdToOpen) {
+                var sId = _pendingSlipIdToOpen;
+                _pendingSlipIdToOpen = null;
+                openPdfModal(sId, newPin);
+              }
+            });
+          } else {
+            Swal.fire('Gagal Reset PIN', res.message || 'Kode OTP salah atau kedaluwarsa.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+
+  // --- LOGIN & LOGOUT HANDLERS ---
+      window.handleLogin = function () {
+        var u = document.getElementById('loginUsername').value.trim();
+        var p = document.getElementById('loginPassword').value.trim();
+        var rememberMe = document.getElementById('rememberMeCheckbox') ? document.getElementById('rememberMeCheckbox').checked : false;
+
+        if (!u) {
+          showFormValidationWarning('loginUsername', 'ID Karyawan / Username wajib diisi.');
+          return;
+        }
+        if (!p) {
+          showFormValidationWarning('loginPassword', 'Password login wajib diisi.');
+          return;
+        }
+
+        showFullPageLoading('Verifikasi akun login...');
+
+        gasRun('loginUser', u, p).then(function (res) {
+          if (res.success) {
+            Auth.login(res.token, res.user, authKey, rememberMe);
+            var passEl = document.getElementById('loginPassword');
+            if (passEl) passEl.value = '';
+            if (!rememberMe) {
+              var userEl = document.getElementById('loginUsername');
+              if (userEl) userEl.value = '';
+            }
+            checkLoginState(true);
+          } else {
+            hideFullPageLoading();
+            var iconType = 'error';
+            var titleText = 'Gagal Login';
+            if (res.message && res.message.indexOf('MENUNGGU PERSETUJUAN') !== -1) {
+              iconType = 'info';
+              titleText = 'Menunggu Persetujuan HRD';
+            } else if (res.message && res.message.indexOf('DITOLAK') !== -1) {
+              iconType = 'warning';
+              titleText = 'Pendaftaran Akun Ditolak';
+            }
+            Swal.fire({
+              icon: iconType,
+              title: titleText,
+              text: res.message || 'ID Karyawan atau Password salah.',
+              confirmButtonColor: '#0d6efd'
+            });
+          }
+        }).catch(function () {
+          hideFullPageLoading();
+        });
+      };
+
+      window.confirmLogout = function () {
+        if (!bsModalLogout) {
+          bsModalLogout = new bootstrap.Modal(document.getElementById('modalLogout'));
+        }
+        var btn = document.getElementById('btnConfirmLogoutAction');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-box-arrow-right me-1"></i>Ya, Keluar';
+        }
+        bsModalLogout.show();
+      };
+
+      window.performLogout = function () {
+        var btn = document.getElementById('btnConfirmLogoutAction');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Mengakhiri sesi...';
+        }
+
+        // Tampilkan overlay transisi logout dengan elegan
+        var overlay = document.getElementById('logoutOverlay');
+        if (overlay) {
+          overlay.style.display = 'flex';
+          setTimeout(function () {
+            overlay.classList.add('show');
+          }, 20);
+        }
+
+        // Tutup modal logout secara halus
+        if (bsModalLogout) {
+          bsModalLogout.hide();
+        }
+
+        // Jeda untuk transisi keluar yang tenang & elegan
+        setTimeout(function () {
+          logout();
+          setTimeout(function () {
+            if (overlay) {
+              overlay.classList.remove('show');
+              setTimeout(function () {
+                overlay.style.display = 'none';
+                if (btn) {
+                  btn.disabled = false;
+                  btn.innerHTML = '<i class="bi bi-box-arrow-right me-1"></i>Ya, Keluar';
+                }
+              }, 350);
+            }
+          }, 250);
+        }, 450);
+      };
+
+      window.logout = function () {
+        clearSlipPinSession();
+        var token = Auth.getToken();
+        if (token) {
+          gasRun('destroySession', token);
+        }
+        Auth.clear();
+        var isRemember = Auth.isRememberMeChecked();
+        var userEl = document.getElementById('loginUsername');
+        var passEl = document.getElementById('loginPassword');
+        var chkRemember = document.getElementById('rememberMeCheckbox');
+        if (userEl) {
+          userEl.value = (isRemember && Auth.getSavedUsername()) ? Auth.getSavedUsername() : '';
+        }
+        if (passEl) {
+          passEl.value = '';
+        }
+        if (chkRemember) {
+          chkRemember.checked = isRemember;
+        }
+
+        // Pastikan tidak ada sisa backdrop modal yang tertinggal
+        var lingeringBackdrops = document.querySelectorAll('.modal-backdrop');
+        lingeringBackdrops.forEach(function (el) { el.remove(); });
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+
+        checkLoginState();
+      };
+
+      function checkLoginState(isFirstLogin) {
+        var loginPage = document.getElementById('loginPage');
+        var mainApp = document.getElementById('mainApp');
+
+        if (!loginPage || !mainApp) return;
+
+        if (Auth.isVerified()) {
+          loginPage.classList.add('d-none');
+          mainApp.classList.remove('d-none');
+          restoreSidebarState();
+
+          var user = Auth.getUser();
+          document.getElementById('userDisplayName').innerText = user.username + ' - ' + user.fullname;
+
+          var hrdElements = document.querySelectorAll('.hrd-only');
+          var karyawanElements = document.querySelectorAll('.karyawan-only');
+          var atasanElements = document.querySelectorAll('.atasan-hrd-only');
+
+          var isAtasan = (user.role === 'Supervisor' || user.role === 'supervisor' || (typeof isJobAtasan === 'function' && isJobAtasan(user.jabatan, user.role)));
+
+          if (user.role === 'Admin') {
+            hrdElements.forEach(function (el) { el.classList.remove('d-none'); });
+            karyawanElements.forEach(function (el) { el.classList.add('d-none'); });
+            atasanElements.forEach(function (el) { el.classList.remove('d-none'); });
+            showPage('dashboard', document.getElementById('nav-item-dashboard'), isFirstLogin);
+          } else if (isAtasan) {
+            hrdElements.forEach(function (el) { el.classList.add('d-none'); });
+            karyawanElements.forEach(function (el) { el.classList.remove('d-none'); });
+            atasanElements.forEach(function (el) { el.classList.remove('d-none'); });
+            showPage('dashboard', document.getElementById('nav-item-dashboard'), isFirstLogin);
+          } else {
+            hrdElements.forEach(function (el) { el.classList.add('d-none'); });
+            karyawanElements.forEach(function (el) { el.classList.remove('d-none'); });
+            atasanElements.forEach(function (el) { el.classList.add('d-none'); });
+            showPage('dashboard', document.getElementById('nav-item-dashboard'), isFirstLogin);
+          }
+          // Ambil status approval di background agar badge navbar & sidebar segera update
+          if (user.role === 'Admin' || isAtasan) {
+            setTimeout(function () {
+              loadRiwayatCuti(true);
+              if (user.role === 'Admin') loadPendaftarList(false, true);
+            }, 500);
+          }
+        } else {
+          mainApp.classList.add('d-none');
+          loginPage.classList.remove('d-none');
+
+          var isRemember = Auth.isRememberMeChecked();
+          var savedUser = Auth.getSavedUsername();
+          var userEl = document.getElementById('loginUsername');
+          var passEl = document.getElementById('loginPassword');
+          var chkRemember = document.getElementById('rememberMeCheckbox');
+
+          if (userEl) {
+            if (isRemember && savedUser) {
+              userEl.value = savedUser;
+            } else {
+              userEl.value = '';
+            }
+          }
+          if (passEl) {
+            passEl.value = '';
+          }
+          if (chkRemember) {
+            chkRemember.checked = isRemember;
+            if (!chkRemember.dataset.listenerAttached) {
+              chkRemember.dataset.listenerAttached = 'true';
+              chkRemember.addEventListener('change', function () {
+                if (!this.checked) {
+                  try {
+                    localStorage.removeItem('eslip_saved_username');
+                    localStorage.removeItem('eslip_remember_me');
+                  } catch (e) { }
+                  var uInput = document.getElementById('loginUsername');
+                  if (uInput) uInput.value = '';
+                }
+              });
+            }
+          }
+
+          checkActiveAnnouncement();
+        }
+      }

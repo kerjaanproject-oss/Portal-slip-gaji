@@ -1,0 +1,183 @@
+  // ==========================================================================
+  // MASTER ROSTER MODULE (POLA KERJA & CUTI)
+  // File: Scripts_Roster.html
+  // ==========================================================================
+
+      // --- MASTER ROSTER MODULE (HRD ONLY) ---
+      window.loadRosterData = function () {
+        var tbody = document.getElementById('tableRoster');
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div><p class="mb-0">Memuat data pola roster...</p></td></tr>';
+        }
+        gasRun('getRosterList', Auth.getToken()).then(function (res) {
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            dbRoster = res.roster || res.list || [];
+            currentPageRoster = 1;
+            renderRosterTable();
+          } else {
+            Swal.fire('Info', res.message || 'Gagal memuat data roster.', 'warning');
+          }
+        }).catch(function (err) {
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.renderRosterTable = function () {
+        var tbody = document.getElementById('tableRoster');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        var searchEl = document.getElementById('searchRoster');
+        var search = searchEl ? searchEl.value.trim().toLowerCase() : '';
+
+        var filtered = dbRoster.filter(function (r) {
+          var noteStr = r.notes || r.note || '';
+          return !search ||
+            (r.name && r.name.toLowerCase().includes(search)) ||
+            (noteStr && noteStr.toLowerCase().includes(search)) ||
+            String(r.workDays).includes(search) ||
+            String(r.leaveDays).includes(search);
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada data pola roster yang sesuai.</td></tr>';
+          renderPaginationControls('paginationRoster', 0, 1, function () { });
+          return;
+        }
+
+        var totalPages = Math.ceil(filtered.length / pageSize) || 1;
+        if (currentPageRoster > totalPages) currentPageRoster = totalPages;
+
+        var pageData = filtered.slice((currentPageRoster - 1) * pageSize, currentPageRoster * pageSize);
+
+        pageData.forEach(function (r, idx) {
+          var tr = document.createElement('tr');
+          var globalIdx = ((currentPageRoster - 1) * pageSize) + (idx + 1);
+
+          tr.innerHTML =
+            '<td class="text-center fw-bold text-dark">' + globalIdx + '</td>' +
+            '<td class="fw-bold"><span class="badge bg-primary bg-opacity-10 text-primary fs-6 px-3 py-2 border border-primary border-opacity-25">' + escapeHTML(r.name) + '</span></td>' +
+            '<td class="text-center"><span class="badge bg-info bg-opacity-10 text-info-emphasis px-2 py-1"><i class="bi bi-briefcase me-1"></i>' + escapeHTML(String(r.workDays)) + ' Hari</span></td>' +
+            '<td class="text-center"><span class="badge bg-success bg-opacity-10 text-success-emphasis px-2 py-1"><i class="bi bi-calendar2-check me-1"></i>' + escapeHTML(String(r.leaveDays)) + ' Hari</span></td>' +
+            '<td class="small text-muted">' + (r.notes || r.note ? escapeHTML(r.notes || r.note) : '<em class="text-black-50">-</em>') + '</td>' +
+            '<td class="text-center text-nowrap"><div class="action-group">' +
+            '<button class="btn btn-sm btn-action btn-action-edit" onclick="openEditRosterModal(\'' + escapeHTML(r.id) + '\')" title="Edit Pola Roster"><i class="bi bi-pencil-square"></i>Edit</button>' +
+            '<button class="btn btn-sm btn-action btn-action-delete" onclick="handleDeleteRoster(\'' + escapeHTML(r.id) + '\')" title="Hapus Pola Roster"><i class="bi bi-trash"></i>Hapus</button>' +
+            '</div></td>';
+
+          tbody.appendChild(tr);
+        });
+
+        renderPaginationControls('paginationRoster', filtered.length, currentPageRoster, function (newPage) {
+          currentPageRoster = newPage;
+          renderRosterTable();
+        });
+      };
+
+      window.openAddRosterModal = function () {
+        if (!bsModalRoster) {
+          bsModalRoster = new bootstrap.Modal(document.getElementById('modalRoster'));
+        }
+        document.getElementById('modalRosterTitle').innerText = 'Tambah Pola Roster';
+        document.getElementById('formRoster').reset();
+        document.getElementById('rosterId').value = '';
+        bsModalRoster.show();
+      };
+
+      window.openEditRosterModal = function (rosterId) {
+        if (!bsModalRoster) {
+          bsModalRoster = new bootstrap.Modal(document.getElementById('modalRoster'));
+        }
+        var item = dbRoster.find(function (r) { return r.id === rosterId; });
+        if (!item) return;
+
+        document.getElementById('modalRosterTitle').innerText = 'Edit Pola Roster';
+        document.getElementById('rosterId').value = item.id;
+        document.getElementById('rosterName').value = item.name;
+        document.getElementById('rosterWorkDays').value = item.workDays;
+        document.getElementById('rosterLeaveDays').value = item.leaveDays;
+        document.getElementById('rosterNotes').value = item.notes || item.note || '';
+        bsModalRoster.show();
+      };
+
+      window.handleSaveRoster = function () {
+        var payload = {
+          id: document.getElementById('rosterId').value.trim(),
+          name: document.getElementById('rosterName').value.trim(),
+          workDays: document.getElementById('rosterWorkDays').value.trim(),
+          leaveDays: document.getElementById('rosterLeaveDays').value.trim(),
+          notes: document.getElementById('rosterNotes').value.trim(),
+          note: document.getElementById('rosterNotes').value.trim()
+        };
+
+        if (!payload.name) {
+          showFormValidationWarning('rosterName', 'Nama pola roster wajib diisi.');
+          return;
+        }
+        if (!payload.workDays || isNaN(payload.workDays) || Number(payload.workDays) <= 0) {
+          showFormValidationWarning('rosterWorkDays', 'Jumlah hari kerja wajib diisi dengan angka positif.');
+          return;
+        }
+        if (!payload.leaveDays || isNaN(payload.leaveDays) || Number(payload.leaveDays) <= 0) {
+          showFormValidationWarning('rosterLeaveDays', 'Jumlah jatah cuti wajib diisi dengan angka positif.');
+          return;
+        }
+
+        showFullPageLoading('Menyimpan data pola roster...');
+        gasRun('saveRoster', Auth.getToken(), payload).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            if (bsModalRoster) bsModalRoster.hide();
+            Swal.fire('Berhasil', res.message || 'Data pola roster berhasil disimpan.', 'success');
+            loadRosterData();
+          } else {
+            Swal.fire('Gagal', res.message || 'Gagal menyimpan data roster.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.handleDeleteRoster = function (rosterId) {
+        var item = dbRoster.find(function (r) { return r.id === rosterId; });
+        var name = item ? item.name : 'pola roster ini';
+
+        Swal.fire({
+          title: 'Hapus Pola Roster?',
+          text: 'Apakah Anda yakin ingin menghapus pola "' + name + '"?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: 'Ya, Hapus',
+          cancelButtonText: 'Batal'
+        }).then(function (res) {
+          if (res.isConfirmed) {
+            showFullPageLoading('Menghapus pola roster...');
+            gasRun('deleteRoster', Auth.getToken(), rosterId).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp.success) {
+                Swal.fire('Terhapus', resp.message || 'Pola roster telah dihapus.', 'success');
+                loadRosterData();
+              } else {
+                Swal.fire('Gagal', resp.message || 'Gagal menghapus pola roster.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error Server', err.message || err.toString(), 'error');
+            });
+          }
+        });
+      };
+
+      window.resetRosterFilters = function () {
+        var searchEl = document.getElementById('searchRoster');
+        if (searchEl) searchEl.value = '';
+        currentPageRoster = 1;
+        renderRosterTable();
+      };
+

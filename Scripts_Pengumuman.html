@@ -1,0 +1,661 @@
+  // ==========================================================================
+  // MODUL PENGUMUMAN (ANNOUNCEMENT) & POPUP BANNER
+  // File: Scripts_Pengumuman.html
+  // ==========================================================================
+
+      // ==========================================
+      // --- MODUL PENGUMUMAN (ANNOUNCEMENT) ---
+      // ==========================================
+
+      function formatDateDDMMYYYY(dateStr) {
+        if (!dateStr) return '';
+        var str = String(dateStr).trim();
+        // Cek pola YYYY-MM-DD
+        var match = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+        if (match) {
+          var y = match[1];
+          var m = match[2].length === 1 ? '0' + match[2] : match[2];
+          var d = match[3].length === 1 ? '0' + match[3] : match[3];
+          return d + '/' + m + '/' + y;
+        }
+        // Fallback jika berupa Date object string atau ISO
+        var dt = new Date(str);
+        if (!isNaN(dt.getTime())) {
+          var day = String(dt.getDate()).padStart(2, '0');
+          var month = String(dt.getMonth() + 1).padStart(2, '0');
+          var year = dt.getFullYear();
+          return day + '/' + month + '/' + year;
+        }
+        return str;
+      }
+
+      // 1. Logika Login Pop-up (Opsi A)
+      window.checkActiveAnnouncement = function () {
+        gasRun('getActiveAnnouncement').then(function (res) {
+          if (!res || !res.success || !res.hasAnnouncement || !res.announcement) {
+            currentActiveAnnouncement = null;
+            var noticeEl = document.getElementById('loginAnnouncementNotice');
+            if (noticeEl) noticeEl.classList.add('d-none');
+            return;
+          }
+
+          var ann = res.announcement;
+          currentActiveAnnouncement = ann;
+
+          // Tampilkan tombol "Lihat Pengumuman Terbaru" di halaman login
+          var noticeEl = document.getElementById('loginAnnouncementNotice');
+          var noticeText = document.getElementById('loginAnnouncementNoticeText');
+          if (noticeEl) {
+            noticeEl.classList.remove('d-none');
+            if (noticeText) noticeText.innerText = ann.judul || 'Pengumuman Terbaru';
+          }
+
+          // Cek apakah pengguna sudah memilih "Jangan tampilkan lagi"
+          var storageKey = 'dismissed_announcement_' + ann.id;
+          var isDismissed = localStorage.getItem(storageKey);
+
+          if (!isDismissed) {
+            renderAndShowLoginAnnouncementModal(ann);
+          }
+        }).catch(function (err) {
+          console.warn('Gagal memuat pengumuman login:', err);
+        });
+      };
+
+      function renderAndShowLoginAnnouncementModal(ann) {
+        if (!ann) return;
+
+        var splash = document.getElementById('appSplashScreen');
+        if (splash && splash.style.display !== 'none' && !splash.classList.contains('splash-fade-out')) {
+          window._pendingAnnouncementModal = ann;
+          return;
+        }
+
+        var headerEl = document.getElementById('modalPengumumanLoginHeader');
+        var iconEl = document.getElementById('modalPengumumanLoginIcon');
+        var badgeEl = document.getElementById('modalPengumumanLoginBadge');
+        var titleEl = document.getElementById('modalPengumumanLoginTitle');
+        var subjectEl = document.getElementById('modalPengumumanLoginSubject');
+        var contentEl = document.getElementById('modalPengumumanLoginContent');
+        var authorEl = document.getElementById('modalPengumumanLoginAuthor');
+        var periodEl = document.getElementById('modalPengumumanLoginPeriod');
+        var dateEl = document.getElementById('modalPengumumanLoginDate');
+        var chkDismiss = document.getElementById('chkDismissAnnouncement');
+
+        if (chkDismiss) chkDismiss.checked = false;
+
+        var tipe = (ann.tipe || 'Informasi').toLowerCase();
+
+        if (tipe === 'mendesak' || tipe === 'urgent') {
+          if (headerEl) headerEl.style.background = 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)';
+          if (iconEl) iconEl.className = 'bi bi-exclamation-octagon-fill fs-5 text-white';
+          if (badgeEl) { badgeEl.className = 'badge bg-white text-danger fw-bold'; badgeEl.innerText = 'MENDESAK'; }
+          if (titleEl) titleEl.innerText = 'Pengumuman Mendesak';
+        } else if (tipe === 'penting' || tipe === 'warning') {
+          if (headerEl) headerEl.style.background = 'linear-gradient(135deg, #d97706 0%, #b45309 100%)';
+          if (iconEl) iconEl.className = 'bi bi-exclamation-triangle-fill fs-5 text-white';
+          if (badgeEl) { badgeEl.className = 'badge bg-white text-warning fw-bold'; badgeEl.innerText = 'PENTING'; }
+          if (titleEl) titleEl.innerText = 'Pemberitahuan Penting';
+        } else {
+          if (headerEl) headerEl.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+          if (iconEl) iconEl.className = 'bi bi-megaphone-fill fs-5 text-white';
+          if (badgeEl) { badgeEl.className = 'badge bg-white text-primary fw-bold'; badgeEl.innerText = 'INFORMASI'; }
+          if (titleEl) titleEl.innerText = 'Informasi Perusahaan';
+        }
+
+        if (subjectEl) subjectEl.innerText = ann.judul || '';
+        if (contentEl) contentEl.innerText = ann.isi || '';
+        if (authorEl) authorEl.innerText = ann.dibuatOleh || 'HRD Management';
+        if (dateEl) dateEl.innerText = ann.tanggalDibuat ? '(' + formatDateDDMMYYYY(ann.tanggalDibuat) + ')' : '';
+
+        if (periodEl) {
+          if (ann.tanggalMulai && ann.tanggalSelesai) {
+            periodEl.innerHTML = '<i class="bi bi-calendar-range me-1"></i>Periode: ' + escapeHTML(formatDateDDMMYYYY(ann.tanggalMulai)) + ' s/d ' + escapeHTML(formatDateDDMMYYYY(ann.tanggalSelesai));
+            periodEl.classList.remove('d-none');
+          } else if (ann.tanggalMulai) {
+            periodEl.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Mulai: ' + escapeHTML(formatDateDDMMYYYY(ann.tanggalMulai));
+            periodEl.classList.remove('d-none');
+          } else if (ann.tanggalSelesai) {
+            periodEl.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Sampai: ' + escapeHTML(formatDateDDMMYYYY(ann.tanggalSelesai));
+            periodEl.classList.remove('d-none');
+          } else {
+            periodEl.classList.add('d-none');
+          }
+        }
+
+        if (!bsModalPengumumanLogin) {
+          bsModalPengumumanLogin = new bootstrap.Modal(document.getElementById('modalPengumumanLogin'));
+        }
+        bsModalPengumumanLogin.show();
+      }
+
+      window.openAnnouncementModalFromLogin = function () {
+        if (currentActiveAnnouncement) {
+          renderAndShowLoginAnnouncementModal(currentActiveAnnouncement);
+        } else {
+          checkActiveAnnouncement();
+        }
+      };
+
+      window.handleCloseAnnouncementModal = function () {
+        var chkDismiss = document.getElementById('chkDismissAnnouncement');
+        if (chkDismiss && chkDismiss.checked && currentActiveAnnouncement && currentActiveAnnouncement.id) {
+          localStorage.setItem('dismissed_announcement_' + currentActiveAnnouncement.id, 'true');
+        }
+      };
+
+      // 2. Logika Halaman Kelola Pengumuman (HRD / Admin & Karyawan)
+      window.loadPengumuman = function () {
+        var tbody = document.getElementById('tablePengumuman');
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div><p class="mb-0">Memuat data pengumuman...</p></td></tr>';
+        }
+        gasRun('getAnnouncements', Auth.getToken()).then(function (res) {
+          if (handleSessionExpired(res)) return;
+          if (res && res.success && res.list) {
+            dbPengumuman = res.list || [];
+            currentPagePengumuman = 1;
+            renderPengumumanTable();
+          } else {
+            fallbackLoadPengumuman();
+          }
+        }).catch(function () {
+          fallbackLoadPengumuman();
+        });
+      };
+
+      function fallbackLoadPengumuman() {
+        if (typeof dbPengumuman !== 'undefined' && dbPengumuman && dbPengumuman.length > 0) {
+          currentPagePengumuman = 1;
+          renderPengumumanTable();
+          return;
+        }
+        gasRun('getActiveAnnouncement').then(function (res) {
+          if (res && res.success && res.hasAnnouncement && res.announcement) {
+            dbPengumuman = [res.announcement];
+          } else {
+            dbPengumuman = [];
+          }
+          currentPagePengumuman = 1;
+          renderPengumumanTable();
+        }).catch(function () {
+          dbPengumuman = [];
+          currentPagePengumuman = 1;
+          renderPengumumanTable();
+        });
+      }
+
+      window.renderPengumumanTable = function () {
+        var tbody = document.getElementById('tablePengumuman');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        var searchEl = document.getElementById('searchPengumuman');
+        var search = searchEl ? searchEl.value.trim().toLowerCase() : '';
+
+        var filtered = dbPengumuman.filter(function (a) {
+          return !search ||
+            (a.judul && a.judul.toLowerCase().includes(search)) ||
+            (a.isi && a.isi.toLowerCase().includes(search)) ||
+            (a.tipe && a.tipe.toLowerCase().includes(search)) ||
+            (a.status && a.status.toLowerCase().includes(search)) ||
+            (a.dibuatOleh && a.dibuatOleh.toLowerCase().includes(search));
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-info-circle me-1"></i>Belum ada pengumuman aktif saat ini.</td></tr>';
+          renderPaginationControls('paginationPengumuman', 0, 1, function () { });
+          return;
+        }
+
+        var totalPages = Math.ceil(filtered.length / pageSize) || 1;
+        if (currentPagePengumuman > totalPages) currentPagePengumuman = totalPages;
+
+        var pageData = filtered.slice((currentPagePengumuman - 1) * pageSize, currentPagePengumuman * pageSize);
+
+        pageData.forEach(function (a, idx) {
+          var tr = document.createElement('tr');
+          var globalIdx = ((currentPagePengumuman - 1) * pageSize) + (idx + 1);
+
+          // Badge Tipe
+          var tipeBadge = '';
+          var lowerTipe = (a.tipe || '').toLowerCase();
+          if (lowerTipe === 'mendesak' || lowerTipe === 'urgent') {
+            tipeBadge = '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25"><i class="bi bi-exclamation-octagon-fill me-1"></i>Mendesak</span>';
+          } else if (lowerTipe === 'penting' || lowerTipe === 'warning') {
+            tipeBadge = '<span class="badge bg-warning bg-opacity-15 text-warning-emphasis border border-warning border-opacity-50"><i class="bi bi-exclamation-triangle-fill me-1"></i>Penting</span>';
+          } else {
+            tipeBadge = '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25"><i class="bi bi-info-circle-fill me-1"></i>Informasi</span>';
+          }
+
+          // Periode
+          var periodeText = '-';
+          if (a.tanggalMulai && a.tanggalSelesai) {
+            periodeText = escapeHTML(formatDateDDMMYYYY(a.tanggalMulai)) + ' s/d ' + escapeHTML(formatDateDDMMYYYY(a.tanggalSelesai));
+          } else if (a.tanggalMulai) {
+            periodeText = 'Mulai ' + escapeHTML(formatDateDDMMYYYY(a.tanggalMulai));
+          } else if (a.tanggalSelesai) {
+            periodeText = 's/d ' + escapeHTML(formatDateDDMMYYYY(a.tanggalSelesai));
+          } else {
+            periodeText = '<span class="text-muted small">Tanpa Batas</span>';
+          }
+
+          // Toggle Status Button
+          var isAktif = (a.status || '').toLowerCase() === 'aktif';
+          var statusBtn = isAktif
+            ? '<button class="btn btn-sm btn-success rounded-pill px-2.5 py-0.5 fw-semibold extra-small" onclick="toggleAnnouncementStatusRow(\'' + escapeHTML(a.id) + '\', \'Nonaktif\')" title="Klik untuk Nonaktifkan"><i class="bi bi-check-circle-fill me-1"></i>Aktif</button>'
+            : '<button class="btn btn-sm btn-secondary rounded-pill px-2.5 py-0.5 fw-semibold extra-small" onclick="toggleAnnouncementStatusRow(\'' + escapeHTML(a.id) + '\', \'Aktif\')" title="Klik untuk Aktifkan"><i class="bi bi-pause-circle-fill me-1"></i>Nonaktif</button>';
+
+          var isiSnippet = a.isi ? (a.isi.length > 70 ? a.isi.substring(0, 70) + '...' : a.isi) : '-';
+
+          var currentUser = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+          var isAdmin = currentUser && currentUser.role === 'Admin';
+          var statusDisplay = isAdmin ? statusBtn : ('<span class="badge ' + (isAktif ? 'bg-success' : 'bg-secondary') + '">' + escapeHTML(a.status || 'Aktif') + '</span>');
+
+          var actionHtml = '<div class="action-group">' +
+            '<button class="btn btn-sm btn-action btn-action-view" onclick="openDetailAnnouncementModal(\'' + escapeHTML(a.id) + '\')" title="Lihat Detail Pengumuman"><i class="bi bi-eye"></i></button>' +
+            '<button class="btn btn-sm btn-action text-success border-success-subtle bg-success-subtle" onclick="shareAnnouncementToWA(\'' + escapeHTML(a.id) + '\')" title="Bagikan ke WhatsApp"><i class="bi bi-whatsapp"></i> WA</button>';
+          if (isAdmin) {
+            actionHtml +=
+              '<button class="btn btn-sm btn-action btn-action-edit" onclick="openEditAnnouncementModal(\'' + escapeHTML(a.id) + '\')" title="Edit Pengumuman"><i class="bi bi-pencil-square"></i>Edit</button>' +
+              '<button class="btn btn-sm btn-action btn-action-delete" onclick="handleDeleteAnnouncement(\'' + escapeHTML(a.id) + '\')" title="Hapus Pengumuman"><i class="bi bi-trash"></i>Hapus</button>';
+          }
+          actionHtml += '</div>';
+
+          tr.innerHTML =
+            '<td class="text-center fw-bold text-dark">' + globalIdx + '</td>' +
+            '<td><div class="fw-bold text-dark">' + escapeHTML(a.judul) + '</div><div class="text-muted extra-small mt-0.5" style="max-width: 320px;">' + escapeHTML(isiSnippet) + '</div></td>' +
+            '<td class="text-center">' + tipeBadge + '</td>' +
+            '<td class="text-center small">' + periodeText + '</td>' +
+            '<td class="text-center">' + statusDisplay + '</td>' +
+            '<td class="small text-muted"><i class="bi bi-person me-1"></i>' + escapeHTML(a.dibuatOleh || 'HRD') + (a.tanggalDibuat ? '<div class="extra-small text-black-50">' + escapeHTML(formatDateDDMMYYYY(a.tanggalDibuat)) + '</div>' : '') + '</td>' +
+            '<td class="text-center text-nowrap">' + actionHtml + '</td>';
+
+          tbody.appendChild(tr);
+        });
+
+        renderPaginationControls('paginationPengumuman', filtered.length, currentPagePengumuman, function (newPage) {
+          currentPagePengumuman = newPage;
+          renderPengumumanTable();
+        });
+      };
+
+      window.generateWhatsAppAnnouncementText = function (item) {
+        if (!item) return '';
+
+        var lowerTipe = (item.tipe || '').toLowerCase();
+        var headerIcon = '📢';
+        var prioritasLabel = '🔵 INFORMASI UMUM';
+
+        if (lowerTipe === 'mendesak' || lowerTipe === 'urgent') {
+          headerIcon = '🚨';
+          prioritasLabel = '🔴 MENDESAK / PERHATIAN KHUSUS';
+        } else if (lowerTipe === 'penting' || lowerTipe === 'warning') {
+          headerIcon = '⚠️';
+          prioritasLabel = '🟡 PENTING';
+        }
+
+        var periodeStr = 'Berlaku Seterusnya';
+        if (item.tanggalMulai && item.tanggalSelesai) {
+          periodeStr = formatDateDDMMYYYY(item.tanggalMulai) + ' s/d ' + formatDateDDMMYYYY(item.tanggalSelesai);
+        } else if (item.tanggalMulai) {
+          periodeStr = 'Mulai ' + formatDateDDMMYYYY(item.tanggalMulai);
+        } else if (item.tanggalSelesai) {
+          periodeStr = 's/d ' + formatDateDDMMYYYY(item.tanggalSelesai);
+        }
+
+        var author = item.dibuatOleh || 'HRD / Manajemen';
+
+        var text =
+          headerIcon + ' *PENGUMUMAN RESMI PERUSAHAAN* ' + headerIcon + '\n' +
+          '*PT. BERKAH BATU BARA*\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+          '📌 *Judul:* ' + (item.judul || '-').trim() + '\n' +
+          '🏷️ *Prioritas:* ' + prioritasLabel + '\n' +
+          '🗓️ *Periode:* ' + periodeStr + '\n' +
+          '✍️ *Diterbitkan Oleh:* ' + author + '\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+          '📢 *Isi Informasi:*\n' +
+          (item.isi || '-').trim() + '\n\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+          '_Pesan ini disiarkan secara resmi melalui Aplikasi Berkah - APP PT. Berkah Batu Bara._';
+
+        return text;
+      };
+
+      window.shareAnnouncementToWA = function (annIdOrItem) {
+        var item = null;
+        if (typeof annIdOrItem === 'object' && annIdOrItem !== null) {
+          item = annIdOrItem;
+        } else {
+          var cleanId = String(annIdOrItem || '').trim();
+          item = (typeof dbPengumuman !== 'undefined' && dbPengumuman) ? dbPengumuman.find(function (a) { return a.id === cleanId; }) : null;
+        }
+
+        if (!item) {
+          Swal.fire('Informasi', 'Data pengumuman tidak ditemukan.', 'info');
+          return;
+        }
+
+        var messageText = generateWhatsAppAnnouncementText(item);
+        var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(messageText);
+
+        window.open(waUrl, '_blank');
+
+        Swal.fire({
+          title: 'Membuka WhatsApp...',
+          html: 'Format pengumuman <strong>' + escapeHTML(item.judul) + '</strong> telah disiapkan.<br><br><span class="small text-muted">Silakan pilih <strong>Grup WhatsApp Kantor</strong> yang dituju, lalu tekan tombol <strong>Kirim</strong> di WhatsApp.</span>',
+          icon: 'success',
+          confirmButtonColor: '#25D366',
+          confirmButtonText: 'Selesai'
+        });
+      };
+
+      window.openAddAnnouncementModal = function () {
+        if (!bsModalFormPengumuman) {
+          bsModalFormPengumuman = new bootstrap.Modal(document.getElementById('modalFormPengumuman'));
+        }
+        document.getElementById('modalFormPengumumanTitle').innerText = 'Tambah Pengumuman Baru';
+        document.getElementById('formPengumuman').reset();
+        document.getElementById('announcementId').value = '';
+        document.getElementById('announcementTipe').value = 'Informasi';
+        document.getElementById('announcementStatus').value = 'Aktif';
+        bsModalFormPengumuman.show();
+      };
+
+      window.openEditAnnouncementModal = function (annId) {
+        if (!bsModalFormPengumuman) {
+          bsModalFormPengumuman = new bootstrap.Modal(document.getElementById('modalFormPengumuman'));
+        }
+        var item = dbPengumuman.find(function (a) { return a.id === annId; });
+        if (!item) return;
+
+        document.getElementById('modalFormPengumumanTitle').innerText = 'Edit Pengumuman';
+        document.getElementById('announcementId').value = item.id;
+        document.getElementById('announcementJudul').value = item.judul || '';
+        document.getElementById('announcementTipe').value = item.tipe || 'Informasi';
+        document.getElementById('announcementStatus').value = item.status || 'Aktif';
+        document.getElementById('announcementMulai').value = item.tanggalMulai || '';
+        document.getElementById('announcementSelesai').value = item.tanggalSelesai || '';
+        document.getElementById('announcementIsi').value = item.isi || '';
+        bsModalFormPengumuman.show();
+      };
+
+      window.openDetailAnnouncementModal = function (annId) {
+        var item = dbPengumuman.find(function (a) { return a.id === annId; });
+        if (!item) return;
+
+        if (!bsModalDetailPengumuman) {
+          bsModalDetailPengumuman = new bootstrap.Modal(document.getElementById('modalDetailPengumuman'));
+        }
+
+        var badgeEl = document.getElementById('detailPengumumanBadge');
+        var statusEl = document.getElementById('detailPengumumanStatus');
+        var judulEl = document.getElementById('detailPengumumanJudul');
+        var isiEl = document.getElementById('detailPengumumanIsi');
+        var periodeEl = document.getElementById('detailPengumumanPeriode');
+        var authorEl = document.getElementById('detailPengumumanAuthor');
+
+        var lowerTipe = (item.tipe || '').toLowerCase();
+        if (lowerTipe === 'mendesak' || lowerTipe === 'urgent') {
+          badgeEl.className = 'badge bg-danger text-white';
+          badgeEl.innerText = 'Mendesak';
+        } else if (lowerTipe === 'penting' || lowerTipe === 'warning') {
+          badgeEl.className = 'badge bg-warning text-dark';
+          badgeEl.innerText = 'Penting';
+        } else {
+          badgeEl.className = 'badge bg-primary text-white';
+          badgeEl.innerText = 'Informasi';
+        }
+
+        var isAktif = (item.status || '').toLowerCase() === 'aktif';
+        statusEl.className = isAktif ? 'badge bg-success' : 'badge bg-secondary';
+        statusEl.innerText = item.status || 'Aktif';
+
+        judulEl.innerText = item.judul || '';
+        isiEl.innerText = item.isi || '';
+
+        var periodeStr = '-';
+        if (item.tanggalMulai && item.tanggalSelesai) {
+          periodeStr = formatDateDDMMYYYY(item.tanggalMulai) + ' s/d ' + formatDateDDMMYYYY(item.tanggalSelesai);
+        } else if (item.tanggalMulai) {
+          periodeStr = 'Mulai ' + formatDateDDMMYYYY(item.tanggalMulai);
+        } else if (item.tanggalSelesai) {
+          periodeStr = 's/d ' + formatDateDDMMYYYY(item.tanggalSelesai);
+        } else {
+          periodeStr = 'Berlaku Seterusnya';
+        }
+        periodeEl.innerText = periodeStr;
+        authorEl.innerText = (item.dibuatOleh || 'HRD') + (item.tanggalDibuat ? ' (' + formatDateDDMMYYYY(item.tanggalDibuat) + ')' : '');
+
+        var btnShare = document.getElementById('btnSharePengumumanDetail');
+        if (btnShare) {
+          btnShare.onclick = function () {
+            shareAnnouncementToWA(item);
+          };
+        }
+
+        bsModalDetailPengumuman.show();
+      };
+
+      window.handleSaveAnnouncement = function () {
+        var payload = {
+          id: document.getElementById('announcementId').value.trim(),
+          judul: document.getElementById('announcementJudul').value.trim(),
+          tipe: document.getElementById('announcementTipe').value.trim(),
+          status: document.getElementById('announcementStatus').value.trim(),
+          tanggalMulai: document.getElementById('announcementMulai').value.trim(),
+          tanggalSelesai: document.getElementById('announcementSelesai').value.trim(),
+          isi: document.getElementById('announcementIsi').value.trim()
+        };
+
+        if (!payload.judul) {
+          showFormValidationWarning('announcementJudul', 'Judul pengumuman wajib diisi.');
+          return;
+        }
+        if (!payload.tipe) {
+          showFormValidationWarning('announcementTipe', 'Tipe pengumuman wajib dipilih.');
+          return;
+        }
+        if (!payload.status) {
+          showFormValidationWarning('announcementStatus', 'Status pengumuman wajib dipilih.');
+          return;
+        }
+        if (!payload.isi) {
+          showFormValidationWarning('announcementIsi', 'Isi pengumuman wajib diisi.');
+          return;
+        }
+
+        showFullPageLoading('Menyimpan pengumuman...');
+        gasRun('saveAnnouncement', Auth.getToken(), payload).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            if (bsModalFormPengumuman) bsModalFormPengumuman.hide();
+            loadPengumuman();
+            Swal.fire({
+              title: 'Pengumuman Berhasil Disimpan!',
+              text: 'Apakah Anda ingin langsung menyiarkan pengumuman ini ke Grup WhatsApp sekarang?',
+              icon: 'success',
+              showCancelButton: true,
+              confirmButtonText: '<i class="bi bi-whatsapp me-1"></i> Ya, Bagikan ke WA',
+              cancelButtonText: 'Tutup Saja',
+              confirmButtonColor: '#25D366',
+              cancelButtonColor: '#64748b'
+            }).then(function (swalRes) {
+              if (swalRes.isConfirmed) {
+                var annItem = {
+                  id: payload.id || res.id || '',
+                  judul: payload.judul,
+                  isi: payload.isi,
+                  tipe: payload.tipe,
+                  tanggalMulai: payload.tanggalMulai,
+                  tanggalSelesai: payload.tanggalSelesai,
+                  status: payload.status,
+                  dibuatOleh: (Auth.getUser() && Auth.getUser().fullname) ? Auth.getUser().fullname : 'HRD'
+                };
+                shareAnnouncementToWA(annItem);
+              }
+            });
+          } else {
+            Swal.fire('Gagal', res.message || 'Gagal menyimpan pengumuman.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.toggleAnnouncementStatusRow = function (annId, newStatus) {
+        showFullPageLoading('Mengubah status pengumuman...');
+        gasRun('toggleAnnouncementStatus', Auth.getToken(), annId, newStatus).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+          if (res.success) {
+            Swal.fire('Status Diperbarui', res.message || 'Status berhasil diubah.', 'success');
+            loadPengumuman();
+          } else {
+            Swal.fire('Gagal', res.message || 'Gagal mengubah status pengumuman.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error Server', err.message || err.toString(), 'error');
+        });
+      };
+
+      window.handleDeleteAnnouncement = function (annId) {
+        var item = dbPengumuman.find(function (a) { return a.id === annId; });
+        var title = item ? item.judul : 'pengumuman ini';
+
+        Swal.fire({
+          title: 'Hapus Pengumuman?',
+          text: 'Apakah Anda yakin ingin menghapus pengumuman "' + title + '"?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: 'Ya, Hapus',
+          cancelButtonText: 'Batal'
+        }).then(function (res) {
+          if (res.isConfirmed) {
+            showFullPageLoading('Menghapus pengumuman...');
+            gasRun('deleteAnnouncement', Auth.getToken(), annId).then(function (resp) {
+              hideFullPageLoading();
+              if (handleSessionExpired(resp)) return;
+              if (resp.success) {
+                Swal.fire('Terhapus', resp.message || 'Pengumuman telah dihapus.', 'success');
+                loadPengumuman();
+              } else {
+                Swal.fire('Gagal', resp.message || 'Gagal menghapus pengumuman.', 'error');
+              }
+            }).catch(function (err) {
+              hideFullPageLoading();
+              Swal.fire('Error Server', err.message || err.toString(), 'error');
+            });
+          }
+        });
+      };
+
+      window.resetPengumumanFilters = function () {
+        var searchEl = document.getElementById('searchPengumuman');
+        if (searchEl) searchEl.value = '';
+        currentPagePengumuman = 1;
+        renderPengumumanTable();
+      };
+
+      function populateDeptFilter() {
+        var sel = document.getElementById('filterSlipDept');
+        if (!sel) return;
+        var currentVal = sel.value || 'SEMUA';
+        sel.innerHTML = '<option value="SEMUA">Semua Dept</option>';
+
+        getDeptNames().forEach(function (d) {
+          sel.innerHTML += '<option value="' + escapeHTML(d) + '">' + escapeHTML(d) + '</option>';
+        });
+        sel.value = getDeptNames().includes(currentVal) ? currentVal : 'SEMUA';
+      }
+
+      window.resetSlipFilters = function () {
+        var search = document.getElementById('searchSlipHrd');
+        if (search) search.value = '';
+
+        var dept = document.getElementById('filterSlipDept');
+        if (dept) dept.value = 'SEMUA';
+
+        var bulan = document.getElementById('filterSlipBulan');
+        if (bulan) bulan.value = 'SEMUA';
+
+        var tahun = document.getElementById('filterSlipTahun');
+        if (tahun) tahun.value = 'SEMUA';
+
+        currentPageUploadSlip = 1;
+        renderSlipHrdTable();
+      };
+
+      function renderPaginationControls(containerId, totalItems, currentPage, onPageChange) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+
+        var totalPages = Math.ceil(totalItems / pageSize) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        var startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+        var endItem = Math.min(currentPage * pageSize, totalItems);
+
+        var html = '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top bg-white">' +
+          '<div class="extra-small text-muted fw-semibold">' +
+          'Menampilkan ' + startItem + ' - ' + endItem + ' dari ' + totalItems + ' data' +
+          '</div>' +
+          '<nav><ul class="pagination pagination-sm m-0">';
+
+        if (currentPage === 1) {
+          html += '<li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-left"></i></span></li>';
+        } else {
+          html += '<li class="page-item"><a class="page-link page-prev" href="#"><i class="bi bi-chevron-left"></i></a></li>';
+        }
+
+        for (var p = 1; p <= totalPages; p++) {
+          if (p === currentPage) {
+            html += '<li class="page-item active"><span class="page-link">' + p + '</span></li>';
+          } else if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
+            html += '<li class="page-item"><a class="page-link page-num" data-page="' + p + '" href="#">' + p + '</a></li>';
+          } else if (p === 2 || p === totalPages - 1) {
+            html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+          }
+        }
+
+        if (currentPage === totalPages || totalPages === 0) {
+          html += '<li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-right"></i></span></li>';
+        } else {
+          html += '<li class="page-item"><a class="page-link page-next" href="#"><i class="bi bi-chevron-right"></i></a></li>';
+        }
+
+        html += '</ul></nav></div>';
+        container.innerHTML = html;
+
+        var btnPrev = container.querySelector('.page-prev');
+        if (btnPrev) {
+          btnPrev.addEventListener('click', function (e) {
+            e.preventDefault();
+            onPageChange(currentPage - 1);
+          });
+        }
+
+        var btnNext = container.querySelector('.page-next');
+        if (btnNext) {
+          btnNext.addEventListener('click', function (e) {
+            e.preventDefault();
+            onPageChange(currentPage + 1);
+          });
+        }
+
+        var pageNums = container.querySelectorAll('.page-num');
+        pageNums.forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var p = parseInt(this.getAttribute('data-page'), 10);
+            onPageChange(p);
+          });
+        });
+      }
