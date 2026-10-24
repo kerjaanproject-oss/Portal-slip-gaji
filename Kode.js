@@ -46,7 +46,10 @@ const ALLOWED_PROTECTED_ACTIONS = [
   'verifyUserSlipPin',
   'requestResetSlipPinOtp',
   'verifyAndResetSlipPin',
-  'adminResetSlipPin'
+  'adminResetSlipPin',
+  'getDataGaji',
+  'saveDataGaji',
+  'deleteDataGaji'
 ];
 
 function doGet(e) {
@@ -132,4 +135,9 @@ function doPost(e) {
 // ==========================================================================
 // FITUR PENDAFTARAN MANDIRI & PERSETUJUAN AKUN (SELF-REGISTRATION)
 // Catatan: Modul Pendaftaran Akun telah dipisahkan ke file 'Kode_Pendaftaran.js'
+// ==========================================================================
+
+// ==========================================================================
+// MODUL INPUT & PENGELOLAAN DATA GAJI KARYAWAN
+// Catatan: Seluruh fungsi data gaji telah dipisahkan ke file 'Kode_DataGaji.js'
 // ==========================================================================

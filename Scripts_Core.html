@@ -466,6 +466,7 @@
           'persetujuan-cuti': 'Persetujuan Cuti Karyawan',
           'kalender-cuti': 'Kalender Cuti Tim & Departemen',
           'master-roster': 'Master Pola Roster Perusahaan',
+          'input-gaji': 'Input Data Gaji Karyawan',
           'pengumuman': 'Pengumuman Perusahaan'
         };
         document.getElementById('pageTitle').innerText = titles[pageName] || 'Portal Slip Gaji';
@@ -781,7 +782,7 @@
 
         showFullPageLoading('Mengambil data...');
 
-        if (pageName === 'dashboard' || pageName === 'profil' || pageName === 'karyawan' || pageName === 'master' || pageName === 'upload-slip' || pageName === 'persetujuan-pendaftar') {
+        if (pageName === 'dashboard' || pageName === 'profil' || pageName === 'karyawan' || pageName === 'master' || pageName === 'upload-slip' || pageName === 'persetujuan-pendaftar' || pageName === 'input-gaji') {
           gasRun('getInitialData', token).then(function (res) {
             hideFullPageLoading();
             if (handleSessionExpired(res)) return;
@@ -880,6 +881,11 @@
                 populateDeptFilter();
                 currentPageUploadSlip = 1;
                 renderSlipHrdTable();
+              }
+              if (pageName === 'input-gaji') {
+                if (typeof initDataGajiPage === 'function') {
+                  initDataGajiPage();
+                }
               }
               if (isFirstLogin) {
                 showWelcomeModal();

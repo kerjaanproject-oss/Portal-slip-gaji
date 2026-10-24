@@ -622,4 +622,63 @@
     [data-theme="dark"] .profile-list-item {
       border-bottom-color: #334155;
     }
+
+    /* ==========================================
+       MODUL INPUT DATA GAJI & LIVE CALCULATION BOX
+       ========================================== */
+    .salary-calc-card {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(16, 185, 129, 0.08) 100%);
+      border: 1.5px solid rgba(16, 185, 129, 0.25);
+      border-radius: 1rem;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    }
+
+    [data-theme="dark"] .salary-calc-card {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(6, 78, 59, 0.25) 100%);
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    .salary-total-display {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #059669;
+      letter-spacing: -0.5px;
+    }
+
+    [data-theme="dark"] .salary-total-display {
+      color: #34d399;
+    }
+
+    .salary-component-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.4rem 0;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.3);
+      font-size: 0.875rem;
+    }
+
+    .salary-component-row:last-child {
+      border-bottom: none;
+    }
+
+    .subtotal-pill {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 0.5rem;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    [data-theme="dark"] .subtotal-pill {
+      background: rgba(30, 58, 138, 0.3);
+      color: #93c5fd;
+      border-color: rgba(59, 130, 246, 0.3);
+    }
 </style>
