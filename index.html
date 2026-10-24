@@ -846,7 +846,7 @@
             </div>
           </div>
         </div>
-                        <!-- PAGE: INPUT DATA GAJI (HRD ONLY) -->
+                                <!-- PAGE: INPUT DATA GAJI (HRD ONLY) -->
         <div id="page-input-gaji" class="app-page d-none hrd-only">
           <!-- CARD HEADER & ACTIONS -->
           <div class="card border-0 shadow-sm mb-3">
@@ -860,7 +860,7 @@
                     Data Gaji Karyawan
                   </h5>
                   <p class="text-muted small mb-0 mt-1">
-                    Input dan pantau rincian komponen lembur, ritase, tunjangan, serta perkembangan total gaji per hari karyawan.
+                    Ringkasan akumulasi total gaji per karyawan (Gaji Pokok, Lembur, Ritase, Tunjangan) & pencatatan harian cepat.
                   </p>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -875,33 +875,29 @@
             </div>
           </div>
 
-          <!-- CARD DAFTAR DATA GAJI -->
+          <!-- CARD DAFTAR DATA GAJI (1 BARIS PER KARYAWAN) -->
           <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
               <div class="d-flex align-items-center gap-2">
-                <h6 class="fw-bold m-0 text-dark"><i class="bi bi-card-checklist text-primary me-2"></i>Daftar Riwayat Data Gaji Karyawan</h6>
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 extra-small" id="badgeCountDataGaji">0 Data</span>
+                <h6 class="fw-bold m-0 text-dark"><i class="bi bi-people text-primary me-2"></i>Daftar Total Gaji Berjalan per Karyawan</h6>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 extra-small" id="badgeCountDataGaji">0 Karyawan</span>
               </div>
             </div>
 
             <!-- FILTER & SEARCH BAR -->
             <div class="p-3 bg-light border-bottom">
               <div class="row g-2 align-items-center">
-                <div class="col-md-4 col-sm-6">
+                <div class="col-md-5 col-sm-6">
                   <label class="form-label extra-small text-muted mb-1">Filter Departemen:</label>
                   <select id="filterDataGajiDept" class="form-select form-select-sm" onchange="renderDataGajiTable()">
                     <option value="SEMUA">-- Semua Departemen --</option>
                   </select>
                 </div>
-                <div class="col-md-3 col-sm-6">
-                  <label class="form-label extra-small text-muted mb-1">Filter Tanggal:</label>
-                  <input type="date" id="filterDataGajiTanggal" class="form-control form-control-sm" onchange="renderDataGajiTable()">
-                </div>
-                <div class="col-md-4 col-sm-10">
-                  <label class="form-label extra-small text-muted mb-1">Cari Karyawan / Catatan:</label>
+                <div class="col-md-6 col-sm-10">
+                  <label class="form-label extra-small text-muted mb-1">Cari Karyawan:</label>
                   <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" id="searchDataGaji" class="form-control" placeholder="Cari nama, ID karyawan, tanggal..." onkeyup="renderDataGajiTable()">
+                    <input type="text" id="searchDataGaji" class="form-control" placeholder="Cari nama atau ID karyawan..." onkeyup="renderDataGajiTable()">
                   </div>
                 </div>
                 <div class="col-md-1 col-sm-2 d-flex align-items-end">
@@ -912,28 +908,27 @@
               </div>
             </div>
 
-            <!-- TABLE CONTAINER -->
+            <!-- TABLE CONTAINER (1 BARIS PER KARYAWAN) -->
             <div class="card-body p-0">
               <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
                   <thead class="text-white text-uppercase extra-small fw-bold">
                     <tr>
                       <th class="text-center" style="width: 50px;">No</th>
-                      <th>Tanggal Kerja</th>
                       <th>Karyawan</th>
                       <th>Departemen & Jabatan</th>
                       <th class="text-end">Gaji Pokok</th>
-                      <th class="text-end">Overtime</th>
-                      <th class="text-end">Ritase</th>
-                      <th class="text-end">Tunjangan Harian</th>
-                      <th class="text-end bg-primary-subtle text-primary fw-bolder">TOTAL GAJI</th>
-                      <th>Catatan</th>
+                      <th class="text-end">Total Overtime</th>
+                      <th class="text-end">Total Ritase</th>
+                      <th class="text-end">Total Tunjangan</th>
+                      <th class="text-end bg-success-subtle text-success fw-bolder">TOTAL GAJI SAAT INI</th>
+                      <th class="text-center">Hari Kerja</th>
                       <th class="text-center text-nowrap" style="width: 1%;">Aksi</th>
                     </tr>
                   </thead>
                   <tbody id="tableBodyDataGaji">
                     <tr>
-                      <td colspan="11" class="text-center text-muted py-4">Memuat data gaji...</td>
+                      <td colspan="10" class="text-center text-muted py-4">Memuat data gaji karyawan...</td>
                     </tr>
                   </tbody>
                 </table>
@@ -2692,6 +2687,85 @@
           <button type="submit" form="formModalDataGaji" class="btn btn-primary btn-sm fw-semibold shadow-sm px-3" id="btnSubmitDataGaji">
             <i class="bi bi-save me-1.5"></i>Simpan Data Gaji
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- MODAL: RINCIAN RIWAYAT GAJI KARYAWAN -->
+  <div class="modal fade" id="modalRincianGaji" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content shadow border-0">
+        <div class="modal-header bg-dark text-white py-2.5 px-3">
+          <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2">
+            <i class="bi bi-clock-history text-warning"></i> Riwayat & Rincian Gaji Harian: <span id="rincianEmpTitle" class="text-warning-emphasis"></span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3 p-md-4">
+          <!-- RINGKASAN AKUMULASI KARYAWAN INI -->
+          <div class="p-3 rounded-3 bg-light border mb-3">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-3 col-6">
+                <small class="text-muted extra-small d-block text-uppercase">Departemen & Jabatan</small>
+                <strong class="text-dark small" id="rincianEmpDeptJabatan">-</strong>
+              </div>
+              <div class="col-md-2 col-6">
+                <small class="text-muted extra-small d-block text-uppercase">Gaji Pokok (Basic)</small>
+                <strong class="text-dark small" id="rincianEmpBasic">Rp 0</strong>
+              </div>
+              <div class="col-md-2 col-4">
+                <small class="text-muted extra-small d-block text-uppercase">Total Overtime</small>
+                <strong class="text-primary small" id="rincianEmpOvertime">0 Jam / Rp 0</strong>
+              </div>
+              <div class="col-md-2 col-4">
+                <small class="text-muted extra-small d-block text-uppercase">Total Ritase</small>
+                <strong class="text-warning small" id="rincianEmpRitase">0 Rit / Rp 0</strong>
+              </div>
+              <div class="col-md-3 col-4 text-md-end">
+                <small class="text-muted extra-small d-block text-uppercase">TOTAL GAJI SAAT INI</small>
+                <strong class="text-success fs-5 fw-bold" id="rincianEmpGrandTotal">Rp 0</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOP ACTION IN MODAL -->
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="fw-bold small text-dark"><i class="bi bi-list-check text-primary me-1"></i>Daftar Entri Harian</span>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill extra-small" id="rincianLogCount">0 Hari</span>
+            </div>
+            <button class="btn btn-primary btn-sm fw-semibold" id="btnRincianAddToday" onclick="openInputFromRincian()">
+              <i class="bi bi-plus-circle me-1"></i>+ Input Harian Baru
+            </button>
+          </div>
+
+          <!-- TABEL LOG HARIAN -->
+          <div class="table-responsive border rounded">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+              <thead class="table-light text-uppercase extra-small fw-bold">
+                <tr>
+                  <th class="text-center" style="width: 50px;">No</th>
+                  <th>Tanggal Kerja</th>
+                  <th class="text-end">Overtime</th>
+                  <th class="text-end">Ritase</th>
+                  <th class="text-end">Tunjangan Harian</th>
+                  <th class="text-end fw-bold text-success">Total Hari Itu</th>
+                  <th>Catatan</th>
+                  <th class="text-center text-nowrap" style="width: 1%;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tableBodyRincianLog">
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-3">Belum ada riwayat harian.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer py-2 px-3 bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
         </div>
       </div>
     </div>
