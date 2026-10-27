@@ -422,9 +422,9 @@ function getDataGaji(token, filterDept, filterTanggal) {
 
   const userRole = String(session.user.role || '').trim().toLowerCase();
   const isHRD = (userRole === 'admin' || userRole === 'hrd');
-  if (!isHRD) {
-    return { success: false, message: 'Akses ditolak: Hanya Admin/HRD yang dapat melihat data gaji.' };
-  }
+
+  const currentUsername = String(session.user.username || '').trim().toLowerCase();
+  const currentFullname = String(session.user.fullname || '').trim().toLowerCase();
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   SpreadsheetApp.flush();
@@ -432,7 +432,7 @@ function getDataGaji(token, filterDept, filterTanggal) {
   const data = sheet.getDataRange().getValues();
 
   if (!data || data.length <= 1) {
-    return { success: true, list: [], employees: [] };
+    return { success: true, list: [], employees: [], isHRD: isHRD };
   }
 
   const flatList = [];
@@ -444,6 +444,24 @@ function getDataGaji(token, filterDept, filterTanggal) {
 
     const empId = String(row[0] || '').trim();
     const empName = String(row[1] || '').trim();
+
+    // ISOLASI PRIVASI KETAT: Jika bukan Admin/HRD, HANYA data diri sendiri yang diambil!
+    if (!isHRD) {
+      const rowIdLower = empId.toLowerCase();
+      const rowNameLower = empName.toLowerCase();
+      const cleanRowIdDigits = rowIdLower.replace(/[^0-9]/g, '');
+      const cleanUserDigits = currentUsername.replace(/[^0-9]/g, '');
+
+      const isMatch = (
+        (rowIdLower && rowIdLower === currentUsername) ||
+        (rowNameLower && rowNameLower === currentFullname) ||
+        (cleanRowIdDigits && cleanUserDigits && cleanRowIdDigits === cleanUserDigits)
+      );
+
+      if (!isMatch) {
+        continue; // Lewati data karyawan lain
+      }
+    }
     const deptJabatan = String(row[2] || '').trim();
     const basic = cleanSalaryNum(row[3]);
     const totalJamOt = cleanSalaryNum(row[4]);
@@ -542,7 +560,8 @@ function getDataGaji(token, filterDept, filterTanggal) {
   return {
     success: true,
     list: flatList,
-    employees: employeesSummary
+    employees: employeesSummary,
+    isHRD: isHRD
   };
 }
 

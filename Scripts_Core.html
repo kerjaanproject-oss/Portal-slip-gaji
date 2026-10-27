@@ -455,6 +455,10 @@
           item.classList.remove('active');
         });
         if (navEl) navEl.classList.add('active');
+        else {
+          var autoNav = document.getElementById('nav-item-' + pageName);
+          if (autoNav) autoNav.classList.add('active');
+        }
 
         // Update Bottom Nav active state
         document.querySelectorAll('.bottom-nav-item').forEach(function (btn) {
@@ -494,6 +498,7 @@
           'persetujuan-pendaftar': 'Persetujuan Pendaftaran Akun',
           'upload-slip': 'Upload PDF Slip Gaji Karyawan',
           'slip-saya': 'Daftar Slip Gaji Saya',
+          'gaji-saya': 'Rincian Gaji Harian Saya',
           'pengajuan-cuti': 'Formulir Pengajuan Cuti',
           'riwayat-cuti': 'Riwayat Cuti Saya',
           'persetujuan-cuti': 'Persetujuan Cuti Karyawan',
@@ -930,6 +935,11 @@
             if (pageName === 'profil') renderProfilePage();
             Swal.fire('Error Server', err.message || err.toString(), 'error');
           });
+        } else if (pageName === 'gaji-saya') {
+          hideFullPageLoading();
+          if (typeof initGajiSayaPage === 'function') {
+            initGajiSayaPage();
+          }
         } else if (pageName === 'slip-saya') {
           gasRun('getSlipKaryawan', token, 'SEMUA', 'SEMUA').then(function (res) {
             hideFullPageLoading();

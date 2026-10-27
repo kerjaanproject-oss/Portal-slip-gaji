@@ -309,6 +309,12 @@
             <span>Slip Gaji Saya</span>
           </a>
         </li>
+        <li class="karyawan-only">
+          <a class="nav-item-custom" id="nav-item-gaji-saya" onclick="showPage('gaji-saya', this)">
+            <i class="bi bi-cash-coin w-20px"></i>
+            <span>Rincian Gaji Saya</span>
+          </a>
+        </li>
 
         <!-- MENU CUTI (HRD & KARYAWAN) -->
         <li class="nav-item-dropdown" id="dropdownMenuCuti">
@@ -552,6 +558,14 @@
                       <i class="bi bi-file-earmark-text"></i>
                     </div>
                     <span class="small fw-semibold">Slip Saya</span>
+                  </a>
+                </div>
+                <div class="col-4 col-md-2 karyawan-only">
+                  <a href="javascript:void(0)" class="dash-action-btn" onclick="showPage('gaji-saya')">
+                    <div class="dash-action-icon bg-warning-subtle text-warning">
+                      <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <span class="small fw-semibold">Gaji Saya</span>
                   </a>
                 </div>
                 <div class="col-4 col-md-2">
@@ -1134,6 +1148,146 @@
 
           <div class="row g-3" id="containerSlipCards">
             <!-- Slip Cards -->
+          </div>
+        </div>
+
+        <!-- PAGE: RINCIAN GAJI SAYA (KARYAWAN ONLY - READ ONLY) -->
+        <div id="page-gaji-saya" class="app-page d-none karyawan-only">
+          <!-- CARD HEADER & ACTIONS -->
+          <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body p-3 p-md-4">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div>
+                  <h5 class="fw-bold m-0 text-dark d-flex align-items-center gap-2">
+                    <span class="p-2 rounded-3 bg-primary-subtle text-primary">
+                      <i class="bi bi-cash-coin"></i>
+                    </span>
+                    Rincian Gaji Harian Saya
+                  </h5>
+                  <p class="text-muted small mb-0 mt-1">
+                    Pantau rincian lembur, ritase, tunjangan, dan akumulasi total gaji berjalan Anda secara transparan.
+                  </p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <button class="btn btn-outline-danger btn-sm fw-semibold shadow-sm px-3 py-2 d-flex align-items-center gap-1.5"
+                    onclick="printRincianGajiSayaDoc()" title="Cetak atau Simpan sebagai PDF">
+                    <i class="bi bi-printer-fill"></i>
+                    <span>Cetak / Simpan PDF</span>
+                  </button>
+                  <button class="btn btn-light border btn-sm fw-semibold px-3 py-2 d-flex align-items-center gap-1.5"
+                    onclick="initGajiSayaPage()" title="Segarkan Data">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    <span>Refresh</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUMMARY CARDS -->
+          <div class="row g-2 g-md-3 mb-3">
+            <div class="col-6 col-md-3">
+              <div class="card border-0 shadow-sm p-3 h-100 bg-white">
+                <span class="text-muted extra-small fw-semibold text-uppercase">Gaji Pokok</span>
+                <h6 class="fw-bold text-dark mt-1 mb-0" id="gajiSayaPokok">Rp 0</h6>
+                <small class="text-muted extra-small" id="gajiSayaEmpInfo">-</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card border-0 shadow-sm p-3 h-100 bg-white">
+                <span class="text-muted extra-small fw-semibold text-uppercase">Total Overtime</span>
+                <h6 class="fw-bold text-primary mt-1 mb-0" id="gajiSayaTotOt">Rp 0</h6>
+                <small class="text-muted extra-small" id="gajiSayaJamOt">0 Jam Lembur</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card border-0 shadow-sm p-3 h-100 bg-white">
+                <span class="text-muted extra-small fw-semibold text-uppercase">Total Ritase</span>
+                <h6 class="fw-bold text-info mt-1 mb-0" id="gajiSayaTotRit">Rp 0</h6>
+                <small class="text-muted extra-small" id="gajiSayaJmlRit">0 Ritase</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card border-0 shadow-sm p-3 h-100 bg-white">
+                <span class="text-muted extra-small fw-semibold text-uppercase">Total Tunjangan</span>
+                <h6 class="fw-bold text-secondary mt-1 mb-0" id="gajiSayaTotTunj">Rp 0</h6>
+                <small class="text-muted extra-small">Tunjangan Harian</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- BANNER TOTAL GAJI BERJALAN -->
+          <div class="card border-0 shadow-sm mb-3 text-white"
+            style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 0.85rem;">
+            <div class="card-body p-3 p-md-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2.5 py-1 mb-1.5 extra-small">
+                  <i class="bi bi-shield-check me-1"></i>Estimasi Gaji Berjalan Saat Ini
+                </span>
+                <h3 class="fw-bold mb-0 text-white" id="gajiSayaGrandTotal">Rp 0</h3>
+                <small class="text-white-50 extra-small">Akumulasi: Gaji Pokok + Overtime + Ritase + Tunjangan</small>
+              </div>
+              <div class="text-md-end">
+                <span class="text-white-50 extra-small d-block">Jumlah Hari Kerja Tercatat</span>
+                <span class="badge bg-primary px-3 py-2 fs-6 fw-bold mt-1" id="gajiSayaHariKerja">0 Hari</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABLE RINCIAN HARIAN (READ-ONLY) -->
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <h6 class="fw-bold m-0 text-dark">
+                  <i class="bi bi-list-check text-primary me-2"></i>Catatan Rincian Kerja Harian
+                </h6>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 extra-small"
+                  id="badgeCountGajiSaya">0 Catatan</span>
+              </div>
+            </div>
+
+            <!-- Mobile scroll indicator badge -->
+            <div class="d-flex align-items-center justify-content-between p-2 bg-light border-bottom text-muted extra-small d-md-none">
+              <span class="d-flex align-items-center gap-1 text-primary fw-semibold">
+                <i class="bi bi-arrow-left-right"></i> Geser tabel ke samping
+              </span>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle extra-small">
+                <i class="bi bi-hand-index-thumb me-1"></i>Bisa Digeser
+              </span>
+            </div>
+
+            <!-- TABLE CONTAINER -->
+            <div class="card-body p-0">
+              <div class="table-responsive"
+                style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y !important; overscroll-behavior-x: contain !important;">
+                <table class="table table-hover align-middle mb-0"
+                  style="font-size: 0.85rem; width: 100%; min-width: 800px;">
+                  <thead class="text-white text-uppercase extra-small fw-bold">
+                    <tr>
+                      <th class="text-center text-nowrap" style="width: 45px;">No</th>
+                      <th class="text-nowrap" style="min-width: 140px;">Tanggal Kerja</th>
+                      <th class="text-end text-nowrap" style="min-width: 120px;">Overtime</th>
+                      <th class="text-end text-nowrap" style="min-width: 110px;">Ritase</th>
+                      <th class="text-end text-nowrap" style="min-width: 110px;">Tunjangan</th>
+                      <th class="text-end text-nowrap" style="min-width: 130px;">Total Hari Itu</th>
+                      <th style="min-width: 180px;">Catatan Pekerjaan</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableBodyGajiSaya">
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-4">Memuat data rincian gaji Anda...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card-footer bg-light p-3 border-top">
+              <div class="d-flex align-items-center gap-2 text-muted small">
+                <i class="bi bi-info-circle text-primary"></i>
+                <span>Data di atas dicatat dan diverifikasi oleh HRD / Manajemen. Jika terdapat ketidaksesuaian catatan kerja, silakan hubungi bagian HRD.</span>
+              </div>
+            </div>
           </div>
         </div>
 

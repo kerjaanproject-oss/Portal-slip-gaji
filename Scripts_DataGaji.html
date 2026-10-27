@@ -1253,5 +1253,169 @@
     }
   }
 
+  // =========================================================================
+  // HALAMAN RINCIAN GAJI SAYA (KHUSUS KARYAWAN - AKSES HANYA LIHAT / CETAK PDF)
+  // =========================================================================
+  var cachedGajiSayaData = null;
+
+  window.initGajiSayaPage = function () {
+    var tbody = document.getElementById('tableBodyGajiSaya');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2 text-primary" role="status"></span>Mengambil rincian gaji harian Anda...</td></tr>';
+    }
+
+    var token = (typeof Auth !== 'undefined' && Auth.getToken) ? Auth.getToken() : null;
+    if (!token) return;
+
+    gasRun('getDataGaji', token).then(function (res) {
+      if (typeof handleSessionExpired === 'function' && handleSessionExpired(res)) return;
+
+      if (res && res.success) {
+        cachedGajiSayaData = res;
+        cachedDataGajiLogs = Array.isArray(res.list) ? res.list : [];
+        renderGajiSayaPage(res);
+      } else {
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">' + escapeHTML(res.message || 'Gagal memuat rincian gaji.') + '</td></tr>';
+        }
+      }
+    }).catch(function (err) {
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Gagal memproses data: ' + escapeHTML(err.toString()) + '</td></tr>';
+      }
+    });
+  };
+
+  window.renderGajiSayaPage = function (data) {
+    var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : {};
+    var res = data || cachedGajiSayaData || { list: [], employees: [] };
+    var logs = Array.isArray(res.list) ? res.list : [];
+    var empSummary = (Array.isArray(res.employees) && res.employees.length > 0) ? res.employees[0] : null;
+
+    // Hitung total akumulasi
+    var basic = empSummary ? (Number(empSummary.basic) || 0) : 0;
+    var totalJamOt = empSummary ? (Number(empSummary.totalJamOt) || 0) : 0;
+    var totalNominalOt = empSummary ? (Number(empSummary.totalNominalOt) || 0) : 0;
+    var totalRitase = empSummary ? (Number(empSummary.totalRitase) || 0) : 0;
+    var totalNominalRit = empSummary ? (Number(empSummary.totalNominalRit) || 0) : 0;
+    var totalTunjangan = empSummary ? (Number(empSummary.totalTunjangan) || 0) : 0;
+    var grandTotal = empSummary ? (Number(empSummary.grandTotal) || (basic + totalNominalOt + totalNominalRit + totalTunjangan)) : 0;
+    var daysCount = empSummary ? (Number(empSummary.daysCount) || logs.length) : logs.length;
+
+    // Fallback jika empSummary belum diisi
+    if (!empSummary && logs.length > 0) {
+      basic = Number(logs[0].basic) || 0;
+      var uniqueDates = new Set();
+      logs.forEach(function (l) {
+        totalJamOt += Number(l.jamOvertime || 0);
+        totalNominalOt += Number(l.totalOvertime || (l.jamOvertime * l.tarifOvertime) || 0);
+        totalRitase += Number(l.ritase || 0);
+        totalNominalRit += Number(l.totalRitase || (l.ritase * l.tarifRitase) || 0);
+        totalTunjangan += Number(l.tunjanganHarian || 0);
+        if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
+      });
+      daysCount = uniqueDates.size || logs.length;
+      grandTotal = basic + totalNominalOt + totalNominalRit + totalTunjangan;
+    }
+
+    // Update elemen UI kartu ringkasan
+    var elPokok = document.getElementById('gajiSayaPokok');
+    var elEmpInfo = document.getElementById('gajiSayaEmpInfo');
+    var elTotOt = document.getElementById('gajiSayaTotOt');
+    var elJamOt = document.getElementById('gajiSayaJamOt');
+    var elTotRit = document.getElementById('gajiSayaTotRit');
+    var elJmlRit = document.getElementById('gajiSayaJmlRit');
+    var elTotTunj = document.getElementById('gajiSayaTotTunj');
+    var elGrandTotal = document.getElementById('gajiSayaGrandTotal');
+    var elHariKerja = document.getElementById('gajiSayaHariKerja');
+    var elBadgeCount = document.getElementById('badgeCountGajiSaya');
+
+    if (elPokok) elPokok.textContent = formatRupiahVal(basic);
+    if (elEmpInfo) elEmpInfo.textContent = (empSummary ? (empSummary.deptJabatan || empSummary.dept || '') : (user.dept || '')) || 'Gaji Pokok';
+    if (elTotOt) elTotOt.textContent = formatRupiahVal(totalNominalOt);
+    if (elJamOt) elJamOt.textContent = totalJamOt + ' Jam Overtime';
+    if (elTotRit) elTotRit.textContent = formatRupiahVal(totalNominalRit);
+    if (elJmlRit) elJmlRit.textContent = totalRitase + ' Ritase';
+    if (elTotTunj) elTotTunj.textContent = formatRupiahVal(totalTunjangan);
+    if (elGrandTotal) elGrandTotal.textContent = formatRupiahVal(grandTotal);
+    if (elHariKerja) elHariKerja.textContent = daysCount + ' Hari Kerja';
+    if (elBadgeCount) elBadgeCount.textContent = logs.length + ' Catatan';
+
+    // Render tabel rincian harian
+    var tbody = document.getElementById('tableBodyGajiSaya');
+    if (!tbody) return;
+
+    if (logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5"><i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>Belum ada catatan rincian kerja/gaji harian untuk periode ini.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    logs.forEach(function (log, idx) {
+      var jamOt = Number(log.jamOvertime) || 0;
+      var totOt = Number(log.totalOvertime) || 0;
+      var rit = Number(log.ritase) || 0;
+      var totRit = Number(log.totalRitase) || 0;
+      var tunj = Number(log.tunjanganHarian) || 0;
+      var totalHariItu = Number(log.totalGaji) || (totOt + totRit + tunj);
+
+      var otStr = jamOt > 0
+        ? '<div class="fw-bold text-dark">' + jamOt + ' Jam</div><small class="text-muted extra-small">' + formatRupiahVal(totOt) + '</small>'
+        : '<span class="text-muted extra-small">-</span>';
+
+      var ritStr = rit > 0
+        ? '<div class="fw-bold text-dark">' + rit + ' Rit</div><small class="text-muted extra-small">' + formatRupiahVal(totRit) + '</small>'
+        : '<span class="text-muted extra-small">-</span>';
+
+      var tunjStr = tunj > 0
+        ? '<div class="fw-semibold text-dark">' + formatRupiahVal(tunj) + '</div>'
+        : '<span class="text-muted extra-small">-</span>';
+
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="text-center text-muted extra-small text-nowrap">' + (idx + 1) + '</td>' +
+        '<td class="fw-bold text-nowrap"><i class="bi bi-calendar-event me-1.5 text-primary"></i>' + escapeHTML(formatDateWithDay(log.tanggal)) + '</td>' +
+        '<td class="text-end text-nowrap">' + otStr + '</td>' +
+        '<td class="text-end text-nowrap">' + ritStr + '</td>' +
+        '<td class="text-end text-nowrap">' + tunjStr + '</td>' +
+        '<td class="text-end text-nowrap"><span class="badge bg-success text-white px-2.5 py-1.5" style="font-size: 0.85rem; font-weight: 700; box-shadow: 0 1px 2px rgba(16,185,129,0.25);">' + formatRupiahVal(totalHariItu) + '</span></td>' +
+        '<td><small class="text-muted">' + escapeHTML(log.catatan || '-') + '</small></td>';
+
+      tbody.appendChild(tr);
+    });
+  };
+
+  window.printRincianGajiSayaDoc = function () {
+    var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+    if (!user) {
+      Swal.fire('Perhatian', 'Sesi login tidak ditemukan.', 'warning');
+      return;
+    }
+
+    var empIdentifier = user.username || user.fullname;
+    var empSummary = (cachedGajiSayaData && Array.isArray(cachedGajiSayaData.employees) && cachedGajiSayaData.employees.length > 0)
+      ? cachedGajiSayaData.employees[0]
+      : null;
+
+    var emp = {
+      id: (empSummary && empSummary.id) || user.username || '-',
+      name: (empSummary && empSummary.name) || user.fullname || user.username || '-',
+      dept: (empSummary && empSummary.dept) || user.dept || '-',
+      jabatan: (empSummary && empSummary.jabatan) || user.jabatan || '-',
+      gajiPokok: (empSummary && empSummary.basic) || user.basic || 0
+    };
+
+    var logs = (cachedGajiSayaData && Array.isArray(cachedGajiSayaData.list))
+      ? cachedGajiSayaData.list
+      : cachedDataGajiLogs;
+
+    if (!logs || logs.length === 0) {
+      Swal.fire('Info', 'Belum ada data rincian harian untuk dicetak.', 'info');
+      return;
+    }
+
+    generateAndPrintSalaryReport(emp, logs);
+  };
+
 })();
 </script>
