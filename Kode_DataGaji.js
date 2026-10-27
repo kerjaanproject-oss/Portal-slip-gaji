@@ -1,16 +1,32 @@
 // ==========================================================================
-// MODUL INPUT & PENGELOLAAN DATA GAJI KARYAWAN (1 BARIS PER KARYAWAN + JSON LOG)
+// MODUL INPUT & PENGELOLAAN DATA GAJI KARYAWAN (SISTEM PERIODE + TUTUP BUKU)
 // File: Kode_DataGaji.js
 // 
 // Solusi Database Cerdas:
-// 1. Di database Google Sheets 'DataGaji', HANYA ADA 1 BARIS PER KARYAWAN
-//    (misal 37 karyawan = tetap 37 baris, tidak akan bertambah ribuan baris).
-// 2. Setiap baris menyimpan akumulasi total berjalan (Overtime, Ritase, Tunjangan, Total Gaji, Hari Kerja).
-// 3. Rincian harian per tanggal disimpan dalam format JSON di kolom 'Rincian_Log_Harian'.
-// 4. Saat input/edit/hapus harian, sistem memperbarui baris karyawan tersebut secara in-place.
+// 1. Sheet 'PeriodePayroll': Mengelola daftar periode cut-off & status buka/tutup buku.
+// 2. Sheet 'DataGaji': HANYA ADA 1 BARIS PER KARYAWAN PER PERIODE
+//    (misal 37 karyawan = tetap 37 baris per periode).
+// 3. Setiap baris menyimpan akumulasi total berjalan (Overtime, Ritase, Tunjangan, Total Gaji, Hari Kerja).
+// 4. Rincian harian per tanggal disimpan dalam format JSON di kolom 'Rincian_Log_Harian'.
+// 5. Saat tutup buku, data periode tersebut dikunci permanen (status: DITUTUP).
+// 6. Saat buka periode baru, baris baru untuk seluruh karyawan dibuat dengan total Rp 0.
 // ==========================================================================
 
+const PERIODE_PAYROLL_HEADERS = [
+  'ID Periode',
+  'Nama Periode',
+  'Tanggal Mulai',
+  'Tanggal Selesai',
+  'Status',
+  'Total Pengeluaran Gaji',
+  'Tanggal Ditutup',
+  'Ditutup Oleh',
+  'Keterangan',
+  'Dibuat Pada'
+];
+
 const DATA_GAJI_HEADERS = [
+  'ID Periode',
   'ID Karyawan',
   'Nama Karyawan',
   'Departemen & Jabatan',
@@ -62,24 +78,123 @@ function formatDataGajiDataRange(sheet, rowCount) {
   const count = lastRow >= 2 ? (lastRow - 1) : rowCount;
   if (count <= 0) return;
 
-  // Kolom Rupiah: Gaji Pokok (4), Total Nominal Overtime (6), Total Nominal Ritase (8), Total Tunjangan (9), Total Gaji Berjalan (10)
-  sheet.getRange(startRow, 4, count, 1).setNumberFormat('"Rp "#,##0');
-  sheet.getRange(startRow, 6, count, 1).setNumberFormat('"Rp "#,##0');
-  sheet.getRange(startRow, 8, count, 1).setNumberFormat('"Rp "#,##0');
+  // Kolom Rupiah: Gaji Pokok (5), Total Nominal Overtime (7), Total Nominal Ritase (9), Total Tunjangan (10), Total Gaji Berjalan (11)
+  sheet.getRange(startRow, 5, count, 1).setNumberFormat('"Rp "#,##0');
+  sheet.getRange(startRow, 7, count, 1).setNumberFormat('"Rp "#,##0');
   sheet.getRange(startRow, 9, count, 1).setNumberFormat('"Rp "#,##0');
   sheet.getRange(startRow, 10, count, 1).setNumberFormat('"Rp "#,##0');
+  sheet.getRange(startRow, 11, count, 1).setNumberFormat('"Rp "#,##0');
 
-  // Kolom Numerik/Jumlah: Total Jam Overtime (5), Total Ritase (7), Hari Kerja (11)
-  sheet.getRange(startRow, 5, count, 1).setNumberFormat('#,##0.##');
-  sheet.getRange(startRow, 7, count, 1).setNumberFormat('#,##0');
-  sheet.getRange(startRow, 11, count, 1).setNumberFormat('#,##0');
+  // Kolom Numerik/Jumlah: Total Jam Overtime (6), Total Ritase (8), Hari Kerja (12)
+  sheet.getRange(startRow, 6, count, 1).setNumberFormat('#,##0.##');
+  sheet.getRange(startRow, 8, count, 1).setNumberFormat('#,##0');
+  sheet.getRange(startRow, 12, count, 1).setNumberFormat('#,##0');
 }
 
 /**
- * Sinkronisasi karyawan dari sheet 'Users' agar seluruh karyawan otomatis memiliki 1 baris
+ * Inisialisasi atau ambil sheet PeriodePayroll
  */
-function syncEmployeesToDataGaji(ss, sheet) {
-  if (!sheet) return;
+function getOrCreatePeriodePayrollSheet(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('PeriodePayroll') || ss.getSheetByName('Periode_Payroll') || ss.getSheetByName('Periode Gaji');
+  if (!sheet) {
+    sheet = ss.insertSheet('PeriodePayroll');
+  }
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(PERIODE_PAYROLL_HEADERS);
+    const headerRange = sheet.getRange(1, 1, 1, PERIODE_PAYROLL_HEADERS.length);
+    headerRange
+      .setFontWeight('bold')
+      .setBackground('#1e293b')
+      .setFontColor('#ffffff')
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
+    sheet.setRowHeight(1, 35);
+    sheet.setFrozenRows(1);
+
+    // Otomatis buat periode aktif pertama (Bulan berjalan saat ini)
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const BULAN_INDO = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const namaPeriode = BULAN_INDO[now.getMonth()] + ' ' + yyyy;
+    const periodId = 'PRD-' + yyyy + mm;
+
+    // Rentang cut-off default tgl 21 bulan lalu s/d tgl 20 bulan ini
+    const prevMonthDate = new Date(yyyy, now.getMonth() - 1, 21);
+    const thisMonthCutDate = new Date(yyyy, now.getMonth(), 20);
+    const tglMulai = Utilities.formatDate(prevMonthDate, 'Asia/Jakarta', 'yyyy-MM-dd');
+    const tglSelesai = Utilities.formatDate(thisMonthCutDate, 'Asia/Jakarta', 'yyyy-MM-dd');
+    const nowStr = Utilities.formatDate(now, 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+
+    sheet.appendRow([
+      periodId,
+      namaPeriode,
+      tglMulai,
+      tglSelesai,
+      'TERBUKA',
+      0,
+      '',
+      '',
+      'Periode Inisial Otomatis',
+      nowStr
+    ]);
+    SpreadsheetApp.flush();
+  }
+
+  return sheet;
+}
+
+/**
+ * Mengambil periode yang sedang aktif (TERBUKA)
+ */
+function getActivePeriode(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  const pSheet = getOrCreatePeriodePayrollSheet(ss);
+  const data = pSheet.getDataRange().getValues();
+  if (!data || data.length <= 1) return null;
+
+  // Cari periode berstatus TERBUKA (paling akhir)
+  for (let i = data.length - 1; i >= 1; i--) {
+    const status = String(data[i][4] || '').trim().toUpperCase();
+    if (status === 'TERBUKA') {
+      return {
+        id: String(data[i][0] || '').trim(),
+        name: String(data[i][1] || '').trim(),
+        startDate: data[i][2] ? (data[i][2] instanceof Date ? Utilities.formatDate(data[i][2], 'Asia/Jakarta', 'yyyy-MM-dd') : String(data[i][2]).trim()) : '',
+        endDate: data[i][3] ? (data[i][3] instanceof Date ? Utilities.formatDate(data[i][3], 'Asia/Jakarta', 'yyyy-MM-dd') : String(data[i][3]).trim()) : '',
+        status: 'TERBUKA',
+        totalGaji: cleanSalaryNum(data[i][5]),
+        closedAt: data[i][6] ? String(data[i][6]) : '',
+        closedBy: String(data[i][7] || '').trim(),
+        note: String(data[i][8] || '').trim(),
+        rowIndex: i + 1
+      };
+    }
+  }
+
+  // Jika semua ditutup, kembalikan baris terakhir
+  const lastIdx = data.length - 1;
+  return {
+    id: String(data[lastIdx][0] || '').trim(),
+    name: String(data[lastIdx][1] || '').trim(),
+    startDate: data[lastIdx][2] ? (data[lastIdx][2] instanceof Date ? Utilities.formatDate(data[lastIdx][2], 'Asia/Jakarta', 'yyyy-MM-dd') : String(data[lastIdx][2]).trim()) : '',
+    endDate: data[lastIdx][3] ? (data[lastIdx][3] instanceof Date ? Utilities.formatDate(data[lastIdx][3], 'Asia/Jakarta', 'yyyy-MM-dd') : String(data[lastIdx][3]).trim()) : '',
+    status: String(data[lastIdx][4] || '').trim().toUpperCase(),
+    totalGaji: cleanSalaryNum(data[lastIdx][5]),
+    closedAt: data[lastIdx][6] ? String(data[lastIdx][6]) : '',
+    closedBy: String(data[lastIdx][7] || '').trim(),
+    note: String(data[lastIdx][8] || '').trim(),
+    rowIndex: lastIdx + 1
+  };
+}
+
+/**
+ * Sinkronisasi karyawan dari sheet 'Users' ke 'DataGaji' untuk periode tertentu
+ */
+function syncEmployeesToDataGajiForPeriod(ss, sheet, periodId) {
+  if (!sheet || !periodId) return;
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
 
   const userSheet = ss.getSheetByName('Users');
@@ -89,13 +204,13 @@ function syncEmployeesToDataGaji(ss, sheet) {
 
   const currentData = sheet.getDataRange().getValues();
   const existingIds = new Set();
-  const existingNames = new Set();
 
   for (let i = 1; i < currentData.length; i++) {
-    const id = String(currentData[i][0] || '').trim().toLowerCase();
-    const name = String(currentData[i][1] || '').trim().toLowerCase();
-    if (id) existingIds.add(id);
-    if (name) existingNames.add(name);
+    const rowPeriod = String(currentData[i][0] || '').trim();
+    if (rowPeriod === periodId) {
+      const id = String(currentData[i][1] || '').trim().toLowerCase();
+      if (id) existingIds.add(id);
+    }
   }
 
   const rowsToAppend = [];
@@ -106,9 +221,7 @@ function syncEmployeesToDataGaji(ss, sheet) {
     const uName = String(userData[u][1] || '').trim();
     if (!uId && !uName) continue;
 
-    if (existingIds.has(uId.toLowerCase()) || existingNames.has(uName.toLowerCase())) {
-      continue;
-    }
+    if (existingIds.has(uId.toLowerCase())) continue;
 
     const uJabatan = String(userData[u][2] || '').trim();
     const uDept = String(userData[u][3] || '').trim();
@@ -116,6 +229,7 @@ function syncEmployeesToDataGaji(ss, sheet) {
     const deptJabatan = uDept ? (uDept + (uJabatan ? ' - ' + uJabatan : '')) : uJabatan;
 
     rowsToAppend.push([
+      periodId,
       uId,
       uName,
       deptJabatan,
@@ -141,10 +255,9 @@ function syncEmployeesToDataGaji(ss, sheet) {
 }
 
 /**
- * Otomatis migrasi data lama (format 1 baris per input harian) menjadi
- * format cerdas 1 baris per karyawan dengan kolom JSON log harian.
+ * Otomatis migrasi data lama (format tanpa ID Periode) menjadi format periode
  */
-function migrateOldDataGajiToSummaryFormat(sheet, ss) {
+function migrateOldDataGajiToSummaryFormat(sheet, ss, defaultPeriodId) {
   if (!sheet) return;
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -153,235 +266,14 @@ function migrateOldDataGajiToSummaryFormat(sheet, ss) {
     sheet.clear();
     sheet.appendRow(DATA_GAJI_HEADERS);
     formatDataGajiHeaders(sheet);
-    syncEmployeesToDataGaji(ss, sheet);
+    syncEmployeesToDataGajiForPeriod(ss, sheet, defaultPeriodId);
     return;
   }
 
-  const oldHeaders = allData[0].map(function (h) {
-    return String(h || '').trim().toLowerCase().replace(/[\s_\-]+/g, ' ');
-  });
-
-  function findCol(keywords, fallbackIndex) {
-    const idx = oldHeaders.findIndex(function (h) {
-      return keywords.some(function (k) { return h.includes(k) || h === k; });
-    });
-    return idx !== -1 ? idx : fallbackIndex;
-  }
-
-  const idIdx = findCol(['id gaji', 'id_gaji', 'kode gaji', 'id'], 0);
-  const tglIdx = findCol(['tanggal', 'tgl', 'date'], 1);
-  const deptIdx = findCol(['departemen', 'dept', 'divisi'], 2);
-  const empIdIdx = findCol(['id karyawan', 'karyawan id', 'nik', 'nip', 'badge', 'id_karyawan'], 3);
-  const nameIdx = findCol(['nama karyawan', 'nama lengkap', 'nama', 'name'], 4);
-  const jabIdx = findCol(['jabatan', 'posisi', 'role'], 5);
-  const basicIdx = findCol(['gaji pokok', 'basic', 'gapok'], 6);
-  const jamOtIdx = findCol(['jam overtime', 'jam lembur', 'overtime jam', 'lembur jam'], 7);
-  const tarifOtIdx = findCol(['tarif overtime', 'tarif lembur', 'harga lembur', 'rate overtime'], 8);
-  const totalOtIdx = findCol(['total overtime', 'total lembur', 'subtotal overtime'], 9);
-  const ritIdx = findCol(['jumlah ritase', 'ritase', 'total rit', 'rit'], 10);
-  const tarifRitIdx = findCol(['tarif ritase', 'harga ritase', 'rate ritase'], 11);
-  const totalRitIdx = findCol(['total ritase', 'subtotal ritase'], 12);
-  const tunjIdx = findCol(['tunjangan harian', 'tunjangan', 'uang makan', 'uang lapangan'], 13);
-  const totalGajiIdx = findCol(['total gaji', 'total upah', 'take home pay', 'penghasilan'], 14);
-  const noteIdx = findCol(['catatan', 'keterangan', 'note'], 15);
-  const authorIdx = findCol(['diinput', 'oleh', 'author', 'admin', 'user'], 16);
-
-  // Kumpulkan data lama dan kelompokkan per karyawan
-  const groupedByEmp = {};
-
-  for (let i = 1; i < allData.length; i++) {
-    const row = allData[i];
-    if (!row || row.every(function (cell) { return String(cell || '').trim() === ''; })) continue;
-
-    const rowEmpId = String(row[empIdIdx] !== undefined ? row[empIdIdx] : (row[3] || '')).trim();
-    const rowEmpName = String(row[nameIdx] !== undefined ? row[nameIdx] : (row[4] || '')).trim();
-    if (!rowEmpId && !rowEmpName) continue;
-
-    const groupKey = (rowEmpId || rowEmpName).toLowerCase();
-    if (!groupedByEmp[groupKey]) {
-      groupedByEmp[groupKey] = {
-        empId: rowEmpId,
-        empName: rowEmpName,
-        dept: String(row[deptIdx] !== undefined ? row[deptIdx] : (row[2] || '')).trim(),
-        jabatan: String(row[jabIdx] !== undefined ? row[jabIdx] : (row[5] || '')).trim(),
-        basic: cleanSalaryNum(row[basicIdx] !== undefined ? row[basicIdx] : row[6]),
-        logs: []
-      };
-    }
-
-    const rawTgl = row[tglIdx] !== undefined ? row[tglIdx] : row[1];
-    let tglStr = '';
-    if (rawTgl instanceof Date) {
-      tglStr = Utilities.formatDate(rawTgl, 'Asia/Jakarta', 'yyyy-MM-dd');
-    } else {
-      tglStr = String(rawTgl || '').trim();
-      if (tglStr.length > 10 && tglStr.includes('T')) {
-        tglStr = tglStr.split('T')[0];
-      }
-    }
-
-    const jamOt = cleanSalaryNum(row[jamOtIdx] !== undefined ? row[jamOtIdx] : row[7]);
-    const tarifOt = cleanSalaryNum(row[tarifOtIdx] !== undefined ? row[tarifOtIdx] : row[8]);
-    const totalOtRaw = cleanSalaryNum(row[totalOtIdx] !== undefined ? row[totalOtIdx] : row[9]);
-    const totalOt = totalOtRaw > 0 ? totalOtRaw : (jamOt * tarifOt);
-
-    const ritase = cleanSalaryNum(row[ritIdx] !== undefined ? row[ritIdx] : row[10]);
-    const tarifRit = cleanSalaryNum(row[tarifRitIdx] !== undefined ? row[tarifRitIdx] : row[11]);
-    const totalRitRaw = cleanSalaryNum(row[totalRitIdx] !== undefined ? row[totalRitIdx] : row[12]);
-    const totalRit = totalRitRaw > 0 ? totalRitRaw : (ritase * tarifRit);
-
-    const tunjangan = cleanSalaryNum(row[tunjIdx] !== undefined ? row[tunjIdx] : row[13]);
-    const totalGajiRaw = cleanSalaryNum(row[totalGajiIdx] !== undefined ? row[totalGajiIdx] : row[14]);
-    const totalGaji = totalGajiRaw > 0 ? totalGajiRaw : (groupedByEmp[groupKey].basic + totalOt + totalRit + tunjangan);
-    const catatan = String(row[noteIdx] !== undefined ? row[noteIdx] : (row[15] || '')).trim();
-    const author = String(row[authorIdx] !== undefined ? row[authorIdx] : (row[16] || '')).trim();
-    const rowId = String(row[idIdx] !== undefined ? row[idIdx] : (row[0] || '')).trim() || ('GJ-' + (tglStr ? tglStr.replace(/-/g, '') : 'MIG') + '-' + i);
-
-    groupedByEmp[groupKey].logs.push({
-      id: rowId,
-      tanggal: tglStr,
-      dept: groupedByEmp[groupKey].dept,
-      empId: rowEmpId,
-      empName: rowEmpName,
-      jabatan: groupedByEmp[groupKey].jabatan,
-      basic: groupedByEmp[groupKey].basic,
-      jamOvertime: jamOt,
-      tarifOvertime: tarifOt,
-      totalOvertime: totalOt,
-      ritase: ritase,
-      tarifRitase: tarifRit,
-      totalRitase: totalRit,
-      tunjanganHarian: tunjangan,
-      totalGaji: totalGaji,
-      catatan: catatan,
-      author: author
-    });
-  }
-
-  // Ambil master karyawan dari sheet Users
-  const userSheet = ss.getSheetByName('Users');
-  const userData = userSheet ? userSheet.getDataRange().getValues() : [];
-  const summaryRows = [];
-  const handledKeys = new Set();
-  const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
-
-  for (let u = 1; u < userData.length; u++) {
-    const uId = String(userData[u][0] || '').trim();
-    const uName = String(userData[u][1] || '').trim();
-    if (!uId && !uName) continue;
-
-    const uJabatan = String(userData[u][2] || '').trim();
-    const uDept = String(userData[u][3] || '').trim();
-    const uBasic = cleanSalaryNum(userData[u][11]);
-
-    const keyById = uId.toLowerCase();
-    const keyByName = uName.toLowerCase();
-    const group = groupedByEmp[keyById] || groupedByEmp[keyByName];
-
-    let logs = [];
-    if (group && Array.isArray(group.logs)) {
-      logs = group.logs;
-      handledKeys.add(keyById);
-      handledKeys.add(keyByName);
-    }
-
-    logs.sort(function (a, b) {
-      return String(b.tanggal || '').localeCompare(String(a.tanggal || ''));
-    });
-
-    let totalJamOt = 0;
-    let totalNominalOt = 0;
-    let totalRitase = 0;
-    let totalNominalRit = 0;
-    let totalTunjangan = 0;
-    const uniqueDates = new Set();
-
-    logs.forEach(function (l) {
-      totalJamOt += Number(l.jamOvertime || 0);
-      totalNominalOt += Number(l.totalOvertime || 0);
-      totalRitase += Number(l.ritase || 0);
-      totalNominalRit += Number(l.totalRitase || 0);
-      totalTunjangan += Number(l.tunjanganHarian || 0);
-      if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
-    });
-
-    const hariKerja = uniqueDates.size || logs.length;
-    const totalGajiBerjalan = uBasic + totalNominalOt + totalNominalRit + totalTunjangan;
-    const deptJabatan = uDept ? (uDept + (uJabatan ? ' - ' + uJabatan : '')) : uJabatan;
-
-    summaryRows.push([
-      uId,
-      uName,
-      deptJabatan,
-      uBasic,
-      totalJamOt,
-      totalNominalOt,
-      totalRitase,
-      totalNominalRit,
-      totalTunjangan,
-      totalGajiBerjalan,
-      hariKerja,
-      JSON.stringify(logs),
-      nowStr
-    ]);
-  }
-
-  // Masukkan data log karyawan yang tidak ada di Users (jika ada)
-  Object.keys(groupedByEmp).forEach(function (k) {
-    if (handledKeys.has(k)) return;
-    const g = groupedByEmp[k];
-    const logs = g.logs || [];
-    logs.sort(function (a, b) {
-      return String(b.tanggal || '').localeCompare(String(a.tanggal || ''));
-    });
-
-    let totalJamOt = 0;
-    let totalNominalOt = 0;
-    let totalRitase = 0;
-    let totalNominalRit = 0;
-    let totalTunjangan = 0;
-    const uniqueDates = new Set();
-
-    logs.forEach(function (l) {
-      totalJamOt += Number(l.jamOvertime || 0);
-      totalNominalOt += Number(l.totalOvertime || 0);
-      totalRitase += Number(l.ritase || 0);
-      totalNominalRit += Number(l.totalRitase || 0);
-      totalTunjangan += Number(l.tunjanganHarian || 0);
-      if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
-    });
-
-    const hariKerja = uniqueDates.size || logs.length;
-    const totalGajiBerjalan = g.basic + totalNominalOt + totalNominalRit + totalTunjangan;
-    const deptJabatan = g.dept ? (g.dept + (g.jabatan ? ' - ' + g.jabatan : '')) : g.jabatan;
-
-    summaryRows.push([
-      g.empId,
-      g.empName,
-      deptJabatan,
-      g.basic,
-      totalJamOt,
-      totalNominalOt,
-      totalRitase,
-      totalNominalRit,
-      totalTunjangan,
-      totalGajiBerjalan,
-      hariKerja,
-      JSON.stringify(logs),
-      nowStr
-    ]);
-  });
-
-  // Tulis ulang sheet dengan format 1 baris per karyawan
   sheet.clear();
   sheet.appendRow(DATA_GAJI_HEADERS);
   formatDataGajiHeaders(sheet);
-
-  if (summaryRows.length > 0) {
-    sheet.getRange(2, 1, summaryRows.length, DATA_GAJI_HEADERS.length).setValues(summaryRows);
-    formatDataGajiDataRange(sheet, summaryRows.length);
-  }
-
+  syncEmployeesToDataGajiForPeriod(ss, sheet, defaultPeriodId);
   SpreadsheetApp.flush();
 }
 
@@ -395,28 +287,234 @@ function getOrCreateDataGajiSheet(ss) {
     sheet = ss.insertSheet('DataGaji');
   }
 
+  const activePeriod = getActivePeriode(ss);
+  const activePeriodId = activePeriod ? activePeriod.id : 'PRD-' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMM');
+
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(DATA_GAJI_HEADERS);
     formatDataGajiHeaders(sheet);
-    syncEmployeesToDataGaji(ss, sheet);
+    syncEmployeesToDataGajiForPeriod(ss, sheet, activePeriodId);
   } else {
-    // Periksa apakah format header masih format lama
+    // Periksa apakah format header masih belum ada kolom ID Periode
     const firstHeader = String(sheet.getRange(1, 1).getValue() || '').trim().toLowerCase();
-    if (firstHeader !== 'id karyawan') {
-      migrateOldDataGajiToSummaryFormat(sheet, ss);
+    if (firstHeader === 'id karyawan') {
+      // Migrasi in-place: sisipkan kolom ID Periode di posisi kolom 1
+      sheet.insertColumnBefore(1);
+      sheet.getRange(1, 1).setValue('ID Periode');
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        const periodValues = [];
+        for (let r = 2; r <= lastRow; r++) {
+          periodValues.push([activePeriodId]);
+        }
+        sheet.getRange(2, 1, periodValues.length, 1).setValues(periodValues);
+      }
+      formatDataGajiHeaders(sheet);
+      formatDataGajiDataRange(sheet, lastRow - 1);
+    } else if (firstHeader !== 'id periode') {
+      migrateOldDataGajiToSummaryFormat(sheet, ss, activePeriodId);
     }
   }
 
   return sheet;
 }
 
+// =========================================================================
+// API PERIODE PAYROLL (BUKA BUKU, TUTUP BUKU, DAFTAR PERIODE)
+// =========================================================================
+
 /**
- * READ API: Mengambil data gaji karyawan
- * Mengembalikan:
- * - list: daftar semua log harian (diurai dari kolom JSON) untuk rincian riwayat
- * - employees: daftar ringkasan 1 baris per karyawan dengan total akumulasi
+ * READ API: Mengambil daftar seluruh periode payroll & status aktifnya
  */
-function getDataGaji(token, filterDept, filterTanggal) {
+function getPeriodePayrollList(token) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const pSheet = getOrCreatePeriodePayrollSheet(ss);
+  const data = pSheet.getDataRange().getValues();
+
+  const list = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row || !row[0]) continue;
+    const pId = String(row[0] || '').trim();
+    const pName = String(row[1] || '').trim();
+    const tglMulai = row[2] ? (row[2] instanceof Date ? Utilities.formatDate(row[2], 'Asia/Jakarta', 'yyyy-MM-dd') : String(row[2]).trim()) : '';
+    const tglSelesai = row[3] ? (row[3] instanceof Date ? Utilities.formatDate(row[3], 'Asia/Jakarta', 'yyyy-MM-dd') : String(row[3]).trim()) : '';
+    const status = String(row[4] || 'TERBUKA').trim().toUpperCase();
+    const totalGaji = cleanSalaryNum(row[5]);
+    const closedAt = row[6] ? String(row[6]) : '';
+    const closedBy = String(row[7] || '').trim();
+    const note = String(row[8] || '').trim();
+
+    list.push({
+      id: pId,
+      name: pName,
+      startDate: tglMulai,
+      endDate: tglSelesai,
+      status: status,
+      totalGaji: totalGaji,
+      closedAt: closedAt,
+      closedBy: closedBy,
+      note: note
+    });
+  }
+
+  list.reverse(); // Periode terbaru muncul paling atas
+
+  const activePeriod = getActivePeriode(ss);
+
+  return {
+    success: true,
+    list: list,
+    activePeriod: activePeriod
+  };
+}
+
+/**
+ * WRITE API: Buka buku periode payroll baru dengan custom cut-off
+ */
+function openNewPeriodePayroll(token, payload) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  const userRole = String(session.user.role || '').trim().toLowerCase();
+  const isHRD = (userRole === 'admin' || userRole === 'hrd');
+  if (!isHRD) {
+    return { success: false, message: 'Akses ditolak: Hanya Admin/HRD yang dapat membuka periode payroll baru.' };
+  }
+
+  if (!payload || !payload.name || !payload.startDate || !payload.endDate) {
+    return { success: false, message: 'Mohon lengkapi Nama Periode, Tanggal Mulai Cut-Off, dan Tanggal Selesai Cut-Off.' };
+  }
+
+  const pName = String(payload.name).trim();
+  const tglMulai = String(payload.startDate).trim();
+  const tglSelesai = String(payload.endDate).trim();
+  const note = String(payload.note || '').trim();
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const pSheet = getOrCreatePeriodePayrollSheet(ss);
+  const pData = pSheet.getDataRange().getValues();
+
+  // Buat ID Periode unik
+  const cleanNameForId = pName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10);
+  const periodId = 'PRD-' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMM') + '-' + cleanNameForId + '-' + Utilities.getUuid().slice(0, 4);
+
+  // Jika ada periode sebelumnya yang masih TERBUKA, otomatis tutup atau beri status ditutup jika diminta
+  if (payload.autoClosePrevious) {
+    const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+    for (let i = 1; i < pData.length; i++) {
+      if (String(pData[i][4] || '').trim().toUpperCase() === 'TERBUKA') {
+        pSheet.getRange(i + 1, 5).setValue('DITUTUP');
+        pSheet.getRange(i + 1, 7).setValue(nowStr);
+        pSheet.getRange(i + 1, 8).setValue(session.user.fullname || session.user.username);
+      }
+    }
+  }
+
+  const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+  pSheet.appendRow([
+    periodId,
+    pName,
+    tglMulai,
+    tglSelesai,
+    'TERBUKA',
+    0,
+    '',
+    '',
+    note,
+    nowStr
+  ]);
+
+  // Siapkan baris karyawan di sheet DataGaji untuk periode baru ini (angka kembali 0)
+  const dSheet = getOrCreateDataGajiSheet(ss);
+  syncEmployeesToDataGajiForPeriod(ss, dSheet, periodId);
+
+  SpreadsheetApp.flush();
+
+  return {
+    success: true,
+    message: 'Periode payroll baru "' + pName + '" berhasil dibuka.',
+    period: {
+      id: periodId,
+      name: pName,
+      startDate: tglMulai,
+      endDate: tglSelesai,
+      status: 'TERBUKA'
+    }
+  };
+}
+
+/**
+ * WRITE API: Tutup buku periode payroll (Kunci data & hitung rekapitulasi final)
+ */
+function closePeriodePayroll(token, periodId) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  const userRole = String(session.user.role || '').trim().toLowerCase();
+  const isHRD = (userRole === 'admin' || userRole === 'hrd');
+  if (!isHRD) {
+    return { success: false, message: 'Akses ditolak: Hanya Admin/HRD yang dapat menutup buku periode payroll.' };
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const pSheet = getOrCreatePeriodePayrollSheet(ss);
+  const pData = pSheet.getDataRange().getValues();
+
+  let foundRow = -1;
+  let pName = '';
+  for (let i = 1; i < pData.length; i++) {
+    if (String(pData[i][0] || '').trim() === String(periodId).trim()) {
+      foundRow = i + 1;
+      pName = String(pData[i][1] || '').trim();
+      break;
+    }
+  }
+
+  if (foundRow === -1) {
+    return { success: false, message: 'Periode payroll tidak ditemukan.' };
+  }
+
+  // Hitung total pengeluaran gaji periode ini dari sheet DataGaji
+  const dSheet = getOrCreateDataGajiSheet(ss);
+  const dData = dSheet.getDataRange().getValues();
+  let totalPengeluaran = 0;
+  let countEmp = 0;
+
+  for (let d = 1; d < dData.length; d++) {
+    if (String(dData[d][0] || '').trim() === String(periodId).trim()) {
+      totalPengeluaran += cleanSalaryNum(dData[d][10]); // Total Gaji Berjalan
+      countEmp++;
+    }
+  }
+
+  const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+  pSheet.getRange(foundRow, 5).setValue('DITUTUP');
+  pSheet.getRange(foundRow, 6).setValue(totalPengeluaran);
+  pSheet.getRange(foundRow, 7).setValue(nowStr);
+  pSheet.getRange(foundRow, 8).setValue(session.user.fullname || session.user.username);
+
+  SpreadsheetApp.flush();
+
+  return {
+    success: true,
+    message: 'Tutup buku periode "' + pName + '" berhasil diselesaikan. Total ' + countEmp + ' karyawan terkunci aman.',
+    totalGaji: totalPengeluaran,
+    countEmp: countEmp
+  };
+}
+
+// =========================================================================
+// API DATA GAJI KARYAWAN (READ, SAVE, DELETE)
+// =========================================================================
+
+/**
+ * READ API: Mengambil data gaji karyawan berdasarkan filter periode
+ */
+function getDataGaji(token, filterDept, filterTanggal, filterPeriodeId) {
   const session = validateSession(token);
   if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
 
@@ -428,11 +526,35 @@ function getDataGaji(token, filterDept, filterTanggal) {
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   SpreadsheetApp.flush();
+
+  // Dapatkan periode yang ditargetkan
+  const pSheet = getOrCreatePeriodePayrollSheet(ss);
+  const allPeriodsRes = getPeriodePayrollList(token);
+  const allPeriods = allPeriodsRes.success ? allPeriodsRes.list : [];
+  const activePeriod = allPeriodsRes.success ? allPeriodsRes.activePeriod : null;
+
+  let targetPeriodId = filterPeriodeId && filterPeriodeId !== 'SEMUA' && filterPeriodeId !== 'AKTIF'
+    ? String(filterPeriodeId).trim()
+    : (activePeriod ? activePeriod.id : '');
+
+  // Cari info periode yang ditargetkan
+  let targetPeriodInfo = allPeriods.find(function (p) { return p.id === targetPeriodId; }) || activePeriod;
+  if (!targetPeriodId && targetPeriodInfo) {
+    targetPeriodId = targetPeriodInfo.id;
+  }
+
   const sheet = getOrCreateDataGajiSheet(ss);
   const data = sheet.getDataRange().getValues();
 
   if (!data || data.length <= 1) {
-    return { success: true, list: [], employees: [], isHRD: isHRD };
+    return {
+      success: true,
+      list: [],
+      employees: [],
+      isHRD: isHRD,
+      period: targetPeriodInfo,
+      periods: allPeriods
+    };
   }
 
   const flatList = [];
@@ -442,10 +564,15 @@ function getDataGaji(token, filterDept, filterTanggal) {
     const row = data[i];
     if (!row || row.every(function (cell) { return String(cell || '').trim() === ''; })) continue;
 
-    const empId = String(row[0] || '').trim();
-    const empName = String(row[1] || '').trim();
+    const rowPeriodId = String(row[0] || '').trim();
+    if (targetPeriodId && rowPeriodId !== targetPeriodId) {
+      continue; // Lewati periode lain
+    }
 
-    // ISOLASI PRIVASI KETAT: Jika bukan Admin/HRD, HANYA data diri sendiri yang diambil!
+    const empId = String(row[1] || '').trim();
+    const empName = String(row[2] || '').trim();
+
+    // ISOLASI PRIVASI: Karyawan HANYA dapat membaca data diri sendiri
     if (!isHRD) {
       const rowIdLower = empId.toLowerCase();
       const rowNameLower = empName.toLowerCase();
@@ -459,20 +586,21 @@ function getDataGaji(token, filterDept, filterTanggal) {
       );
 
       if (!isMatch) {
-        continue; // Lewati data karyawan lain
+        continue;
       }
     }
-    const deptJabatan = String(row[2] || '').trim();
-    const basic = cleanSalaryNum(row[3]);
-    const totalJamOt = cleanSalaryNum(row[4]);
-    const totalNominalOt = cleanSalaryNum(row[5]);
-    const totalRitase = cleanSalaryNum(row[6]);
-    const totalNominalRit = cleanSalaryNum(row[7]);
-    const totalTunjangan = cleanSalaryNum(row[8]);
-    const totalGajiBerjalan = cleanSalaryNum(row[9]);
-    const hariKerja = cleanSalaryNum(row[10]);
-    const rawJson = String(row[11] || '').trim();
-    const terakhirDiupdate = row[12] ? String(row[12]) : '';
+
+    const deptJabatan = String(row[3] || '').trim();
+    const basic = cleanSalaryNum(row[4]);
+    const totalJamOt = cleanSalaryNum(row[5]);
+    const totalNominalOt = cleanSalaryNum(row[6]);
+    const totalRitase = cleanSalaryNum(row[7]);
+    const totalNominalRit = cleanSalaryNum(row[8]);
+    const totalTunjangan = cleanSalaryNum(row[9]);
+    const totalGajiBerjalan = cleanSalaryNum(row[10]);
+    const hariKerja = cleanSalaryNum(row[11]);
+    const rawJson = String(row[12] || '').trim();
+    const terakhirDiupdate = row[13] ? String(row[13]) : '';
 
     let dept = '';
     let jabatan = '';
@@ -496,7 +624,6 @@ function getDataGaji(token, filterDept, filterTanggal) {
         logs = JSON.parse(rawJson);
       }
     } catch (e) {
-      console.warn('Gagal parse JSON log di baris ' + (i + 1) + ':', e);
       logs = [];
     }
 
@@ -514,6 +641,7 @@ function getDataGaji(token, filterDept, filterTanggal) {
 
       flatList.push({
         id: log.id || ('GJ-' + (log.tanggal ? log.tanggal.replace(/-/g, '') : '') + '-' + Utilities.getUuid().slice(0, 6)),
+        periodId: rowPeriodId,
         tanggal: log.tanggal || '',
         dept: log.dept || dept,
         empId: log.empId || empId,
@@ -534,6 +662,7 @@ function getDataGaji(token, filterDept, filterTanggal) {
     });
 
     employeesSummary.push({
+      periodId: rowPeriodId,
       id: empId,
       name: empName,
       dept: dept,
@@ -552,7 +681,6 @@ function getDataGaji(token, filterDept, filterTanggal) {
     });
   }
 
-  // Urutkan flatList tanggal terbaru paling atas
   flatList.sort(function (a, b) {
     return String(b.tanggal || '').localeCompare(String(a.tanggal || ''));
   });
@@ -561,16 +689,14 @@ function getDataGaji(token, filterDept, filterTanggal) {
     success: true,
     list: flatList,
     employees: employeesSummary,
-    isHRD: isHRD
+    isHRD: isHRD,
+    period: targetPeriodInfo,
+    periods: allPeriods
   };
 }
 
 /**
  * WRITE API: Simpan / Edit data gaji harian karyawan
- * - Menemukan baris karyawan terkait di spreadsheet
- * - Meng-update akumulasi total di baris tersebut
- * - Menyimpan rincian harian ke dalam kolom JSON 'Rincian_Log_Harian'
- * - Baris baru di spreadsheet TIDAK BERTAMBAH!
  */
 function saveDataGaji(token, payload) {
   const session = validateSession(token);
@@ -586,6 +712,29 @@ function saveDataGaji(token, payload) {
     return { success: false, message: 'Data gaji tidak valid.' };
   }
 
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Tentukan periode target
+  let targetPeriodId = String(payload.periodId || '').trim();
+  let targetPeriodInfo = null;
+
+  if (targetPeriodId) {
+    const allPeriodsRes = getPeriodePayrollList(token);
+    if (allPeriodsRes.success && allPeriodsRes.list) {
+      targetPeriodInfo = allPeriodsRes.list.find(function (p) { return p.id === targetPeriodId; });
+    }
+  } else {
+    targetPeriodInfo = getActivePeriode(ss);
+    if (targetPeriodInfo) targetPeriodId = targetPeriodInfo.id;
+  }
+
+  if (targetPeriodInfo && targetPeriodInfo.status === 'DITUTUP') {
+    return {
+      success: false,
+      message: 'Periode "' + targetPeriodInfo.name + '" sudah ditutup buku. Data tidak dapat ditambah atau diubah.'
+    };
+  }
+
   const tanggal = String(payload.tanggal || '').trim() || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
   const dept = String(payload.dept || '').trim();
   const empId = String(payload.empId || '').trim();
@@ -595,8 +744,6 @@ function saveDataGaji(token, payload) {
   if (!tanggal || !empId || !empName) {
     return { success: false, message: 'Mohon lengkapi Tanggal Kerja dan Nama Karyawan.' };
   }
-
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // Basic salary
   let basic = Math.max(0, cleanSalaryNum(payload.basic));
@@ -634,20 +781,23 @@ function saveDataGaji(token, payload) {
   const sheet = getOrCreateDataGajiSheet(ss);
   const data = sheet.getDataRange().getValues();
 
-  // Cari baris karyawan di spreadsheet
+  // Cari baris karyawan di spreadsheet sesuai periodId
   let targetRowIndex = -1;
   let existingLogs = [];
   let existingBasic = basic;
   let existingDeptJabatan = dept ? (dept + (jabatan ? ' - ' + jabatan : '')) : jabatan;
 
   for (let i = 1; i < data.length; i++) {
-    const rowEmpId = String(data[i][0] || '').trim().toLowerCase();
-    const rowEmpName = String(data[i][1] || '').trim().toLowerCase();
+    const rowPeriod = String(data[i][0] || '').trim();
+    if (targetPeriodId && rowPeriod !== targetPeriodId) continue;
+
+    const rowEmpId = String(data[i][1] || '').trim().toLowerCase();
+    const rowEmpName = String(data[i][2] || '').trim().toLowerCase();
     if ((empId && rowEmpId === empId.toLowerCase()) || (empName && rowEmpName === empName.toLowerCase())) {
       targetRowIndex = i + 1; // 1-based index
-      if (!existingDeptJabatan && data[i][2]) existingDeptJabatan = String(data[i][2]).trim();
-      if (basic === 0 && data[i][3]) existingBasic = cleanSalaryNum(data[i][3]);
-      const rawJson = String(data[i][11] || '').trim();
+      if (!existingDeptJabatan && data[i][3]) existingDeptJabatan = String(data[i][3]).trim();
+      if (basic === 0 && data[i][4]) existingBasic = cleanSalaryNum(data[i][4]);
+      const rawJson = String(data[i][12] || '').trim();
       try {
         if (rawJson && rawJson.startsWith('[')) {
           existingLogs = JSON.parse(rawJson);
@@ -665,6 +815,7 @@ function saveDataGaji(token, payload) {
   const logId = editId || ('GJ-' + tanggal.replace(/-/g, '') + '-' + Utilities.getUuid().slice(0, 6).toUpperCase());
   const logItem = {
     id: logId,
+    periodId: targetPeriodId,
     tanggal: tanggal,
     dept: dept,
     empId: empId,
@@ -723,6 +874,7 @@ function saveDataGaji(token, payload) {
   const jsonStr = JSON.stringify(existingLogs);
 
   const rowValues = [
+    targetPeriodId,
     empId,
     empName,
     existingDeptJabatan,
@@ -739,11 +891,10 @@ function saveDataGaji(token, payload) {
   ];
 
   if (targetRowIndex > 0) {
-    // UPDATE BARIS YANG SUDAH ADA (BARIS TIDAK BERTAMBAH!)
+    // UPDATE BARIS YANG SUDAH ADA
     sheet.getRange(targetRowIndex, 1, 1, DATA_GAJI_HEADERS.length).setValues([rowValues]);
     formatDataGajiDataRange(sheet, 1);
   } else {
-    // Baris baru hanya jika karyawan ini belum ada di sheet
     sheet.appendRow(rowValues);
     formatDataGajiDataRange(sheet, 1);
   }
@@ -769,10 +920,6 @@ function saveDataGaji(token, payload) {
 
 /**
  * DELETE API: Hapus catatan log harian tertentu
- * - Mencari baris karyawan yang memuat ID catatan tersebut di kolom JSON
- * - Menghapus item dari array JSON
- * - Menghitung ulang akumulasi total
- * - Memperbarui baris tersebut in-place (baris karyawan tetap ada)
  */
 function deleteDataGaji(token, id) {
   const session = validateSession(token);
@@ -792,8 +939,18 @@ function deleteDataGaji(token, id) {
   const data = sheet.getDataRange().getValues();
 
   for (let i = 1; i < data.length; i++) {
-    const rawJson = String(data[i][11] || '').trim();
+    const rawJson = String(data[i][12] || '').trim();
     if (!rawJson.includes(cleanId)) continue;
+
+    // Cek apakah periode baris ini sudah ditutup
+    const rowPeriodId = String(data[i][0] || '').trim();
+    const pSheet = getOrCreatePeriodePayrollSheet(ss);
+    const pData = pSheet.getDataRange().getValues();
+    for (let p = 1; p < pData.length; p++) {
+      if (String(pData[p][0] || '').trim() === rowPeriodId && String(pData[p][4] || '').trim().toUpperCase() === 'DITUTUP') {
+        return { success: false, message: 'Periode payroll ini sudah ditutup buku. Data tidak dapat dihapus.' };
+      }
+    }
 
     let logs = [];
     try {
@@ -825,14 +982,14 @@ function deleteDataGaji(token, id) {
         if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
       });
 
-      const basic = cleanSalaryNum(data[i][3]);
+      const basic = cleanSalaryNum(data[i][4]);
       const hariKerja = uniqueDates.size || logs.length;
       const totalGajiBerjalan = basic + totalNominalOt + totalNominalRit + totalTunjangan;
       const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
       const jsonStr = JSON.stringify(logs);
 
-      // Update kolom 5 s/d 13 di baris karyawan tersebut
-      sheet.getRange(i + 1, 5, 1, 9).setValues([[
+      // Update kolom 6 s/d 14 di baris karyawan tersebut
+      sheet.getRange(i + 1, 6, 1, 9).setValues([[
         totalJamOt,
         totalNominalOt,
         totalRitase,
@@ -843,11 +1000,24 @@ function deleteDataGaji(token, id) {
         jsonStr,
         nowStr
       ]]);
-
+      formatDataGajiDataRange(sheet, 1);
       SpreadsheetApp.flush();
-      return { success: true, message: 'Catatan harian berhasil dihapus.' };
+
+      return {
+        success: true,
+        message: 'Catatan harian berhasil dihapus.',
+        totals: {
+          totalJamOt: totalJamOt,
+          totalNominalOt: totalNominalOt,
+          totalRitase: totalRitase,
+          totalNominalRit: totalNominalRit,
+          totalTunjangan: totalTunjangan,
+          totalGajiBerjalan: totalGajiBerjalan,
+          hariKerja: hariKerja
+        }
+      };
     }
   }
 
-  return { success: false, message: 'Data gaji dengan ID tersebut tidak ditemukan.' };
+  return { success: false, message: 'Catatan harian tidak ditemukan.' };
 }

@@ -4,17 +4,38 @@
 // File: Scripts_DataGaji.html
 // Tabel utama menampilkan 1 baris per karyawan dengan total akumulasi berjalan.
 // Dilengkapi tombol [+ Input Harian] cepat dan [👁️ Rincian] log harian.
+// Mendukung Pengelolaan Periode Payroll Dinamis (Cut-Off Kustom & Tutup Buku).
 // ==========================================================================
 
 (function () {
   var cachedDataGajiLogs = [];
+  var cachedPeriodeList = [];
+  var currentSelectedPeriodId = '';
+  var currentActivePeriodInfo = null;
+  var isCurrentPeriodClosed = false;
   var currentPageDataGaji = 1;
   var pageSizeDataGaji = 15;
   var bsModalDataGaji = null;
   var bsModalRincianGaji = null;
+  var bsModalBukaPeriode = null;
   var currentRincianEmpId = null;
 
   var NAMA_HARI_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+  function safeFormatDateDMY(dateVal) {
+    if (!dateVal || dateVal === '-') return '-';
+    if (typeof formatDateDMY === 'function') return formatDateDMY(dateVal);
+    try {
+      var d = (dateVal instanceof Date) ? dateVal : new Date(dateVal);
+      if (isNaN(d.getTime())) return String(dateVal);
+      var dd = String(d.getDate()).padStart(2, '0');
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var yyyy = d.getFullYear();
+      return dd + '/' + mm + '/' + yyyy;
+    } catch (e) {
+      return String(dateVal);
+    }
+  }
 
   function formatDateWithDay(dateVal) {
     if (!dateVal || dateVal === '-') return '-';
@@ -44,7 +65,7 @@
       }
     }
     if (!dObj || isNaN(dObj.getTime())) {
-      return typeof formatDateDMY === 'function' ? formatDateDMY(dateVal) : String(dateVal);
+      return safeFormatDateDMY(dateVal);
     }
     var dayName = NAMA_HARI_ID[dObj.getDay()];
     var dd = String(dObj.getDate()).padStart(2, '0');
@@ -95,6 +116,120 @@
     renderDataGajiTable();
   };
 
+  // --- POPULATE PERIODE SELECTS & CONTROLLERS ---
+  function populatePeriodeDropdowns(periods, activePeriod) {
+    if (Array.isArray(periods)) {
+      cachedPeriodeList = periods;
+    }
+    if (activePeriod) {
+      currentActivePeriodInfo = activePeriod;
+    }
+
+    if (!currentSelectedPeriodId) {
+      if (currentActivePeriodInfo && currentActivePeriodInfo.id) {
+        currentSelectedPeriodId = currentActivePeriodInfo.id;
+      } else if (cachedPeriodeList.length > 0) {
+        currentSelectedPeriodId = cachedPeriodeList[0].id;
+      }
+    }
+
+    var selHrd = document.getElementById('selectDataGajiPeriode');
+    var selKaryawan = document.getElementById('selectGajiSayaPeriode');
+
+    [selHrd, selKaryawan].forEach(function (sel) {
+      if (!sel) return;
+      var curVal = sel.value || currentSelectedPeriodId;
+      sel.innerHTML = '';
+      if (cachedPeriodeList.length === 0) {
+        sel.innerHTML = '<option value="">-- Belum Ada Periode --</option>';
+        return;
+      }
+      cachedPeriodeList.forEach(function (p) {
+        var opt = document.createElement('option');
+        opt.value = p.id;
+        var stBadge = p.status === 'TERBUKA' ? '🟢 TERBUKA' : '🔒 DITUTUP';
+        var tglRange = (p.startDate ? safeFormatDateDMY(p.startDate) : '-') + ' s/d ' + (p.endDate ? safeFormatDateDMY(p.endDate) : '-');
+        opt.text = (p.nama || p.id) + ' (' + tglRange + ') [' + stBadge + ']';
+        sel.appendChild(opt);
+      });
+      if (curVal && cachedPeriodeList.some(function (p) { return p.id === curVal; })) {
+        sel.value = curVal;
+      } else if (currentSelectedPeriodId) {
+        sel.value = currentSelectedPeriodId;
+      }
+    });
+
+    var targetPeriod = cachedPeriodeList.find(function (p) { return p.id === currentSelectedPeriodId; }) || currentActivePeriodInfo;
+    isCurrentPeriodClosed = (targetPeriod && targetPeriod.status === 'DITUTUP');
+
+    // HRD Status & Cut-Off
+    var badgeHrd = document.getElementById('badgeDataGajiStatusPeriode');
+    var cutOffHrd = document.getElementById('textDataGajiCutOffRange');
+    var btnTutup = document.getElementById('btnTutupBukuPayroll');
+
+    if (badgeHrd) {
+      if (isCurrentPeriodClosed) {
+        badgeHrd.className = 'badge bg-danger-subtle text-danger border border-danger-subtle extra-small fw-semibold';
+        badgeHrd.innerHTML = '<i class="bi bi-lock-fill me-1"></i>BUKU DITUTUP';
+      } else {
+        badgeHrd.className = 'badge bg-success-subtle text-success border border-success-subtle extra-small fw-semibold';
+        badgeHrd.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>BUKU TERBUKA';
+      }
+    }
+    if (cutOffHrd && targetPeriod) {
+      var sDate = targetPeriod.startDate ? safeFormatDateDMY(targetPeriod.startDate) : '-';
+      var eDate = targetPeriod.endDate ? safeFormatDateDMY(targetPeriod.endDate) : '-';
+      cutOffHrd.innerHTML = '<i class="bi bi-clock-history me-1"></i>Cut-off: <strong>' + sDate + '</strong> s/d <strong>' + eDate + '</strong>';
+    }
+    if (btnTutup) {
+      if (isCurrentPeriodClosed) {
+        btnTutup.disabled = true;
+        btnTutup.classList.add('opacity-50');
+        btnTutup.title = 'Periode ini sudah dalam status Ditutup Buku';
+      } else {
+        btnTutup.disabled = false;
+        btnTutup.classList.remove('opacity-50');
+        btnTutup.title = 'Tutup buku periode yang sedang aktif';
+      }
+    }
+
+    // Karyawan Status & Cut-Off
+    var badgeKaryawan = document.getElementById('badgeGajiSayaStatusPeriode');
+    var cutOffKaryawan = document.getElementById('textGajiSayaCutOffRange');
+    if (badgeKaryawan) {
+      if (isCurrentPeriodClosed) {
+        badgeKaryawan.className = 'badge bg-danger-subtle text-danger border border-danger-subtle extra-small fw-semibold';
+        badgeKaryawan.innerHTML = '<i class="bi bi-lock-fill me-1"></i>BUKU DITUTUP';
+      } else {
+        badgeKaryawan.className = 'badge bg-success-subtle text-success border border-success-subtle extra-small fw-semibold';
+        badgeKaryawan.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>BUKU TERBUKA';
+      }
+    }
+    if (cutOffKaryawan && targetPeriod) {
+      var sDate = targetPeriod.startDate ? safeFormatDateDMY(targetPeriod.startDate) : '-';
+      var eDate = targetPeriod.endDate ? safeFormatDateDMY(targetPeriod.endDate) : '-';
+      cutOffKaryawan.innerHTML = '<i class="bi bi-clock-history me-1"></i>Rentang Cut-Off: <strong>' + sDate + '</strong> s/d <strong>' + eDate + '</strong>';
+    }
+  }
+  window.populatePeriodeDropdowns = populatePeriodeDropdowns;
+
+  // On Change Period Handlers
+  window.onDataGajiPeriodeChange = function () {
+    var sel = document.getElementById('selectDataGajiPeriode');
+    if (sel && sel.value) {
+      currentSelectedPeriodId = sel.value;
+      loadDataGajiList();
+    }
+  };
+
+  window.onGajiSayaPeriodeChange = function () {
+    var sel = document.getElementById('selectGajiSayaPeriode');
+    if (sel && sel.value) {
+      currentSelectedPeriodId = sel.value;
+      initGajiSayaPage();
+    }
+  };
+
   // --- LOAD DATA GAJI LIST ---
   window.loadDataGajiList = function () {
     var tbody = document.getElementById('tableBodyDataGaji');
@@ -113,11 +248,17 @@
       }).catch(function (e) { console.warn('Fetch initial data error:', e); });
     }
 
-    gasRun('getDataGaji', Auth.getToken()).then(function (res) {
+    gasRun('getDataGaji', Auth.getToken(), null, null, currentSelectedPeriodId).then(function (res) {
       if (handleSessionExpired(res)) return;
 
       if (res && res.success) {
         cachedDataGajiLogs = Array.isArray(res.list) ? res.list : [];
+        if (Array.isArray(res.periods)) cachedPeriodeList = res.periods;
+        if (res.period) {
+          currentActivePeriodInfo = res.period;
+          if (!currentSelectedPeriodId) currentSelectedPeriodId = res.period.id;
+        }
+        populatePeriodeDropdowns(res.periods, res.period);
         renderDataGajiTable();
 
         // Jika modal rincian sedang terbuka, segarkan tampilannya juga
@@ -301,6 +442,10 @@
         ? '<div class="text-end fw-semibold text-dark">' + formatRupiahVal(emp.totalTunjangan) + '</div>'
         : '<span class="text-muted extra-small">-</span>';
 
+      var actionBtnHtml = isCurrentPeriodClosed
+        ? '<button class="btn btn-sm btn-secondary py-1 px-2.5 fw-semibold disabled" disabled title="Periode ini sudah ditutup buku (Terkunci)"><i class="bi bi-lock me-1"></i>Terkunci</button>'
+        : '<button class="btn btn-sm btn-primary py-1 px-2.5 fw-semibold" onclick="openInputForEmp(\'' + escapeHTML(emp.id) + '\')" title="Input Harian untuk Karyawan Ini"><i class="bi bi-plus-lg me-1"></i>Input Harian</button>';
+
       var tr = document.createElement('tr');
       tr.innerHTML =
         '<td class="text-center text-muted extra-small">' + no + '</td>' +
@@ -314,7 +459,7 @@
         '<td class="text-center"><span class="badge ' + (emp.daysCount > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-muted border') + ' fw-semibold">' + emp.daysCount + ' Hari</span></td>' +
         '<td class="text-center text-nowrap">' +
         '  <div class="action-group">' +
-        '    <button class="btn btn-sm btn-primary py-1 px-2.5 fw-semibold" onclick="openInputForEmp(\'' + escapeHTML(emp.id) + '\')" title="Input Harian untuk Karyawan Ini"><i class="bi bi-plus-lg me-1"></i>Input Harian</button>' +
+        actionBtnHtml +
         '    <button class="btn btn-sm btn-outline-info py-1 px-2.5 ms-1" onclick="openRincianEmp(\'' + escapeHTML(emp.id) + '\')" title="Lihat Rincian Riwayat Harian"><i class="bi bi-eye me-1"></i>Rincian</button>' +
         '    <button class="btn btn-sm btn-outline-danger py-1 px-2.5 ms-1" onclick="printRincianGajiEmp(\'' + escapeHTML(emp.id) + '\')" title="Cetak / Simpan PDF Laporan Rincian"><i class="bi bi-printer me-1"></i>PDF</button>' +
         '  </div>' +
@@ -337,6 +482,16 @@
   };
 
   window.openModalDataGaji = function (gajiId, preSelectedEmp) {
+    if (isCurrentPeriodClosed) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Periode Ditutup Buku',
+        text: 'Periode payroll ini sudah dalam status DITUTUP. Data gaji tidak dapat ditambah atau diubah.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
     var modalEl = document.getElementById('modalDataGaji');
     if (!modalEl) return;
     if (!bsModalDataGaji) {
@@ -346,6 +501,10 @@
     var titleEl = document.getElementById('modalDataGajiTitle');
     var formEl = document.getElementById('formModalDataGaji');
     if (formEl) formEl.reset();
+
+    // Set hidden period ID
+    var pIdHidden = document.getElementById('gajiPeriodIdHidden');
+    if (pIdHidden) pIdHidden.value = currentSelectedPeriodId || (currentActivePeriodInfo ? currentActivePeriodInfo.id : '');
 
     // Populate Department dropdown in Modal
     populateModalDeptSelect();
@@ -575,7 +734,15 @@
   window.submitDataGaji = function (e) {
     if (e && e.preventDefault) e.preventDefault();
 
+    if (isCurrentPeriodClosed) {
+      Swal.fire('Periode Ditutup Buku', 'Periode payroll ini sudah ditutup. Data tidak dapat disimpan.', 'warning');
+      return;
+    }
+
     var editId = document.getElementById('gajiEditId').value.trim();
+    var periodIdVal = document.getElementById('gajiPeriodIdHidden') ? document.getElementById('gajiPeriodIdHidden').value.trim() : '';
+    if (!periodIdVal) periodIdVal = currentSelectedPeriodId || (currentActivePeriodInfo ? currentActivePeriodInfo.id : '');
+
     var tanggal = document.getElementById('gajiTanggal').value.trim();
     var dept = document.getElementById('gajiDeptSelect').value.trim();
     var empId = document.getElementById('gajiEmpIdHidden').value.trim() || document.getElementById('gajiEmpSelect').value.trim();
@@ -609,6 +776,7 @@
 
     var payload = {
       id: editId,
+      periodId: periodIdVal,
       tanggal: tanggal,
       dept: dept,
       empId: empId,
@@ -773,13 +941,20 @@
     var countBadge = document.getElementById('rincianLogCount');
     if (countBadge) countBadge.innerText = kLogs.length + ' Hari Kerja';
 
+    // Kontrol tombol "+ Input Harian Baru" di dalam modal rincian jika periode ditutup
+    var btnAddRincian = document.getElementById('btnRincianAddToday');
+    if (btnAddRincian) {
+      btnAddRincian.style.display = isCurrentPeriodClosed ? 'none' : 'inline-block';
+    }
+
     // Render Tabel Log
     var tbody = document.getElementById('tableBodyRincianLog');
     if (!tbody) return;
     tbody.innerHTML = '';
 
     if (kLogs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada catatan log kerja harian untuk karyawan ini. Klik tombol "+ Input Harian Baru" untuk menambahkan.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada catatan log kerja harian untuk karyawan ini. ' +
+        (isCurrentPeriodClosed ? '<span class="text-danger fw-semibold">(Periode Ditutup Buku)</span>' : 'Klik tombol "+ Input Harian Baru" untuk menambahkan.') + '</td></tr>';
       return;
     }
 
@@ -797,6 +972,13 @@
         ? '<span class="fw-semibold text-warning">' + formatRupiahVal(subRit) + '</span><br><small class="text-muted extra-small">' + log.ritase + ' Rit</small>'
         : '<span class="text-muted extra-small">-</span>';
 
+      var actionRowHtml = isCurrentPeriodClosed
+        ? '<span class="badge bg-light text-muted border extra-small"><i class="bi bi-lock me-1"></i>Terkunci</span>'
+        : '  <div class="action-group">' +
+          '    <button class="btn btn-sm btn-action btn-action-edit" onclick="editLogFromRincian(\'' + escapeHTML(log.id) + '\')" title="Edit"><i class="bi bi-pencil-square"></i>Edit</button>' +
+          '    <button class="btn btn-sm btn-action btn-action-delete" onclick="deleteLogFromRincian(\'' + escapeHTML(log.id) + '\', \'' + escapeHTML(log.tanggal) + '\')" title="Hapus"><i class="bi bi-trash"></i>Hapus</button>' +
+          '  </div>';
+
       var tr = document.createElement('tr');
       tr.innerHTML =
         '<td class="text-center text-muted extra-small text-nowrap">' + (idx + 1) + '</td>' +
@@ -807,10 +989,7 @@
         '<td class="text-end text-nowrap"><span class="badge bg-success text-white px-2.5 py-1.5" style="font-size: 0.85rem; font-weight: 700; box-shadow: 0 1px 2px rgba(16,185,129,0.25);">' + formatRupiahVal(totalHariItu) + '</span></td>' +
         '<td class="text-nowrap"><small class="text-muted">' + escapeHTML(log.catatan || '-') + '</small></td>' +
         '<td class="text-center text-nowrap">' +
-        '  <div class="action-group">' +
-        '    <button class="btn btn-sm btn-action btn-action-edit" onclick="editLogFromRincian(\'' + escapeHTML(log.id) + '\')" title="Edit"><i class="bi bi-pencil-square"></i>Edit</button>' +
-        '    <button class="btn btn-sm btn-action btn-action-delete" onclick="deleteLogFromRincian(\'' + escapeHTML(log.id) + '\', \'' + escapeHTML(log.tanggal) + '\')" title="Hapus"><i class="bi bi-trash"></i>Hapus</button>' +
-        '  </div>' +
+        actionRowHtml +
         '</td>';
 
       tbody.appendChild(tr);
@@ -818,6 +997,10 @@
   }
 
   window.openInputFromRincian = function () {
+    if (isCurrentPeriodClosed) {
+      Swal.fire('Periode Ditutup Buku', 'Periode payroll ini sudah ditutup. Data tidak dapat ditambahkan.', 'warning');
+      return;
+    }
     if (!currentRincianEmpId) return;
     var emp = (dbKaryawan || []).find(function (k) { return String(k.id).toLowerCase() === String(currentRincianEmpId).toLowerCase(); });
     if (!emp) return;
@@ -825,10 +1008,19 @@
   };
 
   window.editLogFromRincian = function (logId) {
+    if (isCurrentPeriodClosed) {
+      Swal.fire('Periode Ditutup Buku', 'Periode payroll ini sudah ditutup. Data tidak dapat diubah.', 'warning');
+      return;
+    }
     openModalDataGaji(logId);
   };
 
   window.deleteLogFromRincian = function (logId, date) {
+    if (isCurrentPeriodClosed) {
+      Swal.fire('Periode Ditutup Buku', 'Periode payroll ini sudah ditutup. Data tidak dapat dihapus.', 'warning');
+      return;
+    }
+
     Swal.fire({
       title: 'Hapus Catatan Harian Ini?',
       html: 'Hapus data lembur / ritase untuk tanggal <strong>' + escapeHTML(formatDateWithDay(date)) + '</strong>?<br><span class="text-muted extra-small">Total gaji karyawan akan otomatis berkurang sesuai catatan yang dihapus.</span>',
@@ -863,6 +1055,207 @@
           loadDataGajiList();
         } else {
           Swal.fire('Gagal Menghapus', (resp && resp.message) || 'Gagal menghapus data.', 'error');
+        }
+      }).catch(function (err) {
+        hideFullPageLoading();
+        Swal.fire('Error', err.toString(), 'error');
+      });
+    });
+  };
+
+  // --- MODAL 3: BUKA PERIODE PAYROLL BARU ---
+  window.openModalBukaPeriode = function () {
+    var modalEl = document.getElementById('modalBukaPeriode');
+    if (!modalEl) return;
+    if (!bsModalBukaPeriode) {
+      bsModalBukaPeriode = new bootstrap.Modal(modalEl);
+    }
+
+    var formEl = document.getElementById('formBukaPeriode');
+    if (formEl) formEl.reset();
+
+    var now = new Date();
+    var BULAN_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    var currentMonthName = BULAN_ID[now.getMonth()];
+
+    var nameInput = document.getElementById('inputBukaPeriodeName');
+    var startInput = document.getElementById('inputBukaPeriodeStartDate');
+    var endInput = document.getElementById('inputBukaPeriodeEndDate');
+    var autoCloseCheck = document.getElementById('checkBukaPeriodeAutoClose');
+
+    if (autoCloseCheck) autoCloseCheck.checked = true;
+
+    if (nameInput) {
+      nameInput.value = 'Payroll ' + currentMonthName + ' ' + now.getFullYear();
+    }
+
+    // Default cut-off dates
+    var lastEndDate = null;
+    if (currentActivePeriodInfo && currentActivePeriodInfo.endDate) {
+      try {
+        var pEnd = new Date(currentActivePeriodInfo.endDate);
+        if (!isNaN(pEnd.getTime())) {
+          pEnd.setDate(pEnd.getDate() + 1);
+          lastEndDate = pEnd;
+        }
+      } catch (e) { }
+    }
+
+    if (lastEndDate) {
+      var sYear = lastEndDate.getFullYear();
+      var sMonth = String(lastEndDate.getMonth() + 1).padStart(2, '0');
+      var sDay = String(lastEndDate.getDate()).padStart(2, '0');
+      if (startInput) startInput.value = sYear + '-' + sMonth + '-' + sDay;
+
+      var nextEnd = new Date(lastEndDate.getTime());
+      nextEnd.setMonth(nextEnd.getMonth() + 1);
+      nextEnd.setDate(nextEnd.getDate() - 1);
+      var eYear = nextEnd.getFullYear();
+      var eMonth = String(nextEnd.getMonth() + 1).padStart(2, '0');
+      var eDay = String(nextEnd.getDate()).padStart(2, '0');
+      if (endInput) endInput.value = eYear + '-' + eMonth + '-' + eDay;
+    } else {
+      var yyyy = now.getFullYear();
+      var mm = String(now.getMonth() + 1).padStart(2, '0');
+      var prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 21);
+      var prevY = prevMonthDate.getFullYear();
+      var prevM = String(prevMonthDate.getMonth() + 1).padStart(2, '0');
+      if (startInput) startInput.value = prevY + '-' + prevM + '-21';
+      if (endInput) endInput.value = yyyy + '-' + mm + '-20';
+    }
+
+    bsModalBukaPeriode.show();
+  };
+
+  window.submitBukaPeriode = function (e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    var nama = (document.getElementById('inputBukaPeriodeName').value || '').trim();
+    var startDate = document.getElementById('inputBukaPeriodeStartDate').value;
+    var endDate = document.getElementById('inputBukaPeriodeEndDate').value;
+    var note = (document.getElementById('inputBukaPeriodeNote').value || '').trim();
+    var autoClose = document.getElementById('checkBukaPeriodeAutoClose').checked;
+
+    if (!nama) {
+      showFormValidationWarning('inputBukaPeriodeName', 'Nama periode wajib diisi.');
+      return;
+    }
+    if (!startDate) {
+      showFormValidationWarning('inputBukaPeriodeStartDate', 'Tanggal mulai cut-off wajib diisi.');
+      return;
+    }
+    if (!endDate) {
+      showFormValidationWarning('inputBukaPeriodeEndDate', 'Tanggal selesai cut-off wajib diisi.');
+      return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      Swal.fire('Tanggal Tidak Valid', 'Tanggal mulai cut-off tidak boleh lebih besar dari tanggal selesai.', 'warning');
+      return;
+    }
+
+    var payload = {
+      nama: nama,
+      startDate: startDate,
+      endDate: endDate,
+      autoClosePrev: autoClose,
+      catatan: note
+    };
+
+    Swal.fire({
+      title: 'Buka Periode Payroll Baru?',
+      html: 'Buka periode <strong>' + escapeHTML(nama) + '</strong> dengan cut-off <strong>' + escapeHTML(safeFormatDateDMY(startDate)) + ' s/d ' + escapeHTML(safeFormatDateDMY(endDate)) + '</strong>?<br>' +
+        (autoClose ? '<small class="text-warning mt-2 d-block"><i class="bi bi-exclamation-triangle-fill me-1"></i>Periode aktif sebelumnya akan otomatis dikunci (Ditutup Buku).</small>' : ''),
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-calendar-check me-1"></i>Ya, Buka Periode',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#2563eb'
+    }).then(function (result) {
+      if (!result.isConfirmed) return;
+
+      showFullPageLoading('Membuka periode payroll baru & menyiapkan daftar karyawan...');
+
+      gasRun('openNewPeriodePayroll', Auth.getToken(), payload).then(function (resp) {
+        hideFullPageLoading();
+        if (handleSessionExpired(resp)) return;
+
+        if (resp && resp.success) {
+          if (bsModalBukaPeriode) bsModalBukaPeriode.hide();
+          Swal.fire({
+            icon: 'success',
+            title: 'Periode Berhasil Dibuka!',
+            text: resp.message || 'Periode baru siap digunakan untuk input data gaji.',
+            timer: 2000,
+            showConfirmButton: false
+          });
+
+          if (resp.period && resp.period.id) {
+            currentSelectedPeriodId = resp.period.id;
+          }
+          loadDataGajiList();
+        } else {
+          Swal.fire('Gagal Membuka Periode', (resp && resp.message) || 'Terjadi kesalahan sistem.', 'error');
+        }
+      }).catch(function (err) {
+        hideFullPageLoading();
+        Swal.fire('Error', err.toString(), 'error');
+      });
+    });
+  };
+
+  // --- TUTUP BUKU PERIODE PAYROLL ---
+  window.confirmTutupBukuDataGaji = function () {
+    var targetPeriod = cachedPeriodeList.find(function (p) { return p.id === currentSelectedPeriodId; }) || currentActivePeriodInfo;
+    if (!targetPeriod) {
+      Swal.fire('Peringatan', 'Tidak ada periode payroll yang dipilih.', 'warning');
+      return;
+    }
+    if (targetPeriod.status === 'DITUTUP') {
+      Swal.fire('Info', 'Periode ini sudah dalam status DITUTUP buku.', 'info');
+      return;
+    }
+
+    var pName = targetPeriod.nama || targetPeriod.id;
+    var pRange = (targetPeriod.startDate ? safeFormatDateDMY(targetPeriod.startDate) : '-') + ' s/d ' + (targetPeriod.endDate ? safeFormatDateDMY(targetPeriod.endDate) : '-');
+
+    Swal.fire({
+      title: 'Tutup Buku Periode Payroll?',
+      html: '<div class="text-start extra-small p-3 bg-light rounded border mb-2">' +
+        '<div class="mb-1"><span class="text-muted">Nama Periode:</span> <strong class="text-dark">' + escapeHTML(pName) + '</strong></div>' +
+        '<div class="mb-1"><span class="text-muted">Rentang Cut-Off:</span> <strong class="text-dark">' + escapeHTML(pRange) + '</strong></div>' +
+        '<hr class="my-2">' +
+        '<div class="text-danger fw-semibold"><i class="bi bi-shield-lock-fill me-1"></i>PERINGATAN:</div>' +
+        '<div class="text-muted mt-1">Setelah periode ini ditutup buku, seluruh data lembur, ritase, dan tunjangan harian akan <strong>DIKUNCI PERMANEN</strong>. Data tidak dapat ditambah, diedit, atau dihapus lagi demi integritas laporan.</div>' +
+        '</div>',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-lock-fill me-1"></i>Ya, Tutup Buku Sekarang',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#dc2626'
+    }).then(function (result) {
+      if (!result.isConfirmed) return;
+
+      showFullPageLoading('Menutup buku periode payroll & mengkalkulasi total pengeluaran...');
+
+      gasRun('closePeriodePayroll', Auth.getToken(), targetPeriod.id).then(function (resp) {
+        hideFullPageLoading();
+        if (handleSessionExpired(resp)) return;
+
+        if (resp && resp.success) {
+          var grandTot = resp.period ? Number(resp.period.totalGaji || 0) : 0;
+          Swal.fire({
+            icon: 'success',
+            title: 'Buku Periode Berhasil Ditutup!',
+            html: 'Periode <strong>' + escapeHTML(pName) + '</strong> telah resmi ditutup dan dikunci.<br>' +
+              (grandTot > 0 ? '<div class="mt-2 p-2 bg-success-subtle text-success rounded fw-bold">Total Penggajian Final: ' + formatRupiahVal(grandTot) + '</div>' : ''),
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#2563eb'
+          });
+
+          loadDataGajiList();
+        } else {
+          Swal.fire('Gagal Menutup Buku', (resp && resp.message) || 'Terjadi kesalahan sistem.', 'error');
         }
       }).catch(function (err) {
         hideFullPageLoading();
@@ -924,9 +1317,14 @@
       return String(a.tanggal || '').localeCompare(String(b.tanggal || ''));
     });
 
-    // Tentukan periode laporan
+    // Tentukan periode laporan berdasarkan Periode Payroll resmi atau tanggal log
     var targetPeriod = '';
-    if (sortedLogs.length > 0 && sortedLogs[sortedLogs.length - 1].tanggal) {
+    var activeP = cachedPeriodeList.find(function (p) { return p.id === currentSelectedPeriodId; }) || currentActivePeriodInfo;
+    if (activeP && activeP.nama) {
+      var sDate = activeP.startDate ? safeFormatDateDMY(activeP.startDate) : '';
+      var eDate = activeP.endDate ? safeFormatDateDMY(activeP.endDate) : '';
+      targetPeriod = activeP.nama.toUpperCase() + (sDate && eDate ? ' (' + sDate + ' s/d ' + eDate + ')' : '');
+    } else if (sortedLogs.length > 0 && sortedLogs[sortedLogs.length - 1].tanggal) {
       var s = String(sortedLogs[sortedLogs.length - 1].tanggal).split('T')[0].split(' ')[0];
       var parts = s.split('-');
       if (parts.length === 3 && parts[0].length === 4) {
@@ -1103,36 +1501,37 @@
       '<td class="summary-card-td">' +
       '<div class="summary-card-title">Total Ritase</div>' +
       '<div class="summary-card-val" style="color: #b45309;">' + formatRupiahVal(totalNominalRit) + '</div>' +
-      '<div class="summary-card-sub">' + totalRitase + ' Trip Ritase</div>' +
+      '<div class="summary-card-sub">' + totalRitase + ' Rit Ritase</div>' +
       '</td>' +
       '<td class="summary-card-td">' +
       '<div class="summary-card-title">Total Tunjangan</div>' +
-      '<div class="summary-card-val">' + formatRupiahVal(totalTunjangan) + '</div>' +
-      '<div class="summary-card-sub">Uang Makan / Lapangan</div>' +
+      '<div class="summary-card-val" style="color: #0f172a;">' + formatRupiahVal(totalTunjangan) + '</div>' +
+      '<div class="summary-card-sub">Tunjangan Harian</div>' +
       '</td>' +
       '</tr>' +
       '</table>' +
 
-      // BANNER GRAND TOTAL TAKE HOME PAY
+      // BANNER TAKE HOME PAY
       '<div class="take-home-pay-banner">' +
       '<div>' +
-      '<div class="take-home-pay-label">Total Gaji Berjalan (Take Home Pay) :</div>' +
-      '<small style="font-size: 7pt; color: #166534;">Akumulasi Gaji Pokok + Overtime + Ritase + Tunjangan</small>' +
+      '<div class="take-home-pay-label">Total Penghasilan / Gaji Berjalan Saat Ini</div>' +
+      '<div style="font-size: 7pt; color: #15803d; margin-top: 1px;">Kalkulasi: Basic + Overtime + Ritase + Tunjangan Harian</div>' +
       '</div>' +
       '<div class="take-home-pay-value">' + formatRupiahVal(grandTotal) + '</div>' +
       '</div>' +
 
       // TABEL RINCIAN LOG HARIAN
+      '<div style="font-size: 8pt; font-weight: 700; color: #0f172a; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;">Rincian Log Kerja Harian:</div>' +
       '<table class="data-table">' +
       '<thead>' +
       '<tr>' +
-      '<th style="width: 32px;">No</th>' +
-      '<th style="width: 130px; text-align: left;">Tanggal Kerja</th>' +
-      '<th style="width: 100px; text-align: right;">Overtime</th>' +
-      '<th style="width: 100px; text-align: right;">Ritase</th>' +
-      '<th style="width: 95px; text-align: right;">Tunjangan</th>' +
-      '<th style="width: 110px; text-align: right;">Total Hari Itu</th>' +
-      '<th style="text-align: left;">Catatan / Rute Kegiatan</th>' +
+      '<th style="width: 25px;">No</th>' +
+      '<th style="width: 110px;">Tanggal Kerja</th>' +
+      '<th style="width: 85px;">Overtime</th>' +
+      '<th style="width: 75px;">Ritase</th>' +
+      '<th style="width: 80px;">Tunjangan</th>' +
+      '<th style="width: 95px;">Total Hari Itu</th>' +
+      '<th>Catatan / Keterangan</th>' +
       '</tr>' +
       '</thead>' +
       '<tbody>' +
@@ -1140,60 +1539,63 @@
       '</tbody>' +
       '<tfoot>' +
       '<tr>' +
-      '<td colspan="2" style="text-align: right; text-transform: uppercase;">TOTAL AKUMULASI HARIAN :</td>' +
-      '<td style="text-align: right; color: #1d4ed8;">' + totalJamOt + ' Jam<br>' + formatRupiahVal(totalNominalOt) + '</td>' +
-      '<td style="text-align: right; color: #b45309;">' + totalRitase + ' Rit<br>' + formatRupiahVal(totalNominalRit) + '</td>' +
+      '<td colspan="2" style="text-align: right; text-transform: uppercase;">Total Penghasilan Harian:</td>' +
+      '<td style="text-align: right; color: #1d4ed8;">' + formatRupiahVal(totalNominalOt) + '</td>' +
+      '<td style="text-align: right; color: #b45309;">' + formatRupiahVal(totalNominalRit) + '</td>' +
       '<td style="text-align: right;">' + formatRupiahVal(totalTunjangan) + '</td>' +
       '<td style="text-align: right; color: #15803d; font-size: 8.5pt;">' + formatRupiahVal(totalPenghasilanHarian) + '</td>' +
-      '<td style="color: #64748b; font-size: 7pt; font-style: italic;">* Belum termasuk gaji pokok</td>' +
+      '<td style="font-weight: normal; font-size: 7pt; color: #64748b;">(' + totalHariKerja + ' Hari Terinput)</td>' +
+      '</tr>' +
+      '<tr style="background: #e2e8f0 !important; font-size: 8.5pt;">' +
+      '<td colspan="5" style="text-align: right; text-transform: uppercase; font-weight: 800;">GRAND TOTAL PENGHASILAN (BASIC + HARIAN):</td>' +
+      '<td style="text-align: right; color: #15803d; font-weight: 800; font-size: 9.5pt;">' + formatRupiahVal(grandTotal) + '</td>' +
+      '<td></td>' +
       '</tr>' +
       '</tfoot>' +
       '</table>' +
 
-      // TANDA TANGAN 3 KOLOM
+      // KOLOM TANDA TANGAN
       '<table class="sig-table">' +
       '<tr>' +
       '<td class="sig-card">' +
-      '<div class="sig-title">Dibuat Oleh</div>' +
+      '<div class="sig-title">Disiapkan Oleh,</div>' +
       '<div class="sig-area">' +
-      '<span class="sig-badge"><i class="bi bi-shield-check"></i> E-VERIFIED PAYROLL</span>' +
+      '<div class="sig-badge"><i class="bi bi-shield-check"></i> DIGITAL SIGNED</div>' +
       '</div>' +
       '<div class="sig-name">' + escapeHTML(authorName) + '</div>' +
-      '<div class="sig-role">Admin Payroll &amp; HRD</div>' +
+      '<div class="sig-role">HRD / Payroll Dept</div>' +
       '</td>' +
       '<td class="sig-card">' +
-      '<div class="sig-title">Mengetahui (Atasan)</div>' +
-      '<div class="sig-area">' +
-      '<span style="font-size: 7pt; color: #94a3b8; font-style: italic;">Tanda Tangan &amp; Stempel</span>' +
-      '</div>' +
-      '<div class="sig-name">( &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; )</div>' +
-      '<div class="sig-role">Supervisor / Head of Dept</div>' +
+      '<div class="sig-title">Karyawan Yang Bersangkutan,</div>' +
+      '<div class="sig-area"></div>' +
+      '<div class="sig-name">' + escapeHTML(emp.name) + '</div>' +
+      '<div class="sig-role">ID: ' + escapeHTML(emp.id) + '</div>' +
       '</td>' +
       '<td class="sig-card">' +
-      '<div class="sig-title">Disetujui Oleh</div>' +
-      '<div class="sig-area">' +
-      '<span style="font-size: 7pt; color: #94a3b8; font-style: italic;">Tanda Tangan &amp; Stempel</span>' +
-      '</div>' +
-      '<div class="sig-name">( &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; )</div>' +
-      '<div class="sig-role">PJO / Direktur Operasional</div>' +
+      '<div class="sig-title">Mengetahui / Menyetujui,</div>' +
+      '<div class="sig-area"></div>' +
+      '<div class="sig-name">PIMPINAN / DIREKSI</div>' +
+      '<div class="sig-role">PT. Berkah Batu Bara</div>' +
       '</td>' +
       '</tr>' +
       '</table>' +
 
-      // FOOTER WATERMARK
+      // FOOTER DOKUMEN
       '<div class="report-footer-note">' +
-      '<div><i class="bi bi-shield-lock-fill"></i> Laporan ini sah dan diterbitkan secara elektronik melalui Sistem Informasi Penggajian PT. Berkah Batu Bara.</div>' +
-      '<div>Dicetak: ' + escapeHTML(tanggalCetak) + '</div>' +
+      '<span>* Dokumen ini dibuat otomatis oleh Sistem Informasi Penggajian PT. Berkah Batu Bara pada ' + escapeHTML(tanggalCetak) + '.</span>' +
+      '<span>Halaman 1 / 1 &nbsp;|&nbsp; ' + escapeHTML(nomorDokumen) + '</span>' +
       '</div>' +
 
       '</div>';
 
-    var docTitle = 'Laporan_Rincian_Gaji_' + String(emp.name || 'Karyawan').replace(/\s+/g, '_') + '_' + String(emp.id || '') + '_' + targetPeriod.replace(/\s+/g, '_');
+    var docTitle = 'Laporan_Gaji_' + String(emp.name).replace(/[^a-zA-Z0-9]/g, '_') + '_' + String(targetPeriod).replace(/[^a-zA-Z0-9]/g, '_');
 
-    var iframe = document.getElementById('printDataGajiHiddenIframe');
+    // Buat iframe tersembunyi untuk mencetak dokumen
+    var iframeId = 'print-salary-report-iframe';
+    var iframe = document.getElementById(iframeId);
     if (!iframe) {
       iframe = document.createElement('iframe');
-      iframe.id = 'printDataGajiHiddenIframe';
+      iframe.id = iframeId;
       iframe.style.position = 'fixed';
       iframe.style.right = '0';
       iframe.style.bottom = '0';
@@ -1267,12 +1669,18 @@
     var token = (typeof Auth !== 'undefined' && Auth.getToken) ? Auth.getToken() : null;
     if (!token) return;
 
-    gasRun('getDataGaji', token).then(function (res) {
+    gasRun('getDataGaji', token, null, null, currentSelectedPeriodId).then(function (res) {
       if (typeof handleSessionExpired === 'function' && handleSessionExpired(res)) return;
 
       if (res && res.success) {
         cachedGajiSayaData = res;
         cachedDataGajiLogs = Array.isArray(res.list) ? res.list : [];
+        if (Array.isArray(res.periods)) cachedPeriodeList = res.periods;
+        if (res.period) {
+          currentActivePeriodInfo = res.period;
+          if (!currentSelectedPeriodId) currentSelectedPeriodId = res.period.id;
+        }
+        populatePeriodeDropdowns(res.periods, res.period);
         renderGajiSayaPage(res);
       } else {
         if (tbody) {
