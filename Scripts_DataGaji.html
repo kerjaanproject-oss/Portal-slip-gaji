@@ -853,6 +853,12 @@
             timer: 1500,
             showConfirmButton: false
           });
+          // Segarkan data di memori seketika agar UI langsung responsif
+          cachedDataGajiLogs = cachedDataGajiLogs.filter(function (l) { return l.id !== logId; });
+          renderDataGajiTable();
+          if (currentRincianEmpId && bsModalRincianGaji) {
+            renderRincianModal(currentRincianEmpId);
+          }
           loadDataGajiList();
         } else {
           Swal.fire('Gagal Menghapus', (resp && resp.message) || 'Gagal menghapus data.', 'error');

@@ -1,75 +1,168 @@
 // ==========================================================================
-// MODUL INPUT & PENGELOLAAN DATA GAJI KARYAWAN (INPUT HARIAN & TOTAL GAJI)
+// MODUL INPUT & PENGELOLAAN DATA GAJI KARYAWAN (1 BARIS PER KARYAWAN + JSON LOG)
 // File: Kode_DataGaji.js
-// Berisi fungsi inisialisasi sheet DataGaji, CRUD data gaji harian, dan kalkulasi
+// 
+// Solusi Database Cerdas:
+// 1. Di database Google Sheets 'DataGaji', HANYA ADA 1 BARIS PER KARYAWAN
+//    (misal 37 karyawan = tetap 37 baris, tidak akan bertambah ribuan baris).
+// 2. Setiap baris menyimpan akumulasi total berjalan (Overtime, Ritase, Tunjangan, Total Gaji, Hari Kerja).
+// 3. Rincian harian per tanggal disimpan dalam format JSON di kolom 'Rincian_Log_Harian'.
+// 4. Saat input/edit/hapus harian, sistem memperbarui baris karyawan tersebut secara in-place.
 // ==========================================================================
 
-function getOrCreateDataGajiSheet(ss) {
-  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName('DataGaji') || ss.getSheetByName('Data Gaji') || ss.getSheetByName('Data_Gaji');
-  if (!sheet) {
-    sheet = ss.insertSheet('DataGaji');
-  }
-  if (sheet.getLastRow() === 0) {
-    const headers = [
-      'ID Gaji',
-      'Tanggal Kerja',
-      'Departemen',
-      'ID Karyawan',
-      'Nama Karyawan',
-      'Jabatan',
-      'Gaji Pokok',
-      'Jam Overtime',
-      'Tarif Overtime',
-      'Total Overtime',
-      'Jumlah Ritase',
-      'Tarif Ritase',
-      'Total Ritase',
-      'Tunjangan Harian',
-      'Total Gaji',
-      'Catatan',
-      'Diinput Oleh'
-    ];
-    sheet.appendRow(headers);
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#1e293b').setFontColor('#ffffff');
-    sheet.setFrozenRows(1);
-  }
-  return sheet;
+const DATA_GAJI_HEADERS = [
+  'ID Karyawan',
+  'Nama Karyawan',
+  'Departemen & Jabatan',
+  'Gaji Pokok',
+  'Total Jam Overtime',
+  'Total Nominal Overtime',
+  'Total Ritase',
+  'Total Nominal Ritase',
+  'Total Tunjangan',
+  'Total Gaji Berjalan',
+  'Hari Kerja',
+  'Rincian_Log_Harian',
+  'Terakhir Diupdate'
+];
+
+/**
+ * Utility: Bersihkan nilai numerik dari string atau format uang
+ */
+function cleanSalaryNum(val) {
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const s = String(val).replace(/[^0-9.-]/g, '');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
 }
 
-function getDataGaji(token, filterDept, filterTanggal) {
-  const session = validateSession(token);
-  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+/**
+ * Format header sheet DataGaji
+ */
+function formatDataGajiHeaders(sheet) {
+  const headerRange = sheet.getRange(1, 1, 1, DATA_GAJI_HEADERS.length);
+  headerRange
+    .setFontWeight('bold')
+    .setBackground('#1e293b')
+    .setFontColor('#ffffff')
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle');
+  sheet.setRowHeight(1, 35);
+  sheet.setFrozenRows(1);
+}
 
-  const userRole = String(session.user.role || '').trim().toLowerCase();
-  const isHRD = (userRole === 'admin' || userRole === 'hrd');
-  if (!isHRD) {
-    return { success: false, message: 'Akses ditolak: Hanya Admin/HRD yang dapat melihat data gaji.' };
+/**
+ * Format kolom numerik dan mata uang pada sheet DataGaji
+ */
+function formatDataGajiDataRange(sheet, rowCount) {
+  if (!rowCount || rowCount <= 0) return;
+  const startRow = 2;
+  const lastRow = sheet.getLastRow();
+  const count = lastRow >= 2 ? (lastRow - 1) : rowCount;
+  if (count <= 0) return;
+
+  // Kolom Rupiah: Gaji Pokok (4), Total Nominal Overtime (6), Total Nominal Ritase (8), Total Tunjangan (9), Total Gaji Berjalan (10)
+  sheet.getRange(startRow, 4, count, 1).setNumberFormat('"Rp "#,##0');
+  sheet.getRange(startRow, 6, count, 1).setNumberFormat('"Rp "#,##0');
+  sheet.getRange(startRow, 8, count, 1).setNumberFormat('"Rp "#,##0');
+  sheet.getRange(startRow, 9, count, 1).setNumberFormat('"Rp "#,##0');
+  sheet.getRange(startRow, 10, count, 1).setNumberFormat('"Rp "#,##0');
+
+  // Kolom Numerik/Jumlah: Total Jam Overtime (5), Total Ritase (7), Hari Kerja (11)
+  sheet.getRange(startRow, 5, count, 1).setNumberFormat('#,##0.##');
+  sheet.getRange(startRow, 7, count, 1).setNumberFormat('#,##0');
+  sheet.getRange(startRow, 11, count, 1).setNumberFormat('#,##0');
+}
+
+/**
+ * Sinkronisasi karyawan dari sheet 'Users' agar seluruh karyawan otomatis memiliki 1 baris
+ */
+function syncEmployeesToDataGaji(ss, sheet) {
+  if (!sheet) return;
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  const userSheet = ss.getSheetByName('Users');
+  if (!userSheet) return;
+  const userData = userSheet.getDataRange().getValues();
+  if (!userData || userData.length <= 1) return;
+
+  const currentData = sheet.getDataRange().getValues();
+  const existingIds = new Set();
+  const existingNames = new Set();
+
+  for (let i = 1; i < currentData.length; i++) {
+    const id = String(currentData[i][0] || '').trim().toLowerCase();
+    const name = String(currentData[i][1] || '').trim().toLowerCase();
+    if (id) existingIds.add(id);
+    if (name) existingNames.add(name);
   }
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  SpreadsheetApp.flush();
-  const sheet = getOrCreateDataGajiSheet(ss);
-  const data = sheet.getDataRange().getValues();
-  const list = [];
-  if (!data || data.length <= 1) {
-    return { success: true, list: [] };
+  const rowsToAppend = [];
+  const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+
+  for (let u = 1; u < userData.length; u++) {
+    const uId = String(userData[u][0] || '').trim();
+    const uName = String(userData[u][1] || '').trim();
+    if (!uId && !uName) continue;
+
+    if (existingIds.has(uId.toLowerCase()) || existingNames.has(uName.toLowerCase())) {
+      continue;
+    }
+
+    const uJabatan = String(userData[u][2] || '').trim();
+    const uDept = String(userData[u][3] || '').trim();
+    const uBasic = cleanSalaryNum(userData[u][11]);
+    const deptJabatan = uDept ? (uDept + (uJabatan ? ' - ' + uJabatan : '')) : uJabatan;
+
+    rowsToAppend.push([
+      uId,
+      uName,
+      deptJabatan,
+      uBasic,
+      0,
+      0,
+      0,
+      0,
+      0,
+      uBasic,
+      0,
+      '[]',
+      nowStr
+    ]);
   }
 
-  function cleanNum(val) {
-    if (typeof val === 'number') return isNaN(val) ? 0 : val;
-    if (!val) return 0;
-    var s = String(val).replace(/[^0-9.-]/g, '');
-    var n = parseFloat(s);
-    return isNaN(n) ? 0 : n;
+  if (rowsToAppend.length > 0) {
+    const startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, rowsToAppend.length, DATA_GAJI_HEADERS.length).setValues(rowsToAppend);
+    formatDataGajiDataRange(sheet, rowsToAppend.length);
+    SpreadsheetApp.flush();
+  }
+}
+
+/**
+ * Otomatis migrasi data lama (format 1 baris per input harian) menjadi
+ * format cerdas 1 baris per karyawan dengan kolom JSON log harian.
+ */
+function migrateOldDataGajiToSummaryFormat(sheet, ss) {
+  if (!sheet) return;
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  const allData = sheet.getDataRange().getValues();
+  if (!allData || allData.length <= 1) {
+    sheet.clear();
+    sheet.appendRow(DATA_GAJI_HEADERS);
+    formatDataGajiHeaders(sheet);
+    syncEmployeesToDataGaji(ss, sheet);
+    return;
   }
 
-  const headers = data[0].map(function (h) {
+  const oldHeaders = allData[0].map(function (h) {
     return String(h || '').trim().toLowerCase().replace(/[\s_\-]+/g, ' ');
   });
 
   function findCol(keywords, fallbackIndex) {
-    var idx = headers.findIndex(function (h) {
+    const idx = oldHeaders.findIndex(function (h) {
       return keywords.some(function (k) { return h.includes(k) || h === k; });
     });
     return idx !== -1 ? idx : fallbackIndex;
@@ -93,14 +186,30 @@ function getDataGaji(token, filterDept, filterTanggal) {
   const noteIdx = findCol(['catatan', 'keterangan', 'note'], 15);
   const authorIdx = findCol(['diinput', 'oleh', 'author', 'admin', 'user'], 16);
 
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
+  // Kumpulkan data lama dan kelompokkan per karyawan
+  const groupedByEmp = {};
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
     if (!row || row.every(function (cell) { return String(cell || '').trim() === ''; })) continue;
 
-    const rowDept = deptIdx !== -1 && row[deptIdx] ? String(row[deptIdx]).trim() : String(row[2] || '').trim();
-    if (filterDept && filterDept !== 'SEMUA' && rowDept.toLowerCase() !== String(filterDept).trim().toLowerCase()) continue;
+    const rowEmpId = String(row[empIdIdx] !== undefined ? row[empIdIdx] : (row[3] || '')).trim();
+    const rowEmpName = String(row[nameIdx] !== undefined ? row[nameIdx] : (row[4] || '')).trim();
+    if (!rowEmpId && !rowEmpName) continue;
 
-    const rawTgl = tglIdx !== -1 && row[tglIdx] ? row[tglIdx] : row[1];
+    const groupKey = (rowEmpId || rowEmpName).toLowerCase();
+    if (!groupedByEmp[groupKey]) {
+      groupedByEmp[groupKey] = {
+        empId: rowEmpId,
+        empName: rowEmpName,
+        dept: String(row[deptIdx] !== undefined ? row[deptIdx] : (row[2] || '')).trim(),
+        jabatan: String(row[jabIdx] !== undefined ? row[jabIdx] : (row[5] || '')).trim(),
+        basic: cleanSalaryNum(row[basicIdx] !== undefined ? row[basicIdx] : row[6]),
+        logs: []
+      };
+    }
+
+    const rawTgl = row[tglIdx] !== undefined ? row[tglIdx] : row[1];
     let tglStr = '';
     if (rawTgl instanceof Date) {
       tglStr = Utilities.formatDate(rawTgl, 'Asia/Jakarta', 'yyyy-MM-dd');
@@ -111,39 +220,31 @@ function getDataGaji(token, filterDept, filterTanggal) {
       }
     }
 
-    if (filterTanggal && filterTanggal !== 'SEMUA' && tglStr !== String(filterTanggal).trim()) continue;
-
-    const rowEmpId = empIdIdx !== -1 && row[empIdIdx] ? String(row[empIdIdx]).trim() : String(row[3] || '').trim();
-    const rowEmpName = nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : String(row[4] || '').trim();
-    const rowJabatan = jabIdx !== -1 && row[jabIdx] ? String(row[jabIdx]).trim() : String(row[5] || '').trim();
-
-    const basic = cleanNum(basicIdx !== -1 && row[basicIdx] !== undefined ? row[basicIdx] : row[6]);
-    const jamOt = cleanNum(jamOtIdx !== -1 && row[jamOtIdx] !== undefined ? row[jamOtIdx] : row[7]);
-    const tarifOt = cleanNum(tarifOtIdx !== -1 && row[tarifOtIdx] !== undefined ? row[tarifOtIdx] : row[8]);
-    const totalOtRaw = cleanNum(totalOtIdx !== -1 && row[totalOtIdx] !== undefined ? row[totalOtIdx] : row[9]);
+    const jamOt = cleanSalaryNum(row[jamOtIdx] !== undefined ? row[jamOtIdx] : row[7]);
+    const tarifOt = cleanSalaryNum(row[tarifOtIdx] !== undefined ? row[tarifOtIdx] : row[8]);
+    const totalOtRaw = cleanSalaryNum(row[totalOtIdx] !== undefined ? row[totalOtIdx] : row[9]);
     const totalOt = totalOtRaw > 0 ? totalOtRaw : (jamOt * tarifOt);
 
-    const ritase = cleanNum(ritIdx !== -1 && row[ritIdx] !== undefined ? row[ritIdx] : row[10]);
-    const tarifRit = cleanNum(tarifRitIdx !== -1 && row[tarifRitIdx] !== undefined ? row[tarifRitIdx] : row[11]);
-    const totalRitRaw = cleanNum(totalRitIdx !== -1 && row[totalRitIdx] !== undefined ? row[totalRitIdx] : row[12]);
+    const ritase = cleanSalaryNum(row[ritIdx] !== undefined ? row[ritIdx] : row[10]);
+    const tarifRit = cleanSalaryNum(row[tarifRitIdx] !== undefined ? row[tarifRitIdx] : row[11]);
+    const totalRitRaw = cleanSalaryNum(row[totalRitIdx] !== undefined ? row[totalRitIdx] : row[12]);
     const totalRit = totalRitRaw > 0 ? totalRitRaw : (ritase * tarifRit);
 
-    const tunjangan = cleanNum(tunjIdx !== -1 && row[tunjIdx] !== undefined ? row[tunjIdx] : row[13]);
-    const totalGajiRaw = cleanNum(totalGajiIdx !== -1 && row[totalGajiIdx] !== undefined ? row[totalGajiIdx] : row[14]);
-    const totalGaji = totalGajiRaw > 0 ? totalGajiRaw : (basic + totalOt + totalRit + tunjangan);
+    const tunjangan = cleanSalaryNum(row[tunjIdx] !== undefined ? row[tunjIdx] : row[13]);
+    const totalGajiRaw = cleanSalaryNum(row[totalGajiIdx] !== undefined ? row[totalGajiIdx] : row[14]);
+    const totalGaji = totalGajiRaw > 0 ? totalGajiRaw : (groupedByEmp[groupKey].basic + totalOt + totalRit + tunjangan);
+    const catatan = String(row[noteIdx] !== undefined ? row[noteIdx] : (row[15] || '')).trim();
+    const author = String(row[authorIdx] !== undefined ? row[authorIdx] : (row[16] || '')).trim();
+    const rowId = String(row[idIdx] !== undefined ? row[idIdx] : (row[0] || '')).trim() || ('GJ-' + (tglStr ? tglStr.replace(/-/g, '') : 'MIG') + '-' + i);
 
-    const catatan = noteIdx !== -1 && row[noteIdx] ? String(row[noteIdx]).trim() : String(row[15] || '').trim();
-    const author = authorIdx !== -1 && row[authorIdx] ? String(row[authorIdx]).trim() : String(row[16] || '').trim();
-    const rowId = idIdx !== -1 && row[idIdx] ? String(row[idIdx]).trim() : (String(row[0] || '').trim() || ('GJ-' + i));
-
-    list.push({
+    groupedByEmp[groupKey].logs.push({
       id: rowId,
       tanggal: tglStr,
-      dept: rowDept,
+      dept: groupedByEmp[groupKey].dept,
       empId: rowEmpId,
       empName: rowEmpName,
-      jabatan: rowJabatan,
-      basic: basic,
+      jabatan: groupedByEmp[groupKey].jabatan,
+      basic: groupedByEmp[groupKey].basic,
       jamOvertime: jamOt,
       tarifOvertime: tarifOt,
       totalOvertime: totalOt,
@@ -157,17 +258,301 @@ function getDataGaji(token, filterDept, filterTanggal) {
     });
   }
 
-  // Urutkan tanggal terbaru di paling atas
-  list.sort(function (a, b) {
-    if (a.tanggal && b.tanggal) {
-      return b.tanggal.localeCompare(a.tanggal);
+  // Ambil master karyawan dari sheet Users
+  const userSheet = ss.getSheetByName('Users');
+  const userData = userSheet ? userSheet.getDataRange().getValues() : [];
+  const summaryRows = [];
+  const handledKeys = new Set();
+  const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+
+  for (let u = 1; u < userData.length; u++) {
+    const uId = String(userData[u][0] || '').trim();
+    const uName = String(userData[u][1] || '').trim();
+    if (!uId && !uName) continue;
+
+    const uJabatan = String(userData[u][2] || '').trim();
+    const uDept = String(userData[u][3] || '').trim();
+    const uBasic = cleanSalaryNum(userData[u][11]);
+
+    const keyById = uId.toLowerCase();
+    const keyByName = uName.toLowerCase();
+    const group = groupedByEmp[keyById] || groupedByEmp[keyByName];
+
+    let logs = [];
+    if (group && Array.isArray(group.logs)) {
+      logs = group.logs;
+      handledKeys.add(keyById);
+      handledKeys.add(keyByName);
     }
-    return 0;
+
+    logs.sort(function (a, b) {
+      return String(b.tanggal || '').localeCompare(String(a.tanggal || ''));
+    });
+
+    let totalJamOt = 0;
+    let totalNominalOt = 0;
+    let totalRitase = 0;
+    let totalNominalRit = 0;
+    let totalTunjangan = 0;
+    const uniqueDates = new Set();
+
+    logs.forEach(function (l) {
+      totalJamOt += Number(l.jamOvertime || 0);
+      totalNominalOt += Number(l.totalOvertime || 0);
+      totalRitase += Number(l.ritase || 0);
+      totalNominalRit += Number(l.totalRitase || 0);
+      totalTunjangan += Number(l.tunjanganHarian || 0);
+      if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
+    });
+
+    const hariKerja = uniqueDates.size || logs.length;
+    const totalGajiBerjalan = uBasic + totalNominalOt + totalNominalRit + totalTunjangan;
+    const deptJabatan = uDept ? (uDept + (uJabatan ? ' - ' + uJabatan : '')) : uJabatan;
+
+    summaryRows.push([
+      uId,
+      uName,
+      deptJabatan,
+      uBasic,
+      totalJamOt,
+      totalNominalOt,
+      totalRitase,
+      totalNominalRit,
+      totalTunjangan,
+      totalGajiBerjalan,
+      hariKerja,
+      JSON.stringify(logs),
+      nowStr
+    ]);
+  }
+
+  // Masukkan data log karyawan yang tidak ada di Users (jika ada)
+  Object.keys(groupedByEmp).forEach(function (k) {
+    if (handledKeys.has(k)) return;
+    const g = groupedByEmp[k];
+    const logs = g.logs || [];
+    logs.sort(function (a, b) {
+      return String(b.tanggal || '').localeCompare(String(a.tanggal || ''));
+    });
+
+    let totalJamOt = 0;
+    let totalNominalOt = 0;
+    let totalRitase = 0;
+    let totalNominalRit = 0;
+    let totalTunjangan = 0;
+    const uniqueDates = new Set();
+
+    logs.forEach(function (l) {
+      totalJamOt += Number(l.jamOvertime || 0);
+      totalNominalOt += Number(l.totalOvertime || 0);
+      totalRitase += Number(l.ritase || 0);
+      totalNominalRit += Number(l.totalRitase || 0);
+      totalTunjangan += Number(l.tunjanganHarian || 0);
+      if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
+    });
+
+    const hariKerja = uniqueDates.size || logs.length;
+    const totalGajiBerjalan = g.basic + totalNominalOt + totalNominalRit + totalTunjangan;
+    const deptJabatan = g.dept ? (g.dept + (g.jabatan ? ' - ' + g.jabatan : '')) : g.jabatan;
+
+    summaryRows.push([
+      g.empId,
+      g.empName,
+      deptJabatan,
+      g.basic,
+      totalJamOt,
+      totalNominalOt,
+      totalRitase,
+      totalNominalRit,
+      totalTunjangan,
+      totalGajiBerjalan,
+      hariKerja,
+      JSON.stringify(logs),
+      nowStr
+    ]);
   });
 
-  return { success: true, list: list };
+  // Tulis ulang sheet dengan format 1 baris per karyawan
+  sheet.clear();
+  sheet.appendRow(DATA_GAJI_HEADERS);
+  formatDataGajiHeaders(sheet);
+
+  if (summaryRows.length > 0) {
+    sheet.getRange(2, 1, summaryRows.length, DATA_GAJI_HEADERS.length).setValues(summaryRows);
+    formatDataGajiDataRange(sheet, summaryRows.length);
+  }
+
+  SpreadsheetApp.flush();
 }
 
+/**
+ * Inisialisasi atau ambil sheet DataGaji
+ */
+function getOrCreateDataGajiSheet(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('DataGaji') || ss.getSheetByName('Data Gaji') || ss.getSheetByName('Data_Gaji');
+  if (!sheet) {
+    sheet = ss.insertSheet('DataGaji');
+  }
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(DATA_GAJI_HEADERS);
+    formatDataGajiHeaders(sheet);
+    syncEmployeesToDataGaji(ss, sheet);
+  } else {
+    // Periksa apakah format header masih format lama
+    const firstHeader = String(sheet.getRange(1, 1).getValue() || '').trim().toLowerCase();
+    if (firstHeader !== 'id karyawan') {
+      migrateOldDataGajiToSummaryFormat(sheet, ss);
+    }
+  }
+
+  return sheet;
+}
+
+/**
+ * READ API: Mengambil data gaji karyawan
+ * Mengembalikan:
+ * - list: daftar semua log harian (diurai dari kolom JSON) untuk rincian riwayat
+ * - employees: daftar ringkasan 1 baris per karyawan dengan total akumulasi
+ */
+function getDataGaji(token, filterDept, filterTanggal) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  const userRole = String(session.user.role || '').trim().toLowerCase();
+  const isHRD = (userRole === 'admin' || userRole === 'hrd');
+  if (!isHRD) {
+    return { success: false, message: 'Akses ditolak: Hanya Admin/HRD yang dapat melihat data gaji.' };
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  SpreadsheetApp.flush();
+  const sheet = getOrCreateDataGajiSheet(ss);
+  const data = sheet.getDataRange().getValues();
+
+  if (!data || data.length <= 1) {
+    return { success: true, list: [], employees: [] };
+  }
+
+  const flatList = [];
+  const employeesSummary = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row || row.every(function (cell) { return String(cell || '').trim() === ''; })) continue;
+
+    const empId = String(row[0] || '').trim();
+    const empName = String(row[1] || '').trim();
+    const deptJabatan = String(row[2] || '').trim();
+    const basic = cleanSalaryNum(row[3]);
+    const totalJamOt = cleanSalaryNum(row[4]);
+    const totalNominalOt = cleanSalaryNum(row[5]);
+    const totalRitase = cleanSalaryNum(row[6]);
+    const totalNominalRit = cleanSalaryNum(row[7]);
+    const totalTunjangan = cleanSalaryNum(row[8]);
+    const totalGajiBerjalan = cleanSalaryNum(row[9]);
+    const hariKerja = cleanSalaryNum(row[10]);
+    const rawJson = String(row[11] || '').trim();
+    const terakhirDiupdate = row[12] ? String(row[12]) : '';
+
+    let dept = '';
+    let jabatan = '';
+    if (deptJabatan.indexOf(' - ') !== -1) {
+      const parts = deptJabatan.split(' - ');
+      dept = parts[0].trim();
+      jabatan = parts.slice(1).join(' - ').trim();
+    } else {
+      dept = deptJabatan;
+    }
+
+    if (filterDept && filterDept !== 'SEMUA') {
+      if (dept.toLowerCase() !== String(filterDept).trim().toLowerCase()) {
+        continue;
+      }
+    }
+
+    let logs = [];
+    try {
+      if (rawJson && rawJson.startsWith('[')) {
+        logs = JSON.parse(rawJson);
+      }
+    } catch (e) {
+      console.warn('Gagal parse JSON log di baris ' + (i + 1) + ':', e);
+      logs = [];
+    }
+
+    // Urutkan log dari tanggal terbaru
+    logs.sort(function (a, b) {
+      return String(b.tanggal || '').localeCompare(String(a.tanggal || ''));
+    });
+
+    logs.forEach(function (log) {
+      if (!log) return;
+      if (filterTanggal && filterTanggal !== 'SEMUA') {
+        const logTgl = String(log.tanggal || '').trim();
+        if (logTgl !== String(filterTanggal).trim()) return;
+      }
+
+      flatList.push({
+        id: log.id || ('GJ-' + (log.tanggal ? log.tanggal.replace(/-/g, '') : '') + '-' + Utilities.getUuid().slice(0, 6)),
+        tanggal: log.tanggal || '',
+        dept: log.dept || dept,
+        empId: log.empId || empId,
+        empName: log.empName || empName,
+        jabatan: log.jabatan || jabatan,
+        basic: cleanSalaryNum(log.basic !== undefined ? log.basic : basic),
+        jamOvertime: cleanSalaryNum(log.jamOvertime),
+        tarifOvertime: cleanSalaryNum(log.tarifOvertime),
+        totalOvertime: cleanSalaryNum(log.totalOvertime || (log.jamOvertime * log.tarifOvertime)),
+        ritase: cleanSalaryNum(log.ritase),
+        tarifRitase: cleanSalaryNum(log.tarifRitase),
+        totalRitase: cleanSalaryNum(log.totalRitase || (log.ritase * log.tarifRitase)),
+        tunjanganHarian: cleanSalaryNum(log.tunjanganHarian),
+        totalGaji: cleanSalaryNum(log.totalGaji),
+        catatan: String(log.catatan || '').trim(),
+        author: String(log.author || '').trim()
+      });
+    });
+
+    employeesSummary.push({
+      id: empId,
+      name: empName,
+      dept: dept,
+      jabatan: jabatan,
+      deptJabatan: deptJabatan,
+      basic: basic,
+      totalJamOt: totalJamOt,
+      totalNominalOt: totalNominalOt,
+      totalRitase: totalRitase,
+      totalNominalRit: totalNominalRit,
+      totalTunjangan: totalTunjangan,
+      grandTotal: totalGajiBerjalan,
+      daysCount: hariKerja,
+      logs: logs,
+      terakhirDiupdate: terakhirDiupdate
+    });
+  }
+
+  // Urutkan flatList tanggal terbaru paling atas
+  flatList.sort(function (a, b) {
+    return String(b.tanggal || '').localeCompare(String(a.tanggal || ''));
+  });
+
+  return {
+    success: true,
+    list: flatList,
+    employees: employeesSummary
+  };
+}
+
+/**
+ * WRITE API: Simpan / Edit data gaji harian karyawan
+ * - Menemukan baris karyawan terkait di spreadsheet
+ * - Meng-update akumulasi total di baris tersebut
+ * - Menyimpan rincian harian ke dalam kolom JSON 'Rincian_Log_Harian'
+ * - Baris baru di spreadsheet TIDAK BERTAMBAH!
+ */
 function saveDataGaji(token, payload) {
   const session = validateSession(token);
   if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
@@ -188,22 +573,23 @@ function saveDataGaji(token, payload) {
   const empName = String(payload.empName || '').trim();
   const jabatan = String(payload.jabatan || '').trim();
 
-  if (!tanggal || !dept || !empId || !empName) {
-    return { success: false, message: 'Mohon lengkapi Tanggal Kerja, Departemen, dan Nama Karyawan.' };
+  if (!tanggal || !empId || !empName) {
+    return { success: false, message: 'Mohon lengkapi Tanggal Kerja dan Nama Karyawan.' };
   }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Basic salary diambil dari payload atau dicari dari master Data Karyawan (sheet Users col 12)
-  let basic = Math.max(0, Number(payload.basic || 0));
+  // Basic salary
+  let basic = Math.max(0, cleanSalaryNum(payload.basic));
   if (basic === 0) {
     try {
       const userSheet = ss.getSheetByName('Users');
       if (userSheet) {
         const uData = userSheet.getDataRange().getValues();
         for (let u = 1; u < uData.length; u++) {
-          if (String(uData[u][0] || '').trim().toLowerCase() === empId.toLowerCase()) {
-            basic = Number(uData[u][11] || 0);
+          if (String(uData[u][0] || '').trim().toLowerCase() === empId.toLowerCase() ||
+              String(uData[u][1] || '').trim().toLowerCase() === empName.toLowerCase()) {
+            basic = cleanSalaryNum(uData[u][11]);
             break;
           }
         }
@@ -213,60 +599,53 @@ function saveDataGaji(token, payload) {
     }
   }
 
-  // Komponen numerik harian (default 0 jika kosong)
-  const jamOt = Math.max(0, Number(payload.jamOvertime || 0));
-  const tarifOt = Math.max(0, Number(payload.tarifOvertime || 0));
+  const jamOt = Math.max(0, cleanSalaryNum(payload.jamOvertime));
+  const tarifOt = Math.max(0, cleanSalaryNum(payload.tarifOvertime));
   const totalOt = jamOt * tarifOt;
 
-  const ritase = Math.max(0, Number(payload.ritase || 0));
-  const tarifRit = Math.max(0, Number(payload.tarifRitase || 0));
+  const ritase = Math.max(0, cleanSalaryNum(payload.ritase));
+  const tarifRit = Math.max(0, cleanSalaryNum(payload.tarifRitase));
   const totalRit = ritase * tarifRit;
 
-  const tunjangan = Math.max(0, Number(payload.tunjanganHarian || 0));
-
-  // TOTAL GAJI = Basic + Overtime + Ritase + Tunjangan
-  const totalGaji = basic + totalOt + totalRit + tunjangan;
+  const tunjangan = Math.max(0, cleanSalaryNum(payload.tunjanganHarian));
   const catatan = String(payload.catatan || '').trim();
   const author = String(session.user.username || 'Admin').trim();
+  const editId = String(payload.id || '').trim();
 
   const sheet = getOrCreateDataGajiSheet(ss);
   const data = sheet.getDataRange().getValues();
 
-  // Cek apakah mode Edit
-  const editId = String(payload.id || '').trim();
-  let existingRowIndex = -1;
+  // Cari baris karyawan di spreadsheet
+  let targetRowIndex = -1;
+  let existingLogs = [];
+  let existingBasic = basic;
+  let existingDeptJabatan = dept ? (dept + (jabatan ? ' - ' + jabatan : '')) : jabatan;
 
-  if (editId) {
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0] || '').trim() === editId) {
-        existingRowIndex = i + 1; // 1-based index
-        break;
+  for (let i = 1; i < data.length; i++) {
+    const rowEmpId = String(data[i][0] || '').trim().toLowerCase();
+    const rowEmpName = String(data[i][1] || '').trim().toLowerCase();
+    if ((empId && rowEmpId === empId.toLowerCase()) || (empName && rowEmpName === empName.toLowerCase())) {
+      targetRowIndex = i + 1; // 1-based index
+      if (!existingDeptJabatan && data[i][2]) existingDeptJabatan = String(data[i][2]).trim();
+      if (basic === 0 && data[i][3]) existingBasic = cleanSalaryNum(data[i][3]);
+      const rawJson = String(data[i][11] || '').trim();
+      try {
+        if (rawJson && rawJson.startsWith('[')) {
+          existingLogs = JSON.parse(rawJson);
+        }
+      } catch (e) {
+        existingLogs = [];
       }
+      break;
     }
   }
 
-  const rowValues = [
-    editId || '',
-    tanggal,
-    dept,
-    empId,
-    empName,
-    jabatan,
-    basic,
-    jamOt,
-    tarifOt,
-    totalOt,
-    ritase,
-    tarifRit,
-    totalRit,
-    tunjangan,
-    totalGaji,
-    catatan,
-    author
-  ];
+  if (basic === 0 && existingBasic > 0) basic = existingBasic;
 
-  const savedItem = {
-    id: existingRowIndex > 0 ? editId : '',
+  // Siapkan item catatan harian
+  const logId = editId || ('GJ-' + tanggal.replace(/-/g, '') + '-' + Utilities.getUuid().slice(0, 6).toUpperCase());
+  const logItem = {
+    id: logId,
     tanggal: tanggal,
     dept: dept,
     empId: empId,
@@ -280,26 +659,102 @@ function saveDataGaji(token, payload) {
     tarifRitase: tarifRit,
     totalRitase: totalRit,
     tunjanganHarian: tunjangan,
-    totalGaji: totalGaji,
+    totalGaji: (basic + totalOt + totalRit + tunjangan),
     catatan: catatan,
-    author: author
+    author: author,
+    updatedAt: Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss')
   };
 
-  if (existingRowIndex > 0) {
-    rowValues[0] = editId;
-    sheet.getRange(existingRowIndex, 1, 1, rowValues.length).setValues([rowValues]);
-    SpreadsheetApp.flush();
-    return { success: true, message: 'Data gaji berhasil diperbarui.', id: editId, item: savedItem };
+  if (editId) {
+    const logIdx = existingLogs.findIndex(function (l) { return String(l.id || '').trim() === editId; });
+    if (logIdx !== -1) {
+      existingLogs[logIdx] = logItem;
+    } else {
+      existingLogs.push(logItem);
+    }
   } else {
-    const newId = 'GJ-' + tanggal.replace(/-/g, '') + '-' + Utilities.getUuid().slice(0, 6).toUpperCase();
-    rowValues[0] = newId;
-    sheet.appendRow(rowValues);
-    SpreadsheetApp.flush();
-    savedItem.id = newId;
-    return { success: true, message: 'Data gaji berhasil disimpan.', id: newId, item: savedItem };
+    existingLogs.push(logItem);
   }
+
+  // Urutkan riwayat berdasarkan tanggal descending
+  existingLogs.sort(function (a, b) {
+    return String(b.tanggal || '').localeCompare(String(a.tanggal || ''));
+  });
+
+  // Hitung ulang akumulasi total karyawan
+  let totalJamOt = 0;
+  let totalNominalOt = 0;
+  let totalRitase = 0;
+  let totalNominalRit = 0;
+  let totalTunjangan = 0;
+  const uniqueDates = new Set();
+
+  existingLogs.forEach(function (l) {
+    totalJamOt += Number(l.jamOvertime || 0);
+    totalNominalOt += Number(l.totalOvertime || 0);
+    totalRitase += Number(l.ritase || 0);
+    totalNominalRit += Number(l.totalRitase || 0);
+    totalTunjangan += Number(l.tunjanganHarian || 0);
+    if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
+  });
+
+  const hariKerja = uniqueDates.size || existingLogs.length;
+  const totalGajiBerjalan = basic + totalNominalOt + totalNominalRit + totalTunjangan;
+  const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+  const jsonStr = JSON.stringify(existingLogs);
+
+  const rowValues = [
+    empId,
+    empName,
+    existingDeptJabatan,
+    basic,
+    totalJamOt,
+    totalNominalOt,
+    totalRitase,
+    totalNominalRit,
+    totalTunjangan,
+    totalGajiBerjalan,
+    hariKerja,
+    jsonStr,
+    nowStr
+  ];
+
+  if (targetRowIndex > 0) {
+    // UPDATE BARIS YANG SUDAH ADA (BARIS TIDAK BERTAMBAH!)
+    sheet.getRange(targetRowIndex, 1, 1, DATA_GAJI_HEADERS.length).setValues([rowValues]);
+    formatDataGajiDataRange(sheet, 1);
+  } else {
+    // Baris baru hanya jika karyawan ini belum ada di sheet
+    sheet.appendRow(rowValues);
+    formatDataGajiDataRange(sheet, 1);
+  }
+
+  SpreadsheetApp.flush();
+
+  return {
+    success: true,
+    message: editId ? 'Data gaji harian berhasil diperbarui.' : 'Data gaji harian berhasil disimpan.',
+    id: logItem.id,
+    item: logItem,
+    totals: {
+      totalJamOt: totalJamOt,
+      totalNominalOt: totalNominalOt,
+      totalRitase: totalRitase,
+      totalNominalRit: totalNominalRit,
+      totalTunjangan: totalTunjangan,
+      totalGajiBerjalan: totalGajiBerjalan,
+      hariKerja: hariKerja
+    }
+  };
 }
 
+/**
+ * DELETE API: Hapus catatan log harian tertentu
+ * - Mencari baris karyawan yang memuat ID catatan tersebut di kolom JSON
+ * - Menghapus item dari array JSON
+ * - Menghitung ulang akumulasi total
+ * - Memperbarui baris tersebut in-place (baris karyawan tetap ada)
+ */
 function deleteDataGaji(token, id) {
   const session = validateSession(token);
   if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
@@ -318,10 +773,60 @@ function deleteDataGaji(token, id) {
   const data = sheet.getDataRange().getValues();
 
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0] || '').trim() === cleanId) {
-      sheet.deleteRow(i + 1);
+    const rawJson = String(data[i][11] || '').trim();
+    if (!rawJson.includes(cleanId)) continue;
+
+    let logs = [];
+    try {
+      if (rawJson && rawJson.startsWith('[')) {
+        logs = JSON.parse(rawJson);
+      }
+    } catch (e) {
+      logs = [];
+    }
+
+    const logIdx = logs.findIndex(function (l) { return String(l.id || '').trim() === cleanId; });
+    if (logIdx !== -1) {
+      logs.splice(logIdx, 1);
+
+      // Hitung ulang akumulasi total
+      let totalJamOt = 0;
+      let totalNominalOt = 0;
+      let totalRitase = 0;
+      let totalNominalRit = 0;
+      let totalTunjangan = 0;
+      const uniqueDates = new Set();
+
+      logs.forEach(function (l) {
+        totalJamOt += Number(l.jamOvertime || 0);
+        totalNominalOt += Number(l.totalOvertime || 0);
+        totalRitase += Number(l.ritase || 0);
+        totalNominalRit += Number(l.totalRitase || 0);
+        totalTunjangan += Number(l.tunjanganHarian || 0);
+        if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
+      });
+
+      const basic = cleanSalaryNum(data[i][3]);
+      const hariKerja = uniqueDates.size || logs.length;
+      const totalGajiBerjalan = basic + totalNominalOt + totalNominalRit + totalTunjangan;
+      const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+      const jsonStr = JSON.stringify(logs);
+
+      // Update kolom 5 s/d 13 di baris karyawan tersebut
+      sheet.getRange(i + 1, 5, 1, 9).setValues([[
+        totalJamOt,
+        totalNominalOt,
+        totalRitase,
+        totalNominalRit,
+        totalTunjangan,
+        totalGajiBerjalan,
+        hariKerja,
+        jsonStr,
+        nowStr
+      ]]);
+
       SpreadsheetApp.flush();
-      return { success: true, message: 'Data gaji berhasil dihapus.' };
+      return { success: true, message: 'Catatan harian berhasil dihapus.' };
     }
   }
 
