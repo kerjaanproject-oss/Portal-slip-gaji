@@ -316,6 +316,7 @@
         '  <div class="action-group">' +
         '    <button class="btn btn-sm btn-primary py-1 px-2.5 fw-semibold" onclick="openInputForEmp(\'' + escapeHTML(emp.id) + '\')" title="Input Harian untuk Karyawan Ini"><i class="bi bi-plus-lg me-1"></i>Input Harian</button>' +
         '    <button class="btn btn-sm btn-outline-info py-1 px-2.5 ms-1" onclick="openRincianEmp(\'' + escapeHTML(emp.id) + '\')" title="Lihat Rincian Riwayat Harian"><i class="bi bi-eye me-1"></i>Rincian</button>' +
+        '    <button class="btn btn-sm btn-outline-danger py-1 px-2.5 ms-1" onclick="printRincianGajiEmp(\'' + escapeHTML(emp.id) + '\')" title="Cetak / Simpan PDF Laporan Rincian"><i class="bi bi-printer me-1"></i>PDF</button>' +
         '  </div>' +
         '</td>';
 
@@ -869,6 +870,388 @@
       });
     });
   };
+
+  // --- CETAK LAPORAN RINCIAN GAJI HARIAN KARYAWAN (PDF / PRINT) ---
+  window.printRincianGajiCurrentEmp = function () {
+    if (!currentRincianEmpId) {
+      Swal.fire('Perhatian', 'Pilih karyawan terlebih dahulu.', 'warning');
+      return;
+    }
+    window.printRincianGajiEmp(currentRincianEmpId);
+  };
+
+  window.printRincianGajiEmp = function (empId) {
+    if (!empId) return;
+
+    var emp = (dbKaryawan || []).find(function (k) { return matchLogToEmp({ empId: empId, empName: empId }, k); });
+    if (!emp) {
+      var sampleLog = cachedDataGajiLogs.find(function (l) {
+        return matchLogToEmp(l, { id: empId, name: empId });
+      });
+      if (sampleLog) {
+        emp = {
+          id: sampleLog.empId || empId,
+          name: sampleLog.empName || empId,
+          dept: sampleLog.dept || '-',
+          jabatan: sampleLog.jabatan || '-',
+          gajiPokok: sampleLog.basic || 0
+        };
+      } else {
+        emp = {
+          id: empId,
+          name: empId,
+          dept: '-',
+          jabatan: '-',
+          gajiPokok: 0
+        };
+      }
+    }
+
+    var kLogs = cachedDataGajiLogs.filter(function (log) {
+      return matchLogToEmp(log, emp);
+    });
+
+    generateAndPrintSalaryReport(emp, kLogs);
+  };
+
+  function generateAndPrintSalaryReport(emp, kLogs) {
+    var BULAN_INDO = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    var now = new Date();
+    var tanggalCetak = now.getDate() + ' ' + BULAN_INDO[now.getMonth()] + ' ' + now.getFullYear();
+
+    // Urutkan catatan dari tanggal terawal ke tanggal terakhir (kronologis 1 s/d 31)
+    var sortedLogs = (kLogs || []).slice().sort(function (a, b) {
+      return String(a.tanggal || '').localeCompare(String(b.tanggal || ''));
+    });
+
+    // Tentukan periode laporan
+    var targetPeriod = '';
+    if (sortedLogs.length > 0 && sortedLogs[sortedLogs.length - 1].tanggal) {
+      var s = String(sortedLogs[sortedLogs.length - 1].tanggal).split('T')[0].split(' ')[0];
+      var parts = s.split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        var mIdx = Number(parts[1]) - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+          targetPeriod = BULAN_INDO[mIdx].toUpperCase() + ' ' + parts[0];
+        }
+      }
+    }
+    if (!targetPeriod) {
+      targetPeriod = BULAN_INDO[now.getMonth()].toUpperCase() + ' ' + now.getFullYear();
+    }
+
+    var basicVal = Number(emp.gajiPokok) || 0;
+    var totalJamOt = 0;
+    var totalNominalOt = 0;
+    var totalRitase = 0;
+    var totalNominalRit = 0;
+    var totalTunjangan = 0;
+    var uniqueDates = new Set();
+
+    var rowsHtml = '';
+    if (sortedLogs.length === 0) {
+      rowsHtml = '<tr><td colspan="7" style="text-align: center; padding: 18px 8px; color: #64748b; font-style: italic;">Belum ada catatan lembur, ritase, atau tunjangan harian yang tercatat pada periode ini.</td></tr>';
+    } else {
+      sortedLogs.forEach(function (log, idx) {
+        var jOt = Number(log.jamOvertime || 0);
+        var subOt = Number(log.totalOvertime || (jOt * Number(log.tarifOvertime || 0)));
+        var rit = Number(log.ritase || 0);
+        var subRit = Number(log.totalRitase || (rit * Number(log.tarifRitase || 0)));
+        var tunj = Number(log.tunjanganHarian || 0);
+        var totalHariItu = subOt + subRit + tunj;
+
+        totalJamOt += jOt;
+        totalNominalOt += subOt;
+        totalRitase += rit;
+        totalNominalRit += subRit;
+        totalTunjangan += tunj;
+        if (log.tanggal) uniqueDates.add(String(log.tanggal).trim());
+
+        var otCell = jOt > 0
+          ? jOt + ' Jam<br><span style="color: #1d4ed8; font-weight: 700;">' + formatRupiahVal(subOt) + '</span>'
+          : '<span style="color: #94a3b8;">-</span>';
+
+        var ritCell = rit > 0
+          ? rit + ' Rit<br><span style="color: #b45309; font-weight: 700;">' + formatRupiahVal(subRit) + '</span>'
+          : '<span style="color: #94a3b8;">-</span>';
+
+        var tunjCell = tunj > 0
+          ? '<span style="font-weight: 700;">' + formatRupiahVal(tunj) + '</span>'
+          : '<span style="color: #94a3b8;">-</span>';
+
+        rowsHtml +=
+          '<tr>' +
+          '<td style="text-align: center; color: #64748b;">' + (idx + 1) + '</td>' +
+          '<td style="font-weight: 700; white-space: nowrap;">' + escapeHTML(formatDateWithDay(log.tanggal)) + '</td>' +
+          '<td style="text-align: right; white-space: nowrap;">' + otCell + '</td>' +
+          '<td style="text-align: right; white-space: nowrap;">' + ritCell + '</td>' +
+          '<td style="text-align: right; white-space: nowrap;">' + tunjCell + '</td>' +
+          '<td style="text-align: right; font-weight: 800; color: #15803d; white-space: nowrap;">' + formatRupiahVal(totalHariItu) + '</td>' +
+          '<td style="font-size: 7.5pt; color: #334155;">' + escapeHTML(log.catatan || '-') + '</td>' +
+          '</tr>';
+      });
+    }
+
+    var totalPenghasilanHarian = totalNominalOt + totalNominalRit + totalTunjangan;
+    var grandTotal = basicVal + totalPenghasilanHarian;
+    var totalHariKerja = uniqueDates.size || sortedLogs.length;
+
+    var authorName = (window.Auth && typeof window.Auth.getUser === 'function' && window.Auth.getUser() && window.Auth.getUser().name) || 'Admin Payroll / HRD';
+    var nomorDokumen = 'LAP-GJ/' + String(emp.id || 'EMP').toUpperCase().replace(/[^A-Z0-9]/g, '') + '/' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0');
+
+    var cssContent =
+      '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");' +
+      '* { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }' +
+      '@page { size: A4 portrait; margin: 8mm 12mm; }' +
+      'body { font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; margin: 0; padding: 0; background: #ffffff; color: #0f172a; font-size: 8.5pt; line-height: 1.35; }' +
+      '.report-paper { width: 100%; max-width: 210mm; margin: 0 auto; box-sizing: border-box; }' +
+      '.kop-table { width: 100%; border-collapse: collapse; border-bottom: 2.5px double #0f172a; padding-bottom: 8px; margin-bottom: 12px; }' +
+      '.kop-logo-td { width: 75px; vertical-align: middle; text-align: left; }' +
+      '.kop-logo { width: 68px; height: 68px; object-fit: contain; display: block; }' +
+      '.kop-center-td { text-align: center; vertical-align: middle; padding: 0 10px; }' +
+      '.kop-company { font-size: 13.5pt; font-weight: 800; color: #0f172a; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase; }' +
+      '.kop-division { font-size: 8.5pt; font-weight: 700; color: #1e40af; letter-spacing: 0.4px; margin-bottom: 2px; }' +
+      '.kop-address { font-size: 7.5pt; color: #475569; line-height: 1.35; }' +
+      '.kop-spacer-td { width: 75px; vertical-align: middle; }' +
+      '.report-title-section { text-align: center; margin-bottom: 12px; }' +
+      '.report-title { font-size: 11pt; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 3px 0; text-decoration: underline; }' +
+      '.report-submeta { font-size: 8pt; color: #475569; font-weight: 600; }' +
+      '.info-table { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; margin-bottom: 10px; border-collapse: collapse; }' +
+      '.info-table td { padding: 4.5px 8px; font-size: 8pt; vertical-align: top; }' +
+      '.info-table .lbl { color: #64748b; width: 17%; font-weight: 600; }' +
+      '.info-table .col { width: 2%; text-align: center; font-weight: bold; }' +
+      '.info-table .val { color: #0f172a; font-weight: 700; width: 31%; }' +
+      '.summary-cards-table { width: 100%; border-collapse: separate; border-spacing: 6px 0; margin-bottom: 10px; }' +
+      '.summary-card-td { width: 25%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; text-align: center; background: #ffffff; }' +
+      '.summary-card-title { font-size: 6.5pt; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 2px; }' +
+      '.summary-card-val { font-size: 9.5pt; font-weight: 800; color: #0f172a; }' +
+      '.summary-card-sub { font-size: 6.5pt; color: #64748b; margin-top: 1px; }' +
+      '.take-home-pay-banner { background: #f0fdf4 !important; border: 1.5px solid #16a34a !important; border-radius: 6px; padding: 7px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }' +
+      '.take-home-pay-label { font-size: 9pt; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.3px; }' +
+      '.take-home-pay-value { font-size: 13pt; font-weight: 800; color: #15803d; }' +
+      '.data-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 7.5pt; }' +
+      '.data-table th { background: #1e293b !important; color: #ffffff !important; padding: 5px 6px; font-size: 7pt; font-weight: 700; text-transform: uppercase; border: 1px solid #0f172a; text-align: center; }' +
+      '.data-table td { padding: 4px 6px; border: 1px solid #cbd5e1; vertical-align: middle; }' +
+      '.data-table tr:nth-child(even) td { background: #f8fafc; }' +
+      '.data-table tfoot td { background: #f1f5f9 !important; font-weight: 800; border-top: 2px solid #0f172a; padding: 6px; }' +
+      '.sig-table { width: 100%; border-collapse: separate; border-spacing: 12px 0; margin-top: 14px; }' +
+      '.sig-card { width: 33.33%; border: 1px dashed #94a3b8; border-radius: 6px; padding: 8px 6px; text-align: center; background: #fafafa; vertical-align: top; }' +
+      '.sig-title { font-size: 7.5pt; font-weight: 700; color: #334155; text-transform: uppercase; margin-bottom: 4px; }' +
+      '.sig-area { height: 46px; display: flex; align-items: center; justify-content: center; }' +
+      '.sig-badge { border: 1px solid #16a34a; color: #16a34a; background: #f0fdf4; padding: 3px 6px; border-radius: 4px; font-size: 6.5pt; font-weight: 800; }' +
+      '.sig-name { font-size: 8pt; font-weight: 800; color: #0f172a; text-decoration: underline; margin-top: 3px; }' +
+      '.sig-role { font-size: 7pt; color: #64748b; }' +
+      '.report-footer-note { margin-top: 14px; padding-top: 6px; border-top: 1px solid #e2e8f0; font-size: 6.5pt; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; }';
+
+    var paperHtml =
+      '<div class="report-paper">' +
+
+      // KOP SURAT
+      '<table class="kop-table">' +
+      '<tr>' +
+      '<td class="kop-logo-td">' +
+      '<img src="image/BBB.png" alt="Logo PT. Berkah Batu Bara" class="kop-logo" onerror="this.style.display=\'none\'">' +
+      '</td>' +
+      '<td class="kop-center-td">' +
+      '<div class="kop-company">PT. BERKAH BATU BARA</div>' +
+      '<div class="kop-division">GENERAL SUPPLIER TRANSPORT &amp; MINING CONTRACTOR</div>' +
+      '<div class="kop-address">JL. KH. Wahid Hasyim 1 Karya Baru No 56 RT 11 Kel. Sempaja Utara, Kota Samarinda<br>Telp: 0822 777 505 &nbsp;|&nbsp; Email: berkahbatubara2112@gmail.com</div>' +
+      '</td>' +
+      '<td class="kop-spacer-td"></td>' +
+      '</tr>' +
+      '</table>' +
+
+      // JUDUL LAPORAN
+      '<div class="report-title-section">' +
+      '<div class="report-title">LAPORAN RINCIAN GAJI &amp; LOG HARIAN KARYAWAN</div>' +
+      '<div class="report-submeta">PERIODE: <strong>' + escapeHTML(targetPeriod) + '</strong> &nbsp;|&nbsp; NOMOR: <strong>' + escapeHTML(nomorDokumen) + '</strong></div>' +
+      '</div>' +
+
+      // TABEL DATA KARYAWAN
+      '<table class="info-table">' +
+      '<tr>' +
+      '<td class="lbl">Nama Lengkap</td><td class="col">:</td><td class="val">' + escapeHTML(emp.name) + '</td>' +
+      '<td class="lbl">Gaji Pokok (Basic)</td><td class="col">:</td><td class="val" style="color: #0f172a;">' + formatRupiahVal(basicVal) + '</td>' +
+      '</tr>' +
+      '<tr>' +
+      '<td class="lbl">ID Karyawan / NIK</td><td class="col">:</td><td class="val font-monospace">' + escapeHTML(emp.id) + '</td>' +
+      '<td class="lbl">Hari Kerja Aktif</td><td class="col">:</td><td class="val">' + totalHariKerja + ' Hari</td>' +
+      '</tr>' +
+      '<tr>' +
+      '<td class="lbl">Departemen</td><td class="col">:</td><td class="val">' + escapeHTML(emp.dept || '-') + '</td>' +
+      '<td class="lbl">Status Dokumen</td><td class="col">:</td><td class="val" style="color: #16a34a;">RESMI TERVERIFIKASI</td>' +
+      '</tr>' +
+      '<tr>' +
+      '<td class="lbl">Jabatan / Posisi</td><td class="col">:</td><td class="val">' + escapeHTML(emp.jabatan || '-') + '</td>' +
+      '<td class="lbl">Tanggal Dicetak</td><td class="col">:</td><td class="val">' + escapeHTML(tanggalCetak) + '</td>' +
+      '</tr>' +
+      '</table>' +
+
+      // RINGKASAN AKUMULASI KARTU
+      '<table class="summary-cards-table">' +
+      '<tr>' +
+      '<td class="summary-card-td">' +
+      '<div class="summary-card-title">Gaji Pokok (Basic)</div>' +
+      '<div class="summary-card-val">' + formatRupiahVal(basicVal) + '</div>' +
+      '<div class="summary-card-sub">Gaji Pokok Tetap</div>' +
+      '</td>' +
+      '<td class="summary-card-td">' +
+      '<div class="summary-card-title">Total Overtime (Lembur)</div>' +
+      '<div class="summary-card-val" style="color: #1d4ed8;">' + formatRupiahVal(totalNominalOt) + '</div>' +
+      '<div class="summary-card-sub">' + totalJamOt + ' Jam Lembur</div>' +
+      '</td>' +
+      '<td class="summary-card-td">' +
+      '<div class="summary-card-title">Total Ritase</div>' +
+      '<div class="summary-card-val" style="color: #b45309;">' + formatRupiahVal(totalNominalRit) + '</div>' +
+      '<div class="summary-card-sub">' + totalRitase + ' Trip Ritase</div>' +
+      '</td>' +
+      '<td class="summary-card-td">' +
+      '<div class="summary-card-title">Total Tunjangan</div>' +
+      '<div class="summary-card-val">' + formatRupiahVal(totalTunjangan) + '</div>' +
+      '<div class="summary-card-sub">Uang Makan / Lapangan</div>' +
+      '</td>' +
+      '</tr>' +
+      '</table>' +
+
+      // BANNER GRAND TOTAL TAKE HOME PAY
+      '<div class="take-home-pay-banner">' +
+      '<div>' +
+      '<div class="take-home-pay-label">Total Gaji Berjalan (Take Home Pay) :</div>' +
+      '<small style="font-size: 7pt; color: #166534;">Akumulasi Gaji Pokok + Overtime + Ritase + Tunjangan</small>' +
+      '</div>' +
+      '<div class="take-home-pay-value">' + formatRupiahVal(grandTotal) + '</div>' +
+      '</div>' +
+
+      // TABEL RINCIAN LOG HARIAN
+      '<table class="data-table">' +
+      '<thead>' +
+      '<tr>' +
+      '<th style="width: 32px;">No</th>' +
+      '<th style="width: 130px; text-align: left;">Tanggal Kerja</th>' +
+      '<th style="width: 100px; text-align: right;">Overtime</th>' +
+      '<th style="width: 100px; text-align: right;">Ritase</th>' +
+      '<th style="width: 95px; text-align: right;">Tunjangan</th>' +
+      '<th style="width: 110px; text-align: right;">Total Hari Itu</th>' +
+      '<th style="text-align: left;">Catatan / Rute Kegiatan</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      rowsHtml +
+      '</tbody>' +
+      '<tfoot>' +
+      '<tr>' +
+      '<td colspan="2" style="text-align: right; text-transform: uppercase;">TOTAL AKUMULASI HARIAN :</td>' +
+      '<td style="text-align: right; color: #1d4ed8;">' + totalJamOt + ' Jam<br>' + formatRupiahVal(totalNominalOt) + '</td>' +
+      '<td style="text-align: right; color: #b45309;">' + totalRitase + ' Rit<br>' + formatRupiahVal(totalNominalRit) + '</td>' +
+      '<td style="text-align: right;">' + formatRupiahVal(totalTunjangan) + '</td>' +
+      '<td style="text-align: right; color: #15803d; font-size: 8.5pt;">' + formatRupiahVal(totalPenghasilanHarian) + '</td>' +
+      '<td style="color: #64748b; font-size: 7pt; font-style: italic;">* Belum termasuk gaji pokok</td>' +
+      '</tr>' +
+      '</tfoot>' +
+      '</table>' +
+
+      // TANDA TANGAN 3 KOLOM
+      '<table class="sig-table">' +
+      '<tr>' +
+      '<td class="sig-card">' +
+      '<div class="sig-title">Dibuat Oleh</div>' +
+      '<div class="sig-area">' +
+      '<span class="sig-badge"><i class="bi bi-shield-check"></i> E-VERIFIED PAYROLL</span>' +
+      '</div>' +
+      '<div class="sig-name">' + escapeHTML(authorName) + '</div>' +
+      '<div class="sig-role">Admin Payroll &amp; HRD</div>' +
+      '</td>' +
+      '<td class="sig-card">' +
+      '<div class="sig-title">Mengetahui (Atasan)</div>' +
+      '<div class="sig-area">' +
+      '<span style="font-size: 7pt; color: #94a3b8; font-style: italic;">Tanda Tangan &amp; Stempel</span>' +
+      '</div>' +
+      '<div class="sig-name">( &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; )</div>' +
+      '<div class="sig-role">Supervisor / Head of Dept</div>' +
+      '</td>' +
+      '<td class="sig-card">' +
+      '<div class="sig-title">Disetujui Oleh</div>' +
+      '<div class="sig-area">' +
+      '<span style="font-size: 7pt; color: #94a3b8; font-style: italic;">Tanda Tangan &amp; Stempel</span>' +
+      '</div>' +
+      '<div class="sig-name">( &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; )</div>' +
+      '<div class="sig-role">PJO / Direktur Operasional</div>' +
+      '</td>' +
+      '</tr>' +
+      '</table>' +
+
+      // FOOTER WATERMARK
+      '<div class="report-footer-note">' +
+      '<div><i class="bi bi-shield-lock-fill"></i> Laporan ini sah dan diterbitkan secara elektronik melalui Sistem Informasi Penggajian PT. Berkah Batu Bara.</div>' +
+      '<div>Dicetak: ' + escapeHTML(tanggalCetak) + '</div>' +
+      '</div>' +
+
+      '</div>';
+
+    var docTitle = 'Laporan_Rincian_Gaji_' + String(emp.name || 'Karyawan').replace(/\s+/g, '_') + '_' + String(emp.id || '') + '_' + targetPeriod.replace(/\s+/g, '_');
+
+    var iframe = document.getElementById('printDataGajiHiddenIframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'printDataGajiHiddenIframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+    }
+
+    var doc = iframe.contentWindow || iframe.contentDocument;
+    if (doc.document) doc = doc.document;
+
+    doc.open();
+    doc.write('<!DOCTYPE html><html><head><base href="' + window.location.href + '"><title>' + escapeHTML(docTitle) + '<\/title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"><style>' + cssContent + '<\/style><\/head><body>' + paperHtml + '<\/body><\/html>');
+    doc.close();
+
+    var triggerPrint = function () {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        console.warn('Iframe print failed, falling back to window.print():', e);
+        window.print();
+      }
+    };
+
+    var imgs = doc.images || [];
+    if (imgs.length > 0) {
+      var loaded = 0;
+      var total = imgs.length;
+      var done = false;
+      var checkFinish = function () {
+        if (done) return;
+        loaded++;
+        if (loaded >= total) {
+          done = true;
+          setTimeout(triggerPrint, 200);
+        }
+      };
+
+      for (var i = 0; i < imgs.length; i++) {
+        if (imgs[i].complete) {
+          checkFinish();
+        } else {
+          imgs[i].onload = checkFinish;
+          imgs[i].onerror = checkFinish;
+        }
+      }
+      setTimeout(function () {
+        if (!done) {
+          done = true;
+          triggerPrint();
+        }
+      }, 1000);
+    } else {
+      setTimeout(triggerPrint, 300);
+    }
+  }
 
 })();
 </script>
