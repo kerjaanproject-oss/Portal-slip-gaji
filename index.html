@@ -1169,7 +1169,8 @@
                   </p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                  <button class="btn btn-outline-danger btn-sm fw-semibold shadow-sm px-3 py-2 d-flex align-items-center gap-1.5"
+                  <button
+                    class="btn btn-outline-danger btn-sm fw-semibold shadow-sm px-3 py-2 d-flex align-items-center gap-1.5"
                     onclick="printRincianGajiSayaDoc()" title="Cetak atau Simpan sebagai PDF">
                     <i class="bi bi-printer-fill"></i>
                     <span>Cetak / Simpan PDF</span>
@@ -1221,7 +1222,8 @@
             style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 0.85rem;">
             <div class="card-body p-3 p-md-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
               <div>
-                <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2.5 py-1 mb-1.5 extra-small">
+                <span
+                  class="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2.5 py-1 mb-1.5 extra-small">
                   <i class="bi bi-shield-check me-1"></i>Estimasi Gaji Berjalan Saat Ini
                 </span>
                 <h3 class="fw-bold mb-0 text-white" id="gajiSayaGrandTotal">Rp 0</h3>
@@ -1236,18 +1238,21 @@
 
           <!-- TABLE RINCIAN HARIAN (READ-ONLY) -->
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div
+              class="card-header bg-white py-3 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
               <div class="d-flex align-items-center gap-2">
                 <h6 class="fw-bold m-0 text-dark">
                   <i class="bi bi-list-check text-primary me-2"></i>Catatan Rincian Kerja Harian
                 </h6>
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 extra-small"
+                <span
+                  class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 extra-small"
                   id="badgeCountGajiSaya">0 Catatan</span>
               </div>
             </div>
 
             <!-- Mobile scroll indicator badge -->
-            <div class="d-flex align-items-center justify-content-between p-2 bg-light border-bottom text-muted extra-small d-md-none">
+            <div
+              class="d-flex align-items-center justify-content-between p-2 bg-light border-bottom text-muted extra-small d-md-none">
               <span class="d-flex align-items-center gap-1 text-primary fw-semibold">
                 <i class="bi bi-arrow-left-right"></i> Geser tabel ke samping
               </span>
@@ -1285,7 +1290,8 @@
             <div class="card-footer bg-light p-3 border-top">
               <div class="d-flex align-items-center gap-2 text-muted small">
                 <i class="bi bi-info-circle text-primary"></i>
-                <span>Data di atas dicatat dan diverifikasi oleh HRD / Manajemen. Jika terdapat ketidaksesuaian catatan kerja, silakan hubungi bagian HRD.</span>
+                <span>Data di atas dicatat dan diverifikasi oleh HRD / Manajemen. Jika terdapat ketidaksesuaian catatan
+                  kerja, silakan hubungi bagian HRD.</span>
               </div>
             </div>
           </div>
@@ -3013,10 +3019,12 @@
                 id="rincianLogCount">0 Hari</span>
             </div>
             <div class="d-flex align-items-center gap-2">
-              <button class="btn btn-outline-danger btn-sm fw-semibold shadow-sm" id="btnRincianPrintPdf" onclick="printRincianGajiCurrentEmp()" title="Cetak / Simpan Laporan Rincian sebagai PDF">
+              <button class="btn btn-outline-danger btn-sm fw-semibold shadow-sm" id="btnRincianPrintPdf"
+                onclick="printRincianGajiCurrentEmp()" title="Cetak / Simpan Laporan Rincian sebagai PDF">
                 <i class="bi bi-printer-fill me-1"></i>Cetak / Simpan PDF
               </button>
-              <button class="btn btn-primary btn-sm fw-semibold" id="btnRincianAddToday" onclick="openInputFromRincian()">
+              <button class="btn btn-primary btn-sm fw-semibold" id="btnRincianAddToday"
+                onclick="openInputFromRincian()">
                 <i class="bi bi-plus-circle me-1"></i>+ Input Harian Baru
               </button>
             </div>
@@ -3058,7 +3066,8 @@
           </div>
         </div>
         <div class="modal-footer py-2 px-3 bg-light d-flex justify-content-between align-items-center">
-          <button type="button" class="btn btn-danger btn-sm fw-semibold shadow-sm" onclick="printRincianGajiCurrentEmp()">
+          <button type="button" class="btn btn-danger btn-sm fw-semibold shadow-sm"
+            onclick="printRincianGajiCurrentEmp()">
             <i class="bi bi-printer-fill me-1.5"></i>Cetak Laporan PDF
           </button>
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
