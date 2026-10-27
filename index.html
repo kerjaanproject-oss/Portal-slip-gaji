@@ -912,19 +912,19 @@
 
             <!-- TABLE CONTAINER (1 BARIS PER KARYAWAN) -->
             <div class="card-body p-0">
-              <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+              <div class="table-responsive" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y !important; overscroll-behavior-x: contain !important;">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem; width: 100%; min-width: 980px;">
                   <thead class="text-white text-uppercase extra-small fw-bold">
                     <tr>
-                      <th class="text-center" style="width: 50px;">No</th>
-                      <th>Karyawan</th>
-                      <th>Departemen & Jabatan</th>
-                      <th class="text-end">Gaji Pokok</th>
-                      <th class="text-end">Total Overtime</th>
-                      <th class="text-end">Total Ritase</th>
-                      <th class="text-end">Total Tunjangan</th>
-                      <th class="text-end text-white fw-bold">TOTAL GAJI SAAT INI</th>
-                      <th class="text-center">Hari Kerja</th>
+                      <th class="text-center text-nowrap" style="width: 50px;">No</th>
+                      <th class="text-nowrap">Karyawan</th>
+                      <th class="text-nowrap">Departemen & Jabatan</th>
+                      <th class="text-end text-nowrap">Gaji Pokok</th>
+                      <th class="text-end text-nowrap">Total Overtime</th>
+                      <th class="text-end text-nowrap">Total Ritase</th>
+                      <th class="text-end text-nowrap">Total Tunjangan</th>
+                      <th class="text-end text-nowrap text-white fw-bold">TOTAL GAJI SAAT INI</th>
+                      <th class="text-center text-nowrap">Hari Kerja</th>
                       <th class="text-center text-nowrap" style="width: 1%;">Aksi</th>
                     </tr>
                   </thead>
@@ -2744,18 +2744,27 @@
           </div>
 
           <!-- TABEL LOG HARIAN -->
-          <div class="table-responsive border rounded">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-              <thead class="table-light text-uppercase extra-small fw-bold">
+          <div class="d-flex align-items-center justify-content-between mb-1 text-muted extra-small d-md-none">
+            <span class="d-flex align-items-center gap-1 text-primary fw-semibold">
+              <i class="bi bi-arrow-left-right"></i> Geser tabel ke samping
+            </span>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle extra-small">
+              <i class="bi bi-hand-index-thumb me-1"></i>Bisa Digeser
+            </span>
+          </div>
+
+          <div class="table-responsive border rounded" style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y !important; overscroll-behavior-x: contain !important; width: 100%; display: block;">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem; width: 100%; min-width: 780px;">
+              <thead class="text-white text-uppercase extra-small fw-bold">
                 <tr>
-                  <th class="text-center" style="width: 50px;">No</th>
-                  <th>Tanggal Kerja</th>
-                  <th class="text-end">Overtime</th>
-                  <th class="text-end">Ritase</th>
-                  <th class="text-end">Tunjangan Harian</th>
-                  <th class="text-end text-white fw-bold">Total Hari Itu</th>
-                  <th>Catatan</th>
-                  <th class="text-center text-nowrap" style="width: 1%;">Aksi</th>
+                  <th class="text-center text-nowrap" style="width: 45px;">No</th>
+                  <th class="text-nowrap" style="min-width: 140px;">Tanggal Kerja</th>
+                  <th class="text-end text-nowrap" style="min-width: 90px;">Overtime</th>
+                  <th class="text-end text-nowrap" style="min-width: 95px;">Ritase</th>
+                  <th class="text-end text-nowrap" style="min-width: 110px;">Tunjangan Harian</th>
+                  <th class="text-end text-nowrap text-white fw-bold" style="min-width: 120px;">Total Hari Itu</th>
+                  <th class="text-nowrap" style="min-width: 120px;">Catatan</th>
+                  <th class="text-center text-nowrap" style="width: 1%; min-width: 130px;">Aksi</th>
                 </tr>
               </thead>
               <tbody id="tableBodyRincianLog">

@@ -798,13 +798,13 @@
 
       var tr = document.createElement('tr');
       tr.innerHTML =
-        '<td class="text-center text-muted extra-small">' + (idx + 1) + '</td>' +
+        '<td class="text-center text-muted extra-small text-nowrap">' + (idx + 1) + '</td>' +
         '<td class="fw-bold text-nowrap"><i class="bi bi-calendar-event me-1 text-primary"></i>' + escapeHTML(formatDateWithDay(log.tanggal)) + '</td>' +
-        '<td class="text-end">' + otStr + '</td>' +
-        '<td class="text-end">' + ritStr + '</td>' +
-        '<td class="text-end fw-semibold">' + (tunj > 0 ? formatRupiahVal(tunj) : '<span class="text-muted extra-small">-</span>') + '</td>' +
-        '<td class="text-end"><span class="badge bg-success text-white px-2.5 py-1.5" style="font-size: 0.85rem; font-weight: 700; box-shadow: 0 1px 2px rgba(16,185,129,0.25);">' + formatRupiahVal(totalHariItu) + '</span></td>' +
-        '<td><small class="text-muted">' + escapeHTML(log.catatan || '-') + '</small></td>' +
+        '<td class="text-end text-nowrap">' + otStr + '</td>' +
+        '<td class="text-end text-nowrap">' + ritStr + '</td>' +
+        '<td class="text-end fw-semibold text-nowrap">' + (tunj > 0 ? formatRupiahVal(tunj) : '<span class="text-muted extra-small">-</span>') + '</td>' +
+        '<td class="text-end text-nowrap"><span class="badge bg-success text-white px-2.5 py-1.5" style="font-size: 0.85rem; font-weight: 700; box-shadow: 0 1px 2px rgba(16,185,129,0.25);">' + formatRupiahVal(totalHariItu) + '</span></td>' +
+        '<td class="text-nowrap"><small class="text-muted">' + escapeHTML(log.catatan || '-') + '</small></td>' +
         '<td class="text-center text-nowrap">' +
         '  <div class="action-group">' +
         '    <button class="btn btn-sm btn-action btn-action-edit" onclick="editLogFromRincian(\'' + escapeHTML(log.id) + '\')" title="Edit"><i class="bi bi-pencil-square"></i>Edit</button>' +
