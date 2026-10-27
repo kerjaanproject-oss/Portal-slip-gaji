@@ -147,9 +147,9 @@
       cachedPeriodeList.forEach(function (p) {
         var opt = document.createElement('option');
         opt.value = p.id;
-        var stBadge = p.status === 'TERBUKA' ? '🟢 TERBUKA' : '🔒 DITUTUP';
-        var tglRange = (p.startDate ? safeFormatDateDMY(p.startDate) : '-') + ' s/d ' + (p.endDate ? safeFormatDateDMY(p.endDate) : '-');
-        opt.text = (p.nama || p.id) + ' (' + tglRange + ') [' + stBadge + ']';
+        var pTitle = p.name || p.nama || p.id;
+        var stText = (p.status === 'TERBUKA') ? 'Aktif' : 'Ditutup';
+        opt.text = pTitle + ' (' + stText + ')';
         sel.appendChild(opt);
       });
       if (curVal && cachedPeriodeList.some(function (p) { return p.id === curVal; })) {
@@ -179,18 +179,14 @@
     if (cutOffHrd && targetPeriod) {
       var sDate = targetPeriod.startDate ? safeFormatDateDMY(targetPeriod.startDate) : '-';
       var eDate = targetPeriod.endDate ? safeFormatDateDMY(targetPeriod.endDate) : '-';
-      cutOffHrd.innerHTML = '<i class="bi bi-clock-history me-1"></i>Cut-off: <strong>' + sDate + '</strong> s/d <strong>' + eDate + '</strong>';
+      cutOffHrd.innerText = sDate + ' s/d ' + eDate;
     }
+    var btnHapus = document.getElementById('btnHapusPeriodePayroll');
     if (btnTutup) {
-      if (isCurrentPeriodClosed) {
-        btnTutup.disabled = true;
-        btnTutup.classList.add('opacity-50');
-        btnTutup.title = 'Periode ini sudah dalam status Ditutup Buku';
-      } else {
-        btnTutup.disabled = false;
-        btnTutup.classList.remove('opacity-50');
-        btnTutup.title = 'Tutup buku periode yang sedang aktif';
-      }
+      btnTutup.style.display = isCurrentPeriodClosed ? 'none' : 'inline-flex';
+    }
+    if (btnHapus) {
+      btnHapus.style.display = isCurrentPeriodClosed ? 'inline-flex' : 'none';
     }
 
     // Karyawan Status & Cut-Off
@@ -208,7 +204,7 @@
     if (cutOffKaryawan && targetPeriod) {
       var sDate = targetPeriod.startDate ? safeFormatDateDMY(targetPeriod.startDate) : '-';
       var eDate = targetPeriod.endDate ? safeFormatDateDMY(targetPeriod.endDate) : '-';
-      cutOffKaryawan.innerHTML = '<i class="bi bi-clock-history me-1"></i>Rentang Cut-Off: <strong>' + sDate + '</strong> s/d <strong>' + eDate + '</strong>';
+      cutOffKaryawan.innerText = sDate + ' s/d ' + eDate;
     }
   }
   window.populatePeriodeDropdowns = populatePeriodeDropdowns;
@@ -1155,10 +1151,13 @@
     }
 
     var payload = {
+      name: nama,
       nama: nama,
       startDate: startDate,
       endDate: endDate,
+      autoClosePrevious: autoClose,
       autoClosePrev: autoClose,
+      note: note,
       catatan: note
     };
 
@@ -1261,6 +1260,393 @@
         hideFullPageLoading();
         Swal.fire('Error', err.toString(), 'error');
       });
+    });
+  };
+
+  // --- HAPUS / BERSIHKAN ARSIP PERIODE PAYROLL DARI DATABASE ---
+  window.confirmHapusPeriodePayroll = function () {
+    var targetPeriod = (cachedPeriodeList || []).find(function (p) { return p.id === currentSelectedPeriodId; }) || currentActivePeriodInfo;
+    if (!targetPeriod) {
+      Swal.fire('Peringatan', 'Pilih periode payroll yang ingin dihapus.', 'warning');
+      return;
+    }
+
+    if (targetPeriod.status === 'TERBUKA') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Periode Masih Berjalan!',
+        text: 'Periode yang sedang aktif (BUKU TERBUKA) tidak dapat dihapus. Silakan tutup buku terlebih dahulu jika ingin menghapusnya.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
+    var pName = targetPeriod.name || targetPeriod.nama || targetPeriod.id;
+    var pRange = (targetPeriod.startDate ? safeFormatDateDMY(targetPeriod.startDate) : '-') + ' s/d ' + (targetPeriod.endDate ? safeFormatDateDMY(targetPeriod.endDate) : '-');
+
+    Swal.fire({
+      title: 'Hapus Arsip Periode Payroll?',
+      html: '<div class="text-start extra-small p-3 bg-light rounded border mb-2">' +
+        '<div class="mb-1"><span class="text-muted">Nama Periode:</span> <strong class="text-dark">' + escapeHTML(pName) + '</strong></div>' +
+        '<div class="mb-1"><span class="text-muted">Rentang Cut-Off:</span> <strong class="text-dark">' + escapeHTML(pRange) + '</strong></div>' +
+        '<hr class="my-2">' +
+        '<div class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>PERINGATAN KERAS:</div>' +
+        '<div class="text-dark mt-1">Seluruh data periode dan baris rekapitulasi data gaji karyawan untuk periode ini akan <strong>DIHAPUS PERMANEN</strong> dari Google Sheets.</div>' +
+        '<div class="mt-2.5 p-2 bg-warning-subtle text-dark border border-warning-subtle rounded">' +
+        '<i class="bi bi-info-circle-fill text-warning me-1"></i><strong>Tips Keamanan:</strong> Pastikan Anda telah mengklik tombol <strong>Export Excel</strong> untuk menyimpan salinan arsip di komputer Anda sebelum menghapusnya dari database.' +
+        '</div>' +
+        '</div>',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-trash3-fill me-1"></i>Ya, Hapus Periode dari Database',
+      cancelButtonText: 'Batal (Amankan Data)',
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b'
+    }).then(function (result) {
+      if (!result.isConfirmed) return;
+
+      showFullPageLoading('Menghapus arsip periode payroll dari database Google Sheets...');
+
+      gasRun('deletePeriodePayroll', Auth.getToken(), targetPeriod.id).then(function (resp) {
+        hideFullPageLoading();
+        if (handleSessionExpired(resp)) return;
+
+        if (resp && resp.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Periode Berhasil Dihapus!',
+            text: resp.message || 'Periode beserta data gajinya telah dibersihkan dari database.',
+            confirmButtonColor: '#2563eb'
+          });
+
+          currentSelectedPeriodId = '';
+          loadDataGajiList();
+        } else {
+          Swal.fire('Gagal Menghapus', (resp && resp.message) || 'Terjadi kesalahan sistem.', 'error');
+        }
+      }).catch(function (err) {
+        hideFullPageLoading();
+        Swal.fire('Error', err.toString(), 'error');
+      });
+    });
+  };
+
+  // --- EXPORT PERIODE PAYROLL KE EXCEL (.XLSX) MULTI-SHEET ---
+  window.exportPeriodePayrollToExcel = function () {
+    if (typeof XLSX === 'undefined') {
+      Swal.fire('Error', 'Library SheetJS (XLSX) belum siap dimuat.', 'error');
+      return;
+    }
+
+    var targetPeriod = (cachedPeriodeList || []).find(function (p) { return p.id === currentSelectedPeriodId; }) || currentActivePeriodInfo;
+    if (!targetPeriod) {
+      Swal.fire('Peringatan', 'Pilih periode payroll yang ingin diexport.', 'warning');
+      return;
+    }
+
+    var pName = targetPeriod.name || targetPeriod.nama || targetPeriod.id;
+    var sDate = targetPeriod.startDate ? safeFormatDateDMY(targetPeriod.startDate) : '-';
+    var eDate = targetPeriod.endDate ? safeFormatDateDMY(targetPeriod.endDate) : '-';
+    var now = new Date();
+    var tanggalCetak = now.getDate() + '/' + (now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+    // 1. Petakan setiap karyawan
+    var matchedLogIds = new Set();
+    var empList = (Array.isArray(dbKaryawan) ? dbKaryawan : []).map(function (k) {
+      var kLogs = cachedDataGajiLogs.filter(function (log) {
+        var match = matchLogToEmp(log, k);
+        if (match && log.id) matchedLogIds.add(log.id);
+        return match;
+      });
+
+      var totalJamOt = 0, totalNominalOt = 0, totalRitase = 0, totalNominalRit = 0, totalTunjangan = 0;
+      kLogs.forEach(function (log) {
+        totalJamOt += Number(log.jamOvertime || 0);
+        totalNominalOt += Number(log.totalOvertime || 0);
+        totalRitase += Number(log.ritase || 0);
+        totalNominalRit += Number(log.totalRitase || 0);
+        totalTunjangan += Number(log.tunjanganHarian || 0);
+      });
+
+      var basic = Number(k.gajiPokok || 0);
+      return {
+        id: k.id,
+        name: k.name,
+        dept: k.dept || '-',
+        jabatan: k.jabatan || '-',
+        basic: basic,
+        daysCount: kLogs.length,
+        totalJamOt: totalJamOt,
+        totalNominalOt: totalNominalOt,
+        totalRitase: totalRitase,
+        totalNominalRit: totalNominalRit,
+        totalTunjangan: totalTunjangan,
+        grandTotal: basic + totalNominalOt + totalNominalRit + totalTunjangan,
+        logs: kLogs
+      };
+    });
+
+    // Masukkan log unmapped jika ada
+    var unmappedLogs = cachedDataGajiLogs.filter(function (l) { return l.id && !matchedLogIds.has(l.id); });
+    var groupedUnmapped = {};
+    unmappedLogs.forEach(function (log) {
+      var key = String(log.empId || log.empName || 'UNKNOWN').trim().toLowerCase();
+      if (!groupedUnmapped[key]) {
+        groupedUnmapped[key] = {
+          id: log.empId || key,
+          name: log.empName || log.empId || 'Karyawan',
+          dept: log.dept || '-',
+          jabatan: log.jabatan || '-',
+          basic: Number(log.basic || 0),
+          logs: []
+        };
+      }
+      groupedUnmapped[key].logs.push(log);
+    });
+
+    Object.keys(groupedUnmapped).forEach(function (kKey) {
+      var g = groupedUnmapped[kKey];
+      var totalJamOt = 0, totalNominalOt = 0, totalRitase = 0, totalNominalRit = 0, totalTunjangan = 0;
+      g.logs.forEach(function (log) {
+        totalJamOt += Number(log.jamOvertime || 0);
+        totalNominalOt += Number(log.totalOvertime || 0);
+        totalRitase += Number(log.ritase || 0);
+        totalNominalRit += Number(log.totalRitase || 0);
+        totalTunjangan += Number(log.tunjanganHarian || 0);
+      });
+      var basic = Number(g.basic || 0);
+      empList.push({
+        id: g.id,
+        name: g.name,
+        dept: g.dept,
+        jabatan: g.jabatan,
+        basic: basic,
+        daysCount: g.logs.length,
+        totalJamOt: totalJamOt,
+        totalNominalOt: totalNominalOt,
+        totalRitase: totalRitase,
+        totalNominalRit: totalNominalRit,
+        totalTunjangan: totalTunjangan,
+        grandTotal: basic + totalNominalOt + totalNominalRit + totalTunjangan,
+        logs: g.logs
+      });
+    });
+
+    empList.sort(function (a, b) {
+      if (b.daysCount !== a.daysCount) return b.daysCount - a.daysCount;
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+
+    // SHEET 1: REKAP TOTAL GAJI
+    var s1Data = [
+      ['PT. BERKAH BATU BARA'],
+      ['REKAPITULASI PENGGAJIAN KARYAWAN (PAYROLL SUMMARY)'],
+      ['Periode: ' + pName, '', 'Cut-Off: ' + sDate + ' s/d ' + eDate, '', 'Status: ' + targetPeriod.status, '', 'Diexport Pada: ' + tanggalCetak],
+      []
+    ];
+
+    var s1Headers = [
+      'No',
+      'ID Karyawan',
+      'Nama Karyawan',
+      'Departemen',
+      'Jabatan',
+      'Gaji Pokok',
+      'Total Jam Lembur',
+      'Nominal Lembur',
+      'Total Ritase',
+      'Nominal Ritase',
+      'Total Tunjangan',
+      'Total Gaji (Take Home Pay)',
+      'Hari Kerja'
+    ];
+    s1Data.push(s1Headers);
+
+    var sumBasic = 0, sumJamOt = 0, sumNomOt = 0, sumRit = 0, sumNomRit = 0, sumTunj = 0, sumGrandTotal = 0, sumDays = 0;
+
+    empList.forEach(function (emp, idx) {
+      sumBasic += emp.basic;
+      sumJamOt += emp.totalJamOt;
+      sumNomOt += emp.totalNominalOt;
+      sumRit += emp.totalRitase;
+      sumNomRit += emp.totalNominalRit;
+      sumTunj += emp.totalTunjangan;
+      sumGrandTotal += emp.grandTotal;
+      sumDays += emp.daysCount;
+
+      s1Data.push([
+        idx + 1,
+        emp.id,
+        emp.name,
+        emp.dept,
+        emp.jabatan,
+        emp.basic,
+        emp.totalJamOt,
+        emp.totalNominalOt,
+        emp.totalRitase,
+        emp.totalNominalRit,
+        emp.totalTunjangan,
+        emp.grandTotal,
+        emp.daysCount
+      ]);
+    });
+
+    s1Data.push([
+      '',
+      '',
+      '',
+      'GRAND TOTAL PENGELUARAN',
+      '',
+      sumBasic,
+      sumJamOt,
+      sumNomOt,
+      sumRit,
+      sumNomRit,
+      sumTunj,
+      sumGrandTotal,
+      sumDays
+    ]);
+
+    var ws1 = XLSX.utils.aoa_to_sheet(s1Data);
+    ws1['!cols'] = [
+      { wch: 6 },
+      { wch: 16 },
+      { wch: 28 },
+      { wch: 20 },
+      { wch: 22 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 22 },
+      { wch: 12 }
+    ];
+
+    // SHEET 2: RINCIAN LOG HARIAN
+    var s2Data = [
+      ['PT. BERKAH BATU BARA'],
+      ['RINCIAN LOG KERJA & PENGHASILAN HARIAN KARYAWAN'],
+      ['Periode: ' + pName, '', 'Cut-Off: ' + sDate + ' s/d ' + eDate],
+      []
+    ];
+
+    var s2Headers = [
+      'No',
+      'ID Karyawan',
+      'Nama Karyawan',
+      'Departemen',
+      'Jabatan',
+      'Tanggal Kerja',
+      'Jam Lembur',
+      'Tarif Lembur',
+      'Subtotal Lembur',
+      'Ritase',
+      'Tarif Ritase',
+      'Subtotal Ritase',
+      'Tunjangan Harian',
+      'Total Penghasilan Harian',
+      'Catatan Pekerjaan'
+    ];
+    s2Data.push(s2Headers);
+
+    var allLogsSorted = (cachedDataGajiLogs || []).slice().sort(function (a, b) {
+      var nA = String(a.empName || '').localeCompare(String(b.empName || ''));
+      if (nA !== 0) return nA;
+      return String(a.tanggal || '').localeCompare(String(b.tanggal || ''));
+    });
+
+    var sumSubOt = 0, sumSubRit = 0, sumLogTunj = 0, sumLogGrand = 0;
+
+    allLogsSorted.forEach(function (log, idx) {
+      var jOt = Number(log.jamOvertime || 0);
+      var tOt = Number(log.tarifOvertime || 0);
+      var subOt = Number(log.totalOvertime || (jOt * tOt));
+
+      var rit = Number(log.ritase || 0);
+      var tRit = Number(log.tarifRitase || 0);
+      var subRit = Number(log.totalRitase || (rit * tRit));
+
+      var tunj = Number(log.tunjanganHarian || 0);
+      var totalHariItu = Number(log.totalGaji || (subOt + subRit + tunj));
+
+      sumSubOt += subOt;
+      sumSubRit += subRit;
+      sumLogTunj += tunj;
+      sumLogGrand += totalHariItu;
+
+      s2Data.push([
+        idx + 1,
+        log.empId || '-',
+        log.empName || '-',
+        log.dept || '-',
+        log.jabatan || '-',
+        log.tanggal || '-',
+        jOt,
+        tOt,
+        subOt,
+        rit,
+        tRit,
+        subRit,
+        tunj,
+        totalHariItu,
+        log.catatan || '-'
+      ]);
+    });
+
+    s2Data.push([
+      '',
+      '',
+      '',
+      '',
+      'TOTAL REKAPITULASI LOG HARIAN',
+      '',
+      '',
+      '',
+      sumSubOt,
+      '',
+      '',
+      sumSubRit,
+      sumLogTunj,
+      sumLogGrand,
+      ''
+    ]);
+
+    var ws2 = XLSX.utils.aoa_to_sheet(s2Data);
+    ws2['!cols'] = [
+      { wch: 6 },
+      { wch: 16 },
+      { wch: 28 },
+      { wch: 18 },
+      { wch: 20 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 22 },
+      { wch: 35 }
+    ];
+
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1, 'Rekap Total Gaji');
+    XLSX.utils.book_append_sheet(wb, ws2, 'Rincian Log Harian');
+
+    var cleanName = pName.replace(/[^a-zA-Z0-9]/g, '_');
+    var fileName = 'Rekap_Payroll_' + cleanName + '_' + (targetPeriod.startDate || '') + '_sd_' + (targetPeriod.endDate || '') + '.xlsx';
+
+    XLSX.writeFile(wb, fileName);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Export Excel Berhasil!',
+      html: 'File <strong>' + escapeHTML(fileName) + '</strong> berhasil diunduh.<br><span class="text-muted extra-small">Berisi 2 Sheet: Rekap Total Gaji Karyawan & Rincian Log Harian Lengkap.</span>',
+      timer: 3000,
+      showConfirmButton: false
     });
   };
 

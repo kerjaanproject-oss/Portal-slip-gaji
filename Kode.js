@@ -49,7 +49,11 @@ const ALLOWED_PROTECTED_ACTIONS = [
   'adminResetSlipPin',
   'getDataGaji',
   'saveDataGaji',
-  'deleteDataGaji'
+  'deleteDataGaji',
+  'getPeriodePayrollList',
+  'openNewPeriodePayroll',
+  'closePeriodePayroll',
+  'deletePeriodePayroll'
 ];
 
 function doGet(e) {

@@ -162,6 +162,7 @@ function getActivePeriode(ss) {
       return {
         id: String(data[i][0] || '').trim(),
         name: String(data[i][1] || '').trim(),
+        nama: String(data[i][1] || '').trim(),
         startDate: data[i][2] ? (data[i][2] instanceof Date ? Utilities.formatDate(data[i][2], 'Asia/Jakarta', 'yyyy-MM-dd') : String(data[i][2]).trim()) : '',
         endDate: data[i][3] ? (data[i][3] instanceof Date ? Utilities.formatDate(data[i][3], 'Asia/Jakarta', 'yyyy-MM-dd') : String(data[i][3]).trim()) : '',
         status: 'TERBUKA',
@@ -179,6 +180,7 @@ function getActivePeriode(ss) {
   return {
     id: String(data[lastIdx][0] || '').trim(),
     name: String(data[lastIdx][1] || '').trim(),
+    nama: String(data[lastIdx][1] || '').trim(),
     startDate: data[lastIdx][2] ? (data[lastIdx][2] instanceof Date ? Utilities.formatDate(data[lastIdx][2], 'Asia/Jakarta', 'yyyy-MM-dd') : String(data[lastIdx][2]).trim()) : '',
     endDate: data[lastIdx][3] ? (data[lastIdx][3] instanceof Date ? Utilities.formatDate(data[lastIdx][3], 'Asia/Jakarta', 'yyyy-MM-dd') : String(data[lastIdx][3]).trim()) : '',
     status: String(data[lastIdx][4] || '').trim().toUpperCase(),
@@ -351,6 +353,7 @@ function getPeriodePayrollList(token) {
     list.push({
       id: pId,
       name: pName,
+      nama: pName,
       startDate: tglMulai,
       endDate: tglSelesai,
       status: status,
@@ -385,14 +388,15 @@ function openNewPeriodePayroll(token, payload) {
     return { success: false, message: 'Akses ditolak: Hanya Admin/HRD yang dapat membuka periode payroll baru.' };
   }
 
-  if (!payload || !payload.name || !payload.startDate || !payload.endDate) {
+  const pName = String((payload && (payload.name || payload.nama)) || '').trim();
+  const tglMulai = String((payload && (payload.startDate || payload.tanggalMulai)) || '').trim();
+  const tglSelesai = String((payload && (payload.endDate || payload.tanggalSelesai)) || '').trim();
+  const note = String((payload && (payload.note || payload.catatan)) || '').trim();
+  const autoClose = !!(payload && (payload.autoClosePrevious || payload.autoClosePrev));
+
+  if (!payload || !pName || !tglMulai || !tglSelesai) {
     return { success: false, message: 'Mohon lengkapi Nama Periode, Tanggal Mulai Cut-Off, dan Tanggal Selesai Cut-Off.' };
   }
-
-  const pName = String(payload.name).trim();
-  const tglMulai = String(payload.startDate).trim();
-  const tglSelesai = String(payload.endDate).trim();
-  const note = String(payload.note || '').trim();
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const pSheet = getOrCreatePeriodePayrollSheet(ss);
@@ -403,7 +407,7 @@ function openNewPeriodePayroll(token, payload) {
   const periodId = 'PRD-' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMM') + '-' + cleanNameForId + '-' + Utilities.getUuid().slice(0, 4);
 
   // Jika ada periode sebelumnya yang masih TERBUKA, otomatis tutup atau beri status ditutup jika diminta
-  if (payload.autoClosePrevious) {
+  if (autoClose) {
     const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
     for (let i = 1; i < pData.length; i++) {
       if (String(pData[i][4] || '').trim().toUpperCase() === 'TERBUKA') {
@@ -440,6 +444,7 @@ function openNewPeriodePayroll(token, payload) {
     period: {
       id: periodId,
       name: pName,
+      nama: pName,
       startDate: tglMulai,
       endDate: tglSelesai,
       status: 'TERBUKA'
@@ -504,6 +509,72 @@ function closePeriodePayroll(token, periodId) {
     message: 'Tutup buku periode "' + pName + '" berhasil diselesaikan. Total ' + countEmp + ' karyawan terkunci aman.',
     totalGaji: totalPengeluaran,
     countEmp: countEmp
+  };
+}
+
+/**
+ * WRITE API: Hapus periode payroll yang sudah berstatus DITUTUP beserta data gajinya
+ */
+function deletePeriodePayroll(token, periodId) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  const userRole = String(session.user.role || '').trim().toLowerCase();
+  const isHRD = (userRole === 'admin' || userRole === 'hrd');
+  if (!isHRD) {
+    return { success: false, message: 'Akses ditolak: Hanya Admin/HRD yang dapat menghapus arsip periode payroll.' };
+  }
+
+  if (!periodId) {
+    return { success: false, message: 'ID Periode tidak valid.' };
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const pSheet = getOrCreatePeriodePayrollSheet(ss);
+  const pData = pSheet.getDataRange().getValues();
+
+  let targetRow = -1;
+  let periodName = '';
+  let periodStatus = '';
+
+  for (let i = 1; i < pData.length; i++) {
+    if (String(pData[i][0] || '').trim() === String(periodId).trim()) {
+      targetRow = i + 1;
+      periodName = String(pData[i][1] || '').trim();
+      periodStatus = String(pData[i][4] || '').trim().toUpperCase();
+      break;
+    }
+  }
+
+  if (targetRow === -1) {
+    return { success: false, message: 'Periode payroll tidak ditemukan di database.' };
+  }
+
+  if (periodStatus === 'TERBUKA') {
+    return { success: false, message: 'Periode yang sedang aktif (BUKU TERBUKA) tidak dapat dihapus. Silakan tutup buku periode terlebih dahulu sebelum menghapusnya.' };
+  }
+
+  // 1. Hapus baris di PeriodePayroll
+  pSheet.deleteRow(targetRow);
+
+  // 2. Hapus baris-baris terkait di DataGaji (dari bawah ke atas)
+  const dSheet = getOrCreateDataGajiSheet(ss);
+  const dData = dSheet.getDataRange().getValues();
+  let deletedCount = 0;
+
+  for (let d = dData.length - 1; d >= 1; d--) {
+    if (String(dData[d][0] || '').trim() === String(periodId).trim()) {
+      dSheet.deleteRow(d + 1);
+      deletedCount++;
+    }
+  }
+
+  SpreadsheetApp.flush();
+
+  return {
+    success: true,
+    message: 'Periode "' + periodName + '" beserta ' + deletedCount + ' baris data gajinya berhasil dihapus dari database.',
+    deletedCount: deletedCount
   };
 }
 
