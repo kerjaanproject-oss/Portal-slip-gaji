@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbz_-sr-1F7xTBn23Qs0BsEmT8Xq0nIa8PMv6HC4Zj1tI6bcNTq9w1zwd9E6sfZGdNEz/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycby2PVEAiRYQ67dvUQtzbDRR8OLLUtKjdvErxK5EhVlpNNm3vVgfVDWs0hrAgdo5buqI/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -59,6 +59,7 @@
         'Styles_Auth.html',
         'Styles_Components.html',
         'Styles_Cuti.html',
+        'Styles_SPL.html',
         'Styles_DarkTheme.html'
       ];
       var basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
@@ -95,6 +96,7 @@
   <?!= include('Styles_Auth') ?>
   <?!= include('Styles_Components') ?>
   <?!= include('Styles_Cuti') ?>
+  <?!= include('Styles_SPL') ?>
   <?!= include('Styles_DarkTheme') ?>
 </head>
 
@@ -279,12 +281,43 @@
             <span>Master Departemen</span>
           </a>
         </li>
-        <!-- INPUT DATA GAJI (HRD ONLY) -->
-        <li class="hrd-only">
-          <a class="nav-item-custom" id="nav-item-input-gaji" onclick="showPage('input-gaji', this)">
+        <!-- MENU DATA GAJI & SPL (SURAT PERINTAH LEMBUR) -->
+        <li class="nav-item-dropdown" id="dropdownMenuGajiSPL">
+          <a class="nav-item-custom" id="btnNavMenuGajiSPL" onclick="toggleSubmenu('submenuGajiSPL', this)">
             <i class="bi bi-cash-stack w-20px"></i>
-            <span>Input Data Gaji</span>
+            <span class="flex-grow-1">Data Gaji &amp; SPL</span>
+            <i class="bi bi-chevron-down submenu-arrow ms-auto"
+              style="width:auto;height:auto;background:none;box-shadow:none;font-size:0.75rem;"></i>
           </a>
+          <ul class="submenu-list d-none" id="submenuGajiSPL">
+            <li class="hrd-only">
+              <a class="nav-subitem-custom" id="subitem-input-gaji" onclick="showPage('input-gaji', this)">
+                <i class="bi bi-calculator"></i>
+                <span>Input Rekap Gaji</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-subitem-custom" id="subitem-pengajuan-spl" onclick="showPage('pengajuan-spl', this)">
+                <i class="bi bi-file-earmark-plus"></i>
+                <span>Pengajuan SPL</span>
+              </a>
+            </li>
+            <li>
+              <a class="nav-subitem-custom" id="subitem-riwayat-spl" onclick="showPage('riwayat-spl', this)">
+                <i class="bi bi-clock-history"></i>
+                <span>Riwayat SPL Saya</span>
+              </a>
+            </li>
+            <li class="atasan-hrd-only d-none">
+              <a class="nav-subitem-custom d-flex align-items-center" id="subitem-persetujuan-spl"
+                onclick="showPage('persetujuan-spl', this)">
+                <i class="bi bi-shield-check"></i>
+                <span class="flex-grow-1">Persetujuan SPL</span>
+                <span class="badge bg-danger rounded-pill extra-small ms-auto d-none" id="badgeNavSPLApproval"
+                  style="font-size: 0.7rem;">0</span>
+              </a>
+            </li>
+          </ul>
         </li>
 
         <li class="hrd-only">
@@ -1402,6 +1435,285 @@
                 <i class="bi bi-info-circle text-primary"></i>
                 <span>Data di atas dicatat dan diverifikasi oleh HRD / Manajemen. Jika terdapat ketidaksesuaian catatan
                   kerja, silakan hubungi bagian HRD.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- PAGE SPL 1: FORMULIR PENGAJUAN SPL -->
+        <!-- ========================================== -->
+        <div id="page-pengajuan-spl" class="app-page d-none">
+          <!-- Banner Header -->
+          <div class="card border-0 shadow-sm mb-4"
+            style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #0284c7 100%); color: white; border-radius: 1rem;">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="badge bg-white text-primary fw-bold px-2.5 py-1 extra-small rounded-pill">FORMULIR
+                    RESMI</span>
+                  <span class="badge bg-primary-subtle text-white border border-white-50 extra-small rounded-pill">PT.
+                    BERKAH BATU BARA</span>
+                </div>
+                <h4 class="fw-bold mb-1 text-white">Surat Perintah Lembur (SPL)</h4>
+                <p class="mb-0 text-white-50 small">Formulir penugasan kerja lembur karyawan di luar jam operasional
+                  kerja reguler.</p>
+              </div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" class="btn btn-light btn-sm fw-semibold shadow-sm px-3 py-2"
+                  onclick="showPage('riwayat-spl')">
+                  <i class="bi bi-clock-history me-1.5"></i>Riwayat SPL Saya
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Form Card -->
+          <div class="card spl-form-card mb-4">
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+              <h6 class="fw-bold m-0 text-dark">
+                <i class="bi bi-file-earmark-text-fill text-primary me-2"></i>Rincian Penugasan Kerja Lembur
+              </h6>
+              <span class="text-muted extra-small"><i class="bi bi-shield-check text-success me-1"></i>Approval 2
+                Tingkat (Atasan &amp; HRD)</span>
+            </div>
+            <div class="card-body p-3 p-md-4">
+              <form id="formPengajuanSPL" onsubmit="submitFormPengajuanSPL(event)">
+                <div class="row g-3">
+                  <!-- SISI KIRI: DATA KARYAWAN & WAKTU LEMBUR -->
+                  <div class="col-12 col-lg-7">
+                    <div class="p-3 rounded-3 bg-light border border-slate-200 mb-3">
+                      <div class="fw-bold text-dark extra-small text-uppercase tracking-wider mb-2.5">
+                        <i class="bi bi-person-badge-fill text-primary me-1.5"></i>Data Karyawan (Otomatis dari Akun
+                        Login)
+                      </div>
+                      <div class="row g-2.5">
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label extra-small text-muted mb-1">ID Karyawan / NIP</label>
+                          <input type="text" class="form-control form-control-sm spl-readonly-input" id="splEmpId"
+                            readonly>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label extra-small text-muted mb-1">Nama Lengkap</label>
+                          <input type="text" class="form-control form-control-sm spl-readonly-input" id="splEmpNama"
+                            readonly>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label extra-small text-muted mb-1">Departemen / Divisi</label>
+                          <input type="text" class="form-control form-control-sm spl-readonly-input" id="splDept"
+                            readonly>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label extra-small text-muted mb-1">Jabatan</label>
+                          <input type="text" class="form-control form-control-sm spl-readonly-input" id="splJabatan"
+                            readonly>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row g-3">
+                      <div class="col-12 col-sm-6">
+                        <label class="form-label fw-semibold small text-dark mb-1">
+                          Tanggal Pelaksanaan Lembur <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" class="form-control" id="splTanggalLembur" required>
+                      </div>
+                      <div class="col-12 col-sm-6">
+                        <label class="form-label fw-semibold small text-dark mb-1">
+                          Lokasi Kerja / Jobsite <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="splLokasiKerja" value="Jobsite TRIOP"
+                          placeholder="Contoh: Jobsite TRIOP / Samarinda" required>
+                      </div>
+                      <div class="col-12 col-sm-6">
+                        <label class="form-label fw-semibold small text-dark mb-1">
+                          Jam Mulai Lembur <span class="text-danger">*</span>
+                        </label>
+                        <input type="time" class="form-control" id="splJamMulai" value="17:00"
+                          onchange="calcTotalJamLembur()" required>
+                      </div>
+                      <div class="col-12 col-sm-6">
+                        <label class="form-label fw-semibold small text-dark mb-1">
+                          Jam Selesai Lembur <span class="text-danger">*</span>
+                        </label>
+                        <input type="time" class="form-control" id="splJamSelesai" value="20:00"
+                          onchange="calcTotalJamLembur()" required>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- SISI KANAN: KALKULATOR TOTAL JAM & URAIAN TUGAS -->
+                  <div class="col-12 col-lg-5">
+                    <!-- Kalkulator Card -->
+                    <div class="spl-calc-box mb-3" id="splCalcBox">
+                      <div class="d-flex align-items-center justify-content-between mb-1.5">
+                        <span class="extra-small fw-bold text-uppercase text-muted">Total Durasi Kerja Lembur</span>
+                        <i class="bi bi-clock-history text-primary fs-5"></i>
+                      </div>
+                      <h3 class="fw-bold text-dark mb-0" id="splTotalJamDisplay">3 Jam</h3>
+                      <div class="extra-small text-muted mt-1" id="splTotalJamSubDisplay">3 Jam Efektif Lembur</div>
+                      <input type="hidden" id="splTotalJamVal" value="3">
+                    </div>
+
+                    <!-- Uraian Pekerjaan -->
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold small text-dark mb-1">
+                        Uraian / Deskripsi Tugas Pekerjaan <span class="text-danger">*</span>
+                      </label>
+                      <textarea class="form-control" id="splUraianPekerjaan" rows="4"
+                        placeholder="Jelaskan alasan dan tugas pekerjaan lembur secara detail (misal: Maintenance darurat unit excavator EX-02, penyelesaian laporan tutup buku bulan Oktober, pengawalan hauling batubara malam hari, dll)..."
+                        required></textarea>
+                      <small class="text-muted extra-small mt-1 d-block">
+                        <i class="bi bi-info-circle me-1"></i>Uraian ini akan tercetak pada lembar fisik Surat Perintah
+                        Lembur resmi.
+                      </small>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                      <button type="submit" class="btn btn-primary fw-semibold w-100 py-2.5 shadow-sm"
+                        id="btnSubmitSPL">
+                        <i class="bi bi-send-fill me-1.5"></i>Kirim Pengajuan SPL
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- PAGE SPL 2: RIWAYAT SPL SAYA -->
+        <!-- ========================================== -->
+        <div id="page-riwayat-spl" class="app-page d-none">
+          <div class="card border-0 shadow-sm mb-4"
+            style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: 1rem;">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div>
+                <h4 class="fw-bold mb-1 text-white">Riwayat Surat Perintah Lembur</h4>
+                <p class="mb-0 text-white-50 small">Pantau status persetujuan Atasan, verifikasi HRD, dan cetak dokumen
+                  resmi SPL Anda.</p>
+              </div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" class="btn btn-primary btn-sm fw-semibold px-3 py-2 shadow-sm"
+                  onclick="showPage('pengajuan-spl')">
+                  <i class="bi bi-plus-circle-fill me-1.5"></i>+ Buat Pengajuan SPL
+                </button>
+                <button type="button" class="btn btn-outline-light btn-sm fw-semibold px-3 py-2"
+                  onclick="loadRiwayatSPL()">
+                  <i class="bi bi-arrow-clockwise me-1.5"></i>Segarkan
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card border-0 shadow-sm" style="border-radius: 1rem;">
+            <div class="card-header bg-white py-3 px-4 border-bottom">
+              <h6 class="fw-bold m-0 text-dark"><i class="bi bi-list-check text-primary me-2"></i>Daftar Pengajuan SPL
+                Saya</h6>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem;">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="text-center" style="width: 50px;">No</th>
+                      <th>No. SPL &amp; Tgl Buat</th>
+                      <th>Tanggal Lembur &amp; Lokasi</th>
+                      <th>Jam Lembur</th>
+                      <th>Durasi</th>
+                      <th>Uraian Tugas</th>
+                      <th>Status Persetujuan</th>
+                      <th class="text-center" style="width: 130px;">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableBodyRiwayatSPL">
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-4">
+                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat data SPL...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- PAGE SPL 3: PERSETUJUAN SPL (ATASAN & HRD) -->
+        <!-- ========================================== -->
+        <div id="page-persetujuan-spl" class="app-page d-none atasan-hrd-only">
+          <div class="card border-0 shadow-sm mb-4"
+            style="background: linear-gradient(135deg, #1e3a8a 0%, #0369a1 100%); color: white; border-radius: 1rem;">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="badge bg-warning text-dark fw-bold px-2 py-0.5 extra-small">PORTAL APPROVAL</span>
+                  <span class="badge bg-white-50 text-white extra-small">ATASAN &amp; HRD</span>
+                </div>
+                <h4 class="fw-bold mb-1 text-white">Persetujuan Surat Perintah Lembur</h4>
+                <p class="mb-0 text-white-50 small">Verifikasi penugasan kerja lembur karyawan departemen Anda dan
+                  berikan pengesahan resmi.</p>
+              </div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" class="btn btn-light btn-sm fw-semibold px-3 py-2 shadow-sm"
+                  onclick="loadPersetujuanSPL()">
+                  <i class="bi bi-arrow-clockwise me-1.5"></i>Segarkan Data
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Filter Buttons -->
+          <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+            <button type="button" class="btn btn-sm btn-primary btn-tab-spl fw-semibold active"
+              onclick="setApprovalSPLTab('pending', this)">
+              <i class="bi bi-hourglass-split me-1"></i>Menunggu Persetujuan
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-tab-spl fw-semibold"
+              onclick="setApprovalSPLTab('approved', this)">
+              <i class="bi bi-check-circle-fill me-1"></i>Telah Disetujui
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-tab-spl fw-semibold"
+              onclick="setApprovalSPLTab('rejected', this)">
+              <i class="bi bi-x-circle-fill me-1"></i>Ditolak
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-tab-spl fw-semibold"
+              onclick="setApprovalSPLTab('all', this)">
+              <i class="bi bi-collection me-1"></i>Semua Data
+            </button>
+          </div>
+
+          <div class="card border-0 shadow-sm" style="border-radius: 1rem;">
+            <div class="card-header bg-white py-3 px-4 border-bottom">
+              <h6 class="fw-bold m-0 text-dark"><i class="bi bi-shield-check text-primary me-2"></i>Daftar Permohonan
+                SPL Masuk</h6>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem;">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="text-center" style="width: 50px;">No</th>
+                      <th>No. SPL &amp; Tgl</th>
+                      <th>Karyawan Pemohon</th>
+                      <th>Tanggal &amp; Jam Lembur</th>
+                      <th>Durasi</th>
+                      <th>Uraian Tugas</th>
+                      <th>Status</th>
+                      <th class="text-center" style="width: 140px;">Tindakan</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableBodyPersetujuanSPL">
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-4">
+                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat data persetujuan
+                        SPL...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -3839,6 +4151,256 @@
     </div>
   </div>
 
+  <!-- ========================================== -->
+  <!-- MODAL: DETAIL SURAT PERINTAH LEMBUR (SPL) -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="modalDetailSPL" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem;">
+        <div class="modal-header bg-light py-3 px-4 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+              style="width: 36px; height: 36px;">
+              <i class="bi bi-file-earmark-text-fill fs-5"></i>
+            </div>
+            <div>
+              <h6 class="modal-title fw-bold text-dark mb-0">Rincian Surat Perintah Lembur</h6>
+              <small class="text-muted extra-small font-monospace" id="splDetailId">-</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- Status Banner -->
+          <div class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-light border mb-3">
+            <div>
+              <span class="extra-small text-muted text-uppercase fw-bold d-block">Status Persetujuan</span>
+              <div id="splDetailStatusBadge" class="mt-1">-</div>
+            </div>
+            <div class="text-end">
+              <span class="extra-small text-muted text-uppercase fw-bold d-block">Tanggal Pengajuan</span>
+              <strong class="text-dark small" id="splDetailTglPengajuan">-</strong>
+            </div>
+          </div>
+
+          <!-- Rincian Data Karyawan & Pelaksanaan -->
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <div class="p-3 rounded-3 border bg-white h-100">
+                <div class="fw-bold extra-small text-uppercase text-primary mb-2">
+                  <i class="bi bi-person-fill me-1"></i>Data Karyawan
+                </div>
+                <div class="mb-1.5"><span class="text-muted extra-small">Nama:</span> <strong class="text-dark small"
+                    id="splDetailNama">-</strong></div>
+                <div class="mb-1.5"><span class="text-muted extra-small">ID Karyawan / NIP:</span> <span
+                    class="font-monospace fw-semibold text-dark small" id="splDetailEmpId">-</span></div>
+                <div class="mb-1.5"><span class="text-muted extra-small">Departemen:</span> <span
+                    class="text-dark small" id="splDetailDept">-</span></div>
+                <div><span class="text-muted extra-small">Jabatan:</span> <span class="text-dark small"
+                    id="splDetailJabatan">-</span></div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <div class="p-3 rounded-3 border bg-white h-100">
+                <div class="fw-bold extra-small text-uppercase text-primary mb-2">
+                  <i class="bi bi-clock-history me-1"></i>Pelaksanaan Lembur
+                </div>
+                <div class="mb-1.5"><span class="text-muted extra-small">Tanggal:</span> <strong class="text-dark small"
+                    id="splDetailTglLembur">-</strong></div>
+                <div class="mb-1.5"><span class="text-muted extra-small">Jam Kerja:</span> <span
+                    class="badge bg-light text-dark border font-monospace small" id="splDetailJam">-</span></div>
+                <div><span class="text-muted extra-small">Lokasi:</span> <span class="text-dark small"
+                    id="splDetailLokasi">-</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Uraian Pekerjaan -->
+          <div class="p-3 rounded-3 border bg-light mb-3">
+            <span class="extra-small text-muted text-uppercase fw-bold d-block mb-1">Uraian / Tugas Pekerjaan
+              Lembur:</span>
+            <p class="text-dark small mb-0" id="splDetailUraian" style="line-height: 1.5; white-space: pre-wrap;">-</p>
+          </div>
+
+          <!-- Tahapan Approval Berjenjang -->
+          <div class="p-3 rounded-3 border bg-white mb-2">
+            <div class="fw-bold extra-small text-uppercase text-dark mb-2.5">
+              <i class="bi bi-shield-check text-primary me-1"></i>Tahapan Persetujuan Berjenjang (2 Tingkat)
+            </div>
+            <div class="row g-2">
+              <div class="col-12 col-sm-6">
+                <div class="p-2.5 rounded border bg-light">
+                  <span class="extra-small fw-bold text-uppercase text-muted d-block mb-1">Tahap 1: Atasan
+                    Langsung</span>
+                  <div id="splDetailApp1Card">-</div>
+                </div>
+              </div>
+              <div class="col-12 col-sm-6">
+                <div class="p-2.5 rounded border bg-light">
+                  <span class="extra-small fw-bold text-uppercase text-muted d-block mb-1">Tahap 2: HRD &amp;
+                    Management</span>
+                  <div id="splDetailApp2Card">-</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rejection Message Box -->
+          <div class="alert alert-danger mb-0 d-none" id="splDetailTolakBox">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+              <div>
+                <strong>Pengajuan SPL Ditolak</strong>
+                <div class="extra-small mt-0.5" id="splDetailTolakMsg">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+          <button type="button" class="btn btn-success btn-sm fw-semibold shadow-sm d-none" id="btnCetakFromDetailSPL">
+            <i class="bi bi-printer me-1"></i>Cetak Surat SPL Resmi
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: PROSES PERSETUJUAN SPL (ATASAN / HRD) -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="modalApprovalSPL" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem;">
+        <div class="modal-header bg-light py-3 px-4 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+              style="width: 36px; height: 36px;">
+              <i class="bi bi-shield-check fs-5"></i>
+            </div>
+            <div>
+              <h6 class="modal-title fw-bold text-dark mb-0">Verifikasi &amp; Persetujuan SPL</h6>
+              <small class="text-muted extra-small font-monospace" id="appModalSplId">-</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- Stage Guidance Banner -->
+          <div class="p-3 rounded-3 bg-primary-subtle text-dark border border-primary-subtle mb-3 small"
+            id="appModalStageGuide">
+            <!-- Populated via JS -->
+          </div>
+
+          <!-- Info Ringkas SPL -->
+          <div class="p-3 rounded-3 border bg-light mb-3">
+            <div class="row g-2">
+              <div class="col-12 col-sm-6">
+                <span class="text-muted extra-small">Karyawan:</span>
+                <strong class="d-block text-dark small" id="appModalNama">-</strong>
+                <small class="text-muted font-monospace" id="appModalEmpId">-</small>
+              </div>
+              <div class="col-12 col-sm-6">
+                <span class="text-muted extra-small">Departemen / Jabatan:</span>
+                <span class="d-block text-dark small fw-semibold" id="appModalDept">-</span>
+              </div>
+              <div class="col-12 col-sm-6">
+                <span class="text-muted extra-small">Waktu Lembur:</span>
+                <strong class="d-block text-dark small" id="appModalTglLembur">-</strong>
+                <span class="badge bg-light text-dark border font-monospace extra-small" id="appModalJam">-</span>
+              </div>
+              <div class="col-12 col-sm-6">
+                <span class="text-muted extra-small">Lokasi Penugasan:</span>
+                <span class="d-block text-dark small" id="appModalLokasi">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-3 border bg-white mb-3">
+            <span class="text-muted extra-small text-uppercase fw-bold d-block mb-1">Uraian / Tugas Lembur:</span>
+            <p class="text-dark small mb-0" id="appModalUraian" style="line-height: 1.5; white-space: pre-wrap;">-</p>
+          </div>
+
+          <!-- Catatan Approver -->
+          <div class="mb-2">
+            <label class="form-label fw-semibold small text-dark mb-1">
+              Catatan Persetujuan / Alasan Penolakan:
+            </label>
+            <textarea class="form-control" id="appModalCatatan" rows="3"
+              placeholder="Berikan catatan persetujuan atau alasan apabila permohonan lembur ditolak..."></textarea>
+            <small class="text-muted extra-small mt-1 d-block">
+              *Catatan wajib diisi jika Anda memilih untuk <strong>Menolak</strong> pengajuan SPL ini.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-danger btn-sm fw-semibold" id="btnDoRejectSPL">
+              <i class="bi bi-x-circle me-1"></i>Tolak SPL
+            </button>
+            <button type="button" class="btn btn-success btn-sm fw-semibold shadow-sm" id="btnDoApproveSPL">
+              <i class="bi bi-check-circle-fill me-1"></i>Setujui SPL
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: CETAK / UNDUH SURAT PERINTAH LEMBUR -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="modalCetakSuratSPL" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-fullscreen-md-down modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem;">
+        <div class="modal-header bg-light py-2 px-3 py-md-3 px-md-4 border-bottom">
+          <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
+            <div
+              class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0"
+              style="width: 36px; height: 36px;">
+              <i class="bi bi-printer-fill fs-5"></i>
+            </div>
+            <div class="overflow-hidden">
+              <h6 class="modal-title fw-bold text-dark mb-0 text-truncate">Surat Perintah Lembur (SPL) Resmi</h6>
+              <small class="text-muted extra-small text-truncate d-block" id="modalCetakSPLSubtitle">Pratinjau Dokumen
+                Siap Cetak &amp; PDF</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0 bg-secondary-subtle">
+          <div class="surat-spl-paper-container py-2 py-md-4 px-1 px-md-3">
+            <div id="printSuratSPLArea" style="width: 100%; max-width: 210mm; margin: 0 auto;">
+              <div class="surat-spl-paper" id="suratSPLPaperContent">
+                <!-- Populated dynamically via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="modal-footer bg-white py-2 px-3 px-md-4 d-flex flex-column-reverse flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2">
+          <div class="d-flex align-items-center justify-content-between justify-content-sm-start gap-2">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 extra-small">
+              <i class="bi bi-patch-check-fill me-1"></i>Dokumen Sah &amp; Terverifikasi 2 Tingkat
+            </span>
+            <small class="text-muted extra-small" id="modalCetakSPLNoDoc">No: -</small>
+          </div>
+          <div class="d-flex align-items-center gap-2 w-100 w-sm-auto justify-content-end">
+            <button type="button" class="btn btn-secondary btn-sm flex-fill flex-sm-grow-0"
+              data-bs-dismiss="modal">Tutup</button>
+            <button type="button"
+              class="btn btn-primary btn-sm fw-semibold shadow-sm flex-fill flex-sm-grow-0 text-nowrap"
+              onclick="printSuratSPLDoc()">
+              <i class="bi bi-printer me-1"></i>Cetak / Simpan PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: KONFIRMASI LOGOUT -->
   <div class="modal fade" id="modalLogout" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
@@ -4372,7 +4934,8 @@
         'Scripts_Slip.html',
         'Scripts_Cuti.html',
         'Scripts_Pendaftaran.html',
-        'Scripts_DataGaji.html'
+        'Scripts_DataGaji.html',
+        'Scripts_SPL.html'
       ];
       var basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
       scriptModules.forEach(function (file) {
@@ -4403,7 +4966,7 @@
             } else {
               var s = document.createElement('script');
               s.textContent = xhr.responseText;
-              document.body.appendChild(s);
+              document.head.appendChild(s);
             }
           }
         } catch (e) {
@@ -4421,6 +4984,7 @@
   <?!= include('Scripts_Cuti') ?>
   <?!= include('Scripts_Pendaftaran') ?>
   <?!= include('Scripts_DataGaji') ?>
+  <?!= include('Scripts_SPL') ?>
 </body>
 
 </html>

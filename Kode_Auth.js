@@ -77,6 +77,9 @@ function setupDatabase() {
   // 8. Sheet PendaftarAkun
   getOrCreatePendaftarAkunSheet(ss);
 
+  // 9. Sheet PengajuanSPL
+  if (typeof getOrCreatePengajuanSPLSheet === 'function') getOrCreatePengajuanSPLSheet(ss);
+
   return 'Setup Database Berhasil! Sheet Users, SlipGaji, Departemen, OTP_Reset, PengajuanCuti, MasterRoster, Pengumuman, dan PendaftarAkun telah siap.';
 }
 

@@ -1,0 +1,893 @@
+<script>
+// ==========================================================================
+// MODUL SURAT PERINTAH LEMBUR (SPL), APPROVAL BERJENJANG & CETAK SURAT
+// File: Scripts_SPL.html
+// ==========================================================================
+
+(function () {
+  var dbSPLList = [];
+  var currentApprovalTab = 'pending';
+  var bsModalDetailSPL = null;
+  var bsModalApprovalSPL = null;
+  var bsModalCetakSuratSPL = null;
+
+  // --- INITIALIZE & CALCULATION ---
+
+  window.initPengajuanSPLForm = function () {
+    var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+    if (!user) return;
+
+    var empIdEl = document.getElementById('splEmpId');
+    var namaEl = document.getElementById('splEmpNama');
+    var deptEl = document.getElementById('splDept');
+    var jabEl = document.getElementById('splJabatan');
+    var tglEl = document.getElementById('splTanggalLembur');
+    var jamMulaiEl = document.getElementById('splJamMulai');
+    var jamSelesaiEl = document.getElementById('splJamSelesai');
+    var uraianEl = document.getElementById('splUraianPekerjaan');
+    var lokasiEl = document.getElementById('splLokasiKerja');
+
+    if (empIdEl) empIdEl.value = user.username || '';
+    if (namaEl) namaEl.value = user.fullname || user.username || '';
+    if (deptEl) deptEl.value = user.dept || '-';
+    if (jabEl) jabEl.value = user.jabatan || 'Karyawan';
+
+    // Set tanggal default hari ini
+    if (tglEl && !tglEl.value) {
+      var now = new Date();
+      var yyyy = now.getFullYear();
+      var mm = String(now.getMonth() + 1).padStart(2, '0');
+      var dd = String(now.getDate()).padStart(2, '0');
+      tglEl.value = yyyy + '-' + mm + '-' + dd;
+    }
+
+    if (lokasiEl && !lokasiEl.value) {
+      lokasiEl.value = 'Jobsite TRIOP';
+    }
+
+    // Default jam lembur standar (17:00 s/d 20:00)
+    if (jamMulaiEl && !jamMulaiEl.value) jamMulaiEl.value = '17:00';
+    if (jamSelesaiEl && !jamSelesaiEl.value) jamSelesaiEl.value = '20:00';
+
+    calcTotalJamLembur();
+  };
+
+  window.calcTotalJamLembur = function () {
+    var jamMulaiEl = document.getElementById('splJamMulai');
+    var jamSelesaiEl = document.getElementById('splJamSelesai');
+    var labelEl = document.getElementById('splTotalJamDisplay');
+    var subEl = document.getElementById('splTotalJamSubDisplay');
+    var hiddenValEl = document.getElementById('splTotalJamVal');
+    var boxEl = document.getElementById('splCalcBox');
+
+    if (!jamMulaiEl || !jamSelesaiEl) return;
+
+    var startVal = jamMulaiEl.value;
+    var endVal = jamSelesaiEl.value;
+
+    if (!startVal || !endVal) {
+      if (labelEl) labelEl.innerText = '0 Jam';
+      if (subEl) subEl.innerText = 'Tentukan jam mulai & selesai';
+      if (hiddenValEl) hiddenValEl.value = '0';
+      if (boxEl) boxEl.classList.remove('has-hours');
+      return;
+    }
+
+    var startParts = startVal.split(':');
+    var endParts = endVal.split(':');
+
+    var startMin = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+    var endMin = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+
+    var diffMin = 0;
+    if (endMin >= startMin) {
+      diffMin = endMin - startMin;
+    } else {
+      // Lewat tengah malam (misal 22:00 s/d 02:00)
+      diffMin = (24 * 60 - startMin) + endMin;
+    }
+
+    var totalHoursDec = (diffMin / 60);
+    var displayHours = Math.floor(diffMin / 60);
+    var displayMins = diffMin % 60;
+
+    var textStr = '';
+    if (displayHours > 0 && displayMins > 0) {
+      textStr = displayHours + ' Jam ' + displayMins + ' Menit';
+    } else if (displayHours > 0) {
+      textStr = displayHours + ' Jam';
+    } else {
+      textStr = displayMins + ' Menit';
+    }
+
+    if (labelEl) labelEl.innerText = textStr;
+    if (subEl) {
+      var roundedDec = Math.round(totalHoursDec * 100) / 100;
+      subEl.innerText = roundedDec + ' Jam Efektif Lembur';
+    }
+    if (hiddenValEl) hiddenValEl.value = (Math.round(totalHoursDec * 100) / 100);
+
+    if (boxEl) {
+      if (diffMin > 0) boxEl.classList.add('has-hours');
+      else boxEl.classList.remove('has-hours');
+    }
+  };
+
+  // --- SUBMIT PENGAJUAN SPL ---
+
+  window.submitFormPengajuanSPL = function (event) {
+    if (event) event.preventDefault();
+
+    var tgl = document.getElementById('splTanggalLembur').value;
+    var jamMulai = document.getElementById('splJamMulai').value;
+    var jamSelesai = document.getElementById('splJamSelesai').value;
+    var totalJam = parseFloat(document.getElementById('splTotalJamVal').value || '0');
+    var uraian = (document.getElementById('splUraianPekerjaan').value || '').trim();
+    var lokasi = (document.getElementById('splLokasiKerja').value || 'TRIOP').trim();
+
+    if (!tgl) {
+      showFormValidationWarning('splTanggalLembur', 'Tanggal lembur wajib diisi.');
+      return;
+    }
+    if (!jamMulai || !jamSelesai) {
+      showFormValidationWarning('splJamMulai', 'Jam mulai dan jam selesai lembur wajib diisi.');
+      return;
+    }
+    if (totalJam <= 0) {
+      showFormValidationWarning('splJamSelesai', 'Total jam lembur harus lebih besar dari 0.');
+      return;
+    }
+    if (!uraian) {
+      showFormValidationWarning('splUraianPekerjaan', 'Uraian pekerjaan lembur wajib diisi secara rinci.');
+      return;
+    }
+
+    var payload = {
+      tanggalLembur: tgl,
+      jamMulai: jamMulai,
+      jamSelesai: jamSelesai,
+      totalJam: totalJam,
+      uraianPekerjaan: uraian,
+      lokasiKerja: lokasi
+    };
+
+    var btnSubmit = document.getElementById('btnSubmitSPL');
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1.5"></span>Menyimpan SPL...';
+    }
+
+    showFullPageLoading('Mengirim pengajuan Surat Perintah Lembur...');
+
+    gasRun('simpanPengajuanSPL', Auth.getToken(), payload).then(function (res) {
+      hideFullPageLoading();
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<i class="bi bi-send-fill me-1.5"></i>Kirim Pengajuan SPL';
+      }
+      if (handleSessionExpired(res)) return;
+
+      if (res && res.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Pengajuan Berhasil!',
+          html: 'Surat Perintah Lembur berhasil diajukan dengan ID: <strong>' + escapeHTML(res.splId) + '</strong>.<br><small class="text-muted">Pengajuan Anda akan diproses melalui alur persetujuan Atasan Langsung &amp; HRD.</small>',
+          showCancelButton: true,
+          confirmButtonText: '<i class="bi bi-clock-history me-1"></i>Lihat Riwayat SPL',
+          cancelButtonText: 'Buat SPL Baru',
+          confirmButtonColor: '#2563eb',
+          cancelButtonColor: '#64748b'
+        }).then(function (result) {
+          if (result.isConfirmed) {
+            showPage('riwayat-spl');
+          } else {
+            // Reset form
+            document.getElementById('splUraianPekerjaan').value = '';
+            calcTotalJamLembur();
+          }
+        });
+      } else {
+        Swal.fire('Gagal Mengajukan', (res && res.message) || 'Terjadi kesalahan sistem.', 'error');
+      }
+    }).catch(function (err) {
+      hideFullPageLoading();
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<i class="bi bi-send-fill me-1.5"></i>Kirim Pengajuan SPL';
+      }
+      Swal.fire('Error', err.toString(), 'error');
+    });
+  };
+
+  // --- RIWAYAT SPL SAYA ---
+
+  window.loadRiwayatSPL = function (isBackground) {
+    if (!isBackground) {
+      var tbody = document.getElementById('tableBodyRiwayatSPL');
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat data SPL...</td></tr>';
+      }
+    }
+
+    gasRun('getPengajuanSPLList', Auth.getToken()).then(function (res) {
+      if (handleSessionExpired(res)) return;
+      if (res && res.success) {
+        dbSPLList = res.list || [];
+        updateSPLApprovalBadge(res.pendingCount || 0);
+        renderRiwayatSPLTable();
+      } else if (!isBackground) {
+        var tbody = document.getElementById('tableBodyRiwayatSPL');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">' + escapeHTML(res.message || 'Gagal memuat data') + '</td></tr>';
+      }
+    }).catch(function (err) {
+      if (!isBackground) {
+        var tbody = document.getElementById('tableBodyRiwayatSPL');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Error: ' + escapeHTML(err.toString()) + '</td></tr>';
+      }
+    });
+  };
+
+  function updateSPLApprovalBadge(count) {
+    var badgeNav = document.getElementById('badgeNavSPLApproval');
+    if (badgeNav) {
+      if (count > 0) {
+        badgeNav.innerText = count;
+        badgeNav.classList.remove('d-none');
+      } else {
+        badgeNav.classList.add('d-none');
+      }
+    }
+  }
+
+  function getSPLStatusBadgeHtml(status) {
+    var s = String(status || '').trim();
+    if (s === 'Menunggu Persetujuan Atasan') {
+      return '<span class="badge badge-spl-atasan px-2.5 py-1.5 extra-small rounded-pill"><i class="bi bi-clock-history me-1"></i>Menunggu Atasan</span>';
+    } else if (s === 'Menunggu Persetujuan HRD') {
+      return '<span class="badge badge-spl-hrd px-2.5 py-1.5 extra-small rounded-pill"><i class="bi bi-hourglass-split me-1"></i>Menunggu HRD</span>';
+    } else if (s === 'Disetujui') {
+      return '<span class="badge badge-spl-approved px-2.5 py-1.5 extra-small rounded-pill"><i class="bi bi-check-circle-fill me-1"></i>Disetujui Penuh</span>';
+    } else if (s === 'Ditolak') {
+      return '<span class="badge badge-spl-rejected px-2.5 py-1.5 extra-small rounded-pill"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>';
+    } else if (s === 'Dibatalkan') {
+      return '<span class="badge badge-spl-cancelled px-2.5 py-1.5 extra-small rounded-pill"><i class="bi bi-slash-circle me-1"></i>Dibatalkan</span>';
+    }
+    return '<span class="badge bg-secondary px-2.5 py-1.5 extra-small rounded-pill">' + escapeHTML(s) + '</span>';
+  }
+
+  function renderRiwayatSPLTable() {
+    var tbody = document.getElementById('tableBodyRiwayatSPL');
+    if (!tbody) return;
+
+    var user = Auth.getUser();
+    var currentUsername = String(user.username || '').toLowerCase();
+
+    // Di riwayat saya, tampilkan yang diajukan oleh user login
+    var mySPL = dbSPLList.filter(function (item) {
+      return String(item.empId || '').toLowerCase() === currentUsername;
+    });
+
+    if (mySPL.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-5">' +
+        '<div class="mb-2"><i class="bi bi-inbox fs-2 text-secondary"></i></div>' +
+        '<div class="fw-semibold">Belum ada pengajuan SPL</div>' +
+        '<small class="text-muted">Klik tombol "+ Buat Pengajuan SPL" untuk mengajukan lembur baru.</small>' +
+        '</td></tr>';
+      return;
+    }
+
+    var html = '';
+    mySPL.forEach(function (item, idx) {
+      var statusBadge = getSPLStatusBadgeHtml(item.status);
+      var canCancel = (item.status === 'Menunggu Persetujuan Atasan' || item.status === 'Menunggu Persetujuan HRD');
+      var isApproved = (item.status === 'Disetujui');
+
+      html += '<tr>' +
+        '<td class="text-center text-muted small">' + (idx + 1) + '</td>' +
+        '<td><strong class="font-monospace text-primary">' + escapeHTML(item.id) + '</strong><br><small class="text-muted extra-small">' + escapeHTML(item.tanggalPengajuan) + '</small></td>' +
+        '<td><div class="fw-bold text-dark">' + escapeHTML(formatDateIndo(item.tanggalLembur)) + '</div><small class="text-muted">' + escapeHTML(item.lokasiKerja || 'TRIOP') + '</small></td>' +
+        '<td><span class="badge bg-light text-dark border font-monospace">' + escapeHTML(item.jamMulai) + ' - ' + escapeHTML(item.jamSelesai) + '</span></td>' +
+        '<td><strong class="text-primary">' + item.totalJam + ' Jam</strong></td>' +
+        '<td style="max-width: 250px;"><div class="text-truncate" title="' + escapeHTML(item.uraianPekerjaan) + '">' + escapeHTML(item.uraianPekerjaan) + '</div></td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td class="text-center text-nowrap">' +
+        '  <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="openModalDetailSPL(\'' + escapeHTML(item.id) + '\')" title="Lihat Detail SPL">' +
+        '    <i class="bi bi-eye"></i>' +
+        '  </button>' +
+        (isApproved ?
+          '  <button type="button" class="btn btn-sm btn-outline-success py-1 px-2 me-1" onclick="openModalCetakSuratSPL(\'' + escapeHTML(item.id) + '\')" title="Cetak Surat Perintah Lembur Resmi">' +
+          '    <i class="bi bi-printer"></i>' +
+          '  </button>' : '') +
+        (canCancel ?
+          '  <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" onclick="confirmBatalSPL(\'' + escapeHTML(item.id) + '\')" title="Batalkan Pengajuan">' +
+          '    <i class="bi bi-x-lg"></i>' +
+          '  </button>' : '') +
+        '</td>' +
+        '</tr>';
+    });
+
+    tbody.innerHTML = html;
+  }
+
+  window.confirmBatalSPL = function (splId) {
+    Swal.fire({
+      title: 'Batalkan Pengajuan SPL?',
+      text: 'Pengajuan ' + splId + ' akan dibatalkan dan tidak dapat diproses lagi.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Batalkan',
+      cancelButtonText: 'Kembali',
+      confirmButtonColor: '#dc2626'
+    }).then(function (result) {
+      if (result.isConfirmed) {
+        showFullPageLoading('Membatalkan pengajuan SPL...');
+        gasRun('batalPengajuanSPL', Auth.getToken(), splId).then(function (res) {
+          hideFullPageLoading();
+          if (handleSessionExpired(res)) return;
+          if (res && res.success) {
+            Swal.fire('Berhasil', res.message, 'success');
+            loadRiwayatSPL();
+          } else {
+            Swal.fire('Gagal', res.message || 'Terjadi kesalahan.', 'error');
+          }
+        }).catch(function (err) {
+          hideFullPageLoading();
+          Swal.fire('Error', err.toString(), 'error');
+        });
+      }
+    });
+  };
+
+  // --- DETAIL MODAL SPL ---
+
+  window.openModalDetailSPL = function (splId) {
+    var item = dbSPLList.find(function (s) { return s.id === splId; });
+    if (!item) {
+      Swal.fire('Info', 'Data SPL tidak ditemukan.', 'info');
+      return;
+    }
+
+    var setEl = function (id, val) {
+      var el = document.getElementById(id);
+      if (el) el.innerText = val || '-';
+    };
+
+    setEl('splDetailId', item.id);
+    setEl('splDetailTglPengajuan', item.tanggalPengajuan);
+    setEl('splDetailEmpId', item.empId);
+    setEl('splDetailNama', item.namaKaryawan);
+    setEl('splDetailDept', item.dept);
+    setEl('splDetailJabatan', item.jabatan);
+    setEl('splDetailLokasi', item.lokasiKerja || 'TRIOP');
+    setEl('splDetailTglLembur', formatDateIndo(item.tanggalLembur));
+    setEl('splDetailJam', item.jamMulai + ' s/d ' + item.jamSelesai + ' (' + item.totalJam + ' Jam)');
+    setEl('splDetailUraian', item.uraianPekerjaan);
+
+    var statusEl = document.getElementById('splDetailStatusBadge');
+    if (statusEl) statusEl.innerHTML = getSPLStatusBadgeHtml(item.status);
+
+    // Approval Timeline
+    var app1Card = document.getElementById('splDetailApp1Card');
+    var app2Card = document.getElementById('splDetailApp2Card');
+
+    if (app1Card) {
+      if (item.approver1 && item.approver1.nama) {
+        app1Card.innerHTML = '<div class="fw-bold text-dark">' + escapeHTML(item.approver1.nama) + ' (' + escapeHTML(item.approver1.jabatan || 'Atasan') + ')</div>' +
+          '<div class="extra-small text-muted">' + escapeHTML(item.approver1.tanggal || '-') + '</div>' +
+          '<div class="mt-1 extra-small text-success fw-semibold"><i class="bi bi-check2-circle me-1"></i>' + escapeHTML(item.approver1.catatan || 'Disetujui') + '</div>';
+      } else {
+        app1Card.innerHTML = '<span class="text-muted extra-small fst-italic">Menunggu persetujuan atasan langsung...</span>';
+      }
+    }
+
+    if (app2Card) {
+      if (item.approver2 && item.approver2.nama) {
+        app2Card.innerHTML = '<div class="fw-bold text-dark">' + escapeHTML(item.approver2.nama) + ' (' + escapeHTML(item.approver2.jabatan || 'HRD') + ')</div>' +
+          '<div class="extra-small text-muted">' + escapeHTML(item.approver2.tanggal || '-') + '</div>' +
+          '<div class="mt-1 extra-small text-success fw-semibold"><i class="bi bi-check2-circle me-1"></i>' + escapeHTML(item.approver2.catatan || 'Disetujui') + '</div>';
+      } else {
+        app2Card.innerHTML = '<span class="text-muted extra-small fst-italic">Menunggu verifikasi akhir HRD / Management...</span>';
+      }
+    }
+
+    var tolakBox = document.getElementById('splDetailTolakBox');
+    if (tolakBox) {
+      if (item.status === 'Ditolak' && item.alasanPenolakan) {
+        tolakBox.classList.remove('d-none');
+        var tolakMsg = document.getElementById('splDetailTolakMsg');
+        if (tolakMsg) tolakMsg.innerText = item.alasanPenolakan;
+      } else {
+        tolakBox.classList.add('d-none');
+      }
+    }
+
+    var btnCetakModal = document.getElementById('btnCetakFromDetailSPL');
+    if (btnCetakModal) {
+      if (item.status === 'Disetujui') {
+        btnCetakModal.classList.remove('d-none');
+        btnCetakModal.onclick = function () {
+          if (bsModalDetailSPL) bsModalDetailSPL.hide();
+          openModalCetakSuratSPL(item.id);
+        };
+      } else {
+        btnCetakModal.classList.add('d-none');
+      }
+    }
+
+    if (!bsModalDetailSPL) {
+      bsModalDetailSPL = new bootstrap.Modal(document.getElementById('modalDetailSPL'));
+    }
+    bsModalDetailSPL.show();
+  };
+
+  // --- PERSETUJUAN SPL (ATASAN & HRD) ---
+
+  window.setApprovalSPLTab = function (tabName, btnEl) {
+    currentApprovalTab = tabName;
+    document.querySelectorAll('.btn-tab-spl').forEach(function (b) {
+      b.classList.remove('active', 'btn-primary');
+      b.classList.add('btn-outline-secondary');
+    });
+    if (btnEl) {
+      btnEl.classList.add('active', 'btn-primary');
+      btnEl.classList.remove('btn-outline-secondary');
+    }
+    renderPersetujuanSPLTable();
+  };
+
+  window.loadPersetujuanSPL = function () {
+    var tbody = document.getElementById('tableBodyPersetujuanSPL');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat daftar persetujuan SPL...</td></tr>';
+    }
+
+    gasRun('getPengajuanSPLList', Auth.getToken()).then(function (res) {
+      if (handleSessionExpired(res)) return;
+      if (res && res.success) {
+        dbSPLList = res.list || [];
+        updateSPLApprovalBadge(res.pendingCount || 0);
+        renderPersetujuanSPLTable();
+      } else {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">' + escapeHTML(res.message || 'Gagal memuat data') + '</td></tr>';
+      }
+    }).catch(function (err) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Error: ' + escapeHTML(err.toString()) + '</td></tr>';
+    });
+  };
+
+  function renderPersetujuanSPLTable() {
+    var tbody = document.getElementById('tableBodyPersetujuanSPL');
+    if (!tbody) return;
+
+    var user = Auth.getUser();
+    var currentUsername = String(user.username || '').toLowerCase();
+    var userRole = String(user.role || '').toLowerCase();
+    var isAdminOrHRD = (userRole === 'admin' || userRole === 'hrd');
+
+    // Filter daftar sesuai tab
+    var filtered = dbSPLList.filter(function (item) {
+      if (currentApprovalTab === 'pending') {
+        if (isAdminOrHRD) {
+          return item.status === 'Menunggu Persetujuan HRD' || item.status === 'Menunggu Persetujuan Atasan';
+        } else {
+          return item.status === 'Menunggu Persetujuan Atasan' && String(item.empId).toLowerCase() !== currentUsername;
+        }
+      } else if (currentApprovalTab === 'approved') {
+        return item.status === 'Disetujui';
+      } else if (currentApprovalTab === 'rejected') {
+        return item.status === 'Ditolak';
+      }
+      return true; // semua
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-5">' +
+        '<div class="mb-2"><i class="bi bi-check2-all fs-2 text-success"></i></div>' +
+        '<div class="fw-semibold">Tidak ada data persetujuan SPL pada tab ini</div>' +
+        '<small class="text-muted">Semua permohonan telah selesai diproses.</small>' +
+        '</td></tr>';
+      return;
+    }
+
+    var html = '';
+    filtered.forEach(function (item, idx) {
+      var isPendingForMe = false;
+      if (isAdminOrHRD && (item.status === 'Menunggu Persetujuan HRD' || item.status === 'Menunggu Persetujuan Atasan')) {
+        isPendingForMe = true;
+      } else if (!isAdminOrHRD && item.status === 'Menunggu Persetujuan Atasan' && String(item.empId).toLowerCase() !== currentUsername) {
+        isPendingForMe = true;
+      }
+
+      var statusBadge = getSPLStatusBadgeHtml(item.status);
+
+      html += '<tr>' +
+        '<td class="text-center text-muted small">' + (idx + 1) + '</td>' +
+        '<td><strong class="font-monospace text-primary">' + escapeHTML(item.id) + '</strong><br><small class="text-muted extra-small">' + escapeHTML(item.tanggalPengajuan) + '</small></td>' +
+        '<td><div class="fw-bold text-dark">' + escapeHTML(item.namaKaryawan) + '</div><small class="text-muted">' + escapeHTML(item.empId) + ' • ' + escapeHTML(item.dept) + ' (' + escapeHTML(item.jabatan) + ')</small></td>' +
+        '<td><div class="fw-semibold text-dark">' + escapeHTML(formatDateIndo(item.tanggalLembur)) + '</div><small class="text-muted font-monospace">' + escapeHTML(item.jamMulai) + ' - ' + escapeHTML(item.jamSelesai) + '</small></td>' +
+        '<td><strong class="text-primary">' + item.totalJam + ' Jam</strong></td>' +
+        '<td style="max-width: 220px;"><div class="text-truncate" title="' + escapeHTML(item.uraianPekerjaan) + '">' + escapeHTML(item.uraianPekerjaan) + '</div></td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td class="text-center text-nowrap">' +
+        (isPendingForMe ?
+          '  <button type="button" class="btn btn-sm btn-primary py-1 px-2.5 shadow-sm fw-semibold" onclick="openModalApprovalSPL(\'' + escapeHTML(item.id) + '\')">' +
+          '    <i class="bi bi-shield-check me-1"></i>Proses' +
+          '  </button>' :
+          '  <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="openModalDetailSPL(\'' + escapeHTML(item.id) + '\')" title="Lihat Detail">' +
+          '    <i class="bi bi-eye"></i>' +
+          '  </button>') +
+        (item.status === 'Disetujui' ?
+          '  <button type="button" class="btn btn-sm btn-outline-success py-1 px-2 ms-1" onclick="openModalCetakSuratSPL(\'' + escapeHTML(item.id) + '\')" title="Cetak Surat SPL Resmi">' +
+          '    <i class="bi bi-printer"></i>' +
+          '  </button>' : '') +
+        '</td>' +
+        '</tr>';
+    });
+
+    tbody.innerHTML = html;
+  }
+
+  window.openModalApprovalSPL = function (splId) {
+    var item = dbSPLList.find(function (s) { return s.id === splId; });
+    if (!item) {
+      Swal.fire('Info', 'Data SPL tidak ditemukan.', 'info');
+      return;
+    }
+
+    var setEl = function (id, val) {
+      var el = document.getElementById(id);
+      if (el) el.innerText = val || '-';
+    };
+
+    setEl('appModalSplId', item.id);
+    setEl('appModalNama', item.namaKaryawan);
+    setEl('appModalEmpId', item.empId);
+    setEl('appModalDept', item.dept + ' (' + item.jabatan + ')');
+    setEl('appModalTglLembur', formatDateIndo(item.tanggalLembur));
+    setEl('appModalJam', item.jamMulai + ' s/d ' + item.jamSelesai + ' (' + item.totalJam + ' Jam)');
+    setEl('appModalLokasi', item.lokasiKerja || 'TRIOP');
+    setEl('appModalUraian', item.uraianPekerjaan);
+
+    var guideEl = document.getElementById('appModalStageGuide');
+    var btnApprove = document.getElementById('btnDoApproveSPL');
+    var btnReject = document.getElementById('btnDoRejectSPL');
+    var inputCatatan = document.getElementById('appModalCatatan');
+
+    if (inputCatatan) inputCatatan.value = '';
+
+    var user = Auth.getUser();
+    var userRole = String(user.role || '').toLowerCase();
+    var isAdminOrHRD = (userRole === 'admin' || userRole === 'hrd');
+
+    if (item.status === 'Menunggu Persetujuan Atasan') {
+      if (guideEl) {
+        guideEl.innerHTML = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle me-1.5 fw-bold">Tahap 1 / 2</span>' +
+          'Persetujuan Atasan Langsung Departemen. Setelah disetujui, SPL akan diteruskan ke HRD untuk pengesahan akhir.';
+      }
+      if (btnApprove) btnApprove.innerHTML = '<i class="bi bi-check-lg me-1"></i>Setujui Tahap 1 (Atasan)';
+    } else if (item.status === 'Menunggu Persetujuan HRD') {
+      if (guideEl) {
+        guideEl.innerHTML = '<span class="badge bg-info-subtle text-primary border border-info-subtle me-1.5 fw-bold">Tahap 2 / 2</span>' +
+          'Verifikasi &amp; Pengesahan Akhir HRD. Setelah disetujui, status SPL menjadi Sah dan dokumen Surat Perintah Lembur siap dicetak.';
+      }
+      if (btnApprove) btnApprove.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Setujui Penuh (HRD &amp; Management)';
+    }
+
+    if (btnApprove) {
+      btnApprove.onclick = function () {
+        submitApprovalSPLAction(item.id, 'Setujui');
+      };
+    }
+    if (btnReject) {
+      btnReject.onclick = function () {
+        submitApprovalSPLAction(item.id, 'Tolak');
+      };
+    }
+
+    if (!bsModalApprovalSPL) {
+      bsModalApprovalSPL = new bootstrap.Modal(document.getElementById('modalApprovalSPL'));
+    }
+    bsModalApprovalSPL.show();
+  };
+
+  function submitApprovalSPLAction(splId, action) {
+    var catatan = (document.getElementById('appModalCatatan').value || '').trim();
+
+    if (action === 'Tolak' && !catatan) {
+      Swal.fire('Catatan Diperlukan', 'Harap isi alasan penolakan pada kolom catatan.', 'warning');
+      return;
+    }
+
+    var confirmTitle = action === 'Setujui' ? 'Konfirmasi Persetujuan SPL' : 'Konfirmasi Penolakan SPL';
+    var confirmText = action === 'Setujui' ?
+      'Apakah Anda yakin menyetujui Surat Perintah Lembur ' + splId + '?' :
+      'Apakah Anda yakin menolak Surat Perintah Lembur ' + splId + '?';
+
+    Swal.fire({
+      title: confirmTitle,
+      text: confirmText,
+      icon: action === 'Setujui' ? 'question' : 'warning',
+      showCancelButton: true,
+      confirmButtonText: action === 'Setujui' ? 'Ya, Setujui' : 'Ya, Tolak',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: action === 'Setujui' ? '#16a34a' : '#dc2626'
+    }).then(function (result) {
+      if (!result.isConfirmed) return;
+
+      if (bsModalApprovalSPL) bsModalApprovalSPL.hide();
+      showFullPageLoading('Memproses persetujuan SPL...');
+
+      gasRun('processApprovalSPL', Auth.getToken(), splId, action, catatan).then(function (res) {
+        hideFullPageLoading();
+        if (handleSessionExpired(res)) return;
+        if (res && res.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: res.message,
+            confirmButtonColor: '#2563eb'
+          });
+          loadPersetujuanSPL();
+          loadRiwayatSPL(true);
+        } else {
+          Swal.fire('Gagal', (res && res.message) || 'Terjadi kesalahan sistem.', 'error');
+        }
+      }).catch(function (err) {
+        hideFullPageLoading();
+        Swal.fire('Error', err.toString(), 'error');
+      });
+    });
+  }
+
+  // --- CETAK SURAT PERINTAH LEMBUR RESMI (PDF / PRINT) ---
+
+  window.openModalCetakSuratSPL = function (splId) {
+    var item = dbSPLList.find(function (s) { return s.id === splId; });
+    if (!item) {
+      Swal.fire('Info', 'Data SPL tidak ditemukan.', 'info');
+      return;
+    }
+
+    // Nomor Dokumen Resmi: [ID]/SPL-BBB/[ROMAN_MONTH]/[YEAR]
+    var tglObj = new Date();
+    if (item.tanggalLembur) {
+      var b = item.tanggalLembur.split('-');
+      if (b.length === 3) tglObj = new Date(parseInt(b[0], 10), parseInt(b[1], 10) - 1, parseInt(b[2], 10));
+    }
+    var romMonth = getRomanMonth(tglObj.getMonth() + 1);
+    var yVal = tglObj.getFullYear();
+    var nomorSurat = item.id + '/SPL-BBB/' + romMonth + '/' + yVal;
+
+    var noDocEl = document.getElementById('modalCetakSPLNoDoc');
+    if (noDocEl) noDocEl.innerText = 'No: ' + nomorSurat;
+
+    var subEl = document.getElementById('modalCetakSPLSubtitle');
+    if (subEl) subEl.innerText = 'Pratinjau Dokumen Siap Cetak • ' + item.namaKaryawan + ' (' + item.id + ')';
+
+    var now = new Date();
+    var tanggalCetak = now.getDate() + ' ' + BULAN_INDO[now.getMonth()] + ' ' + now.getFullYear();
+
+    // Stempel tanda tangan
+    var app1StampHtml = '';
+    if (item.approver1 && item.approver1.nama) {
+      app1StampHtml = '<div class="surat-spl-stamp">' +
+        '<div class="stamp-spl-badge approved-atasan">' +
+        '<span>DISANGGUPKAN &amp; DISETUJUI</span>' +
+        '<span>ATASAN LANGSUNG</span>' +
+        '</div>' +
+        '</div>' +
+        '<div class="surat-spl-sig-name">' + escapeHTML(item.approver1.nama) + '</div>' +
+        '<div class="surat-spl-sig-role">' + escapeHTML(item.approver1.jabatan || 'Atasan / Supervisor') + '</div>' +
+        '<div class="surat-spl-sig-date">' + escapeHTML(item.approver1.tanggal || '-') + '</div>';
+    } else {
+      app1StampHtml = '<div class="surat-spl-stamp"><span class="text-muted extra-small">Belum Diverifikasi</span></div>' +
+        '<div class="surat-spl-sig-name">____________________</div>' +
+        '<div class="surat-spl-sig-role">Atasan Langsung</div>';
+    }
+
+    var app2StampHtml = '';
+    if (item.approver2 && item.approver2.nama) {
+      app2StampHtml = '<div class="surat-spl-stamp">' +
+        '<div class="stamp-spl-badge approved-hrd">' +
+        '<span>TERVERIFIKASI &amp; DISAHKAN</span>' +
+        '<span>HRD &amp; MANAGEMENT</span>' +
+        '</div>' +
+        '</div>' +
+        '<div class="surat-spl-sig-name">' + escapeHTML(item.approver2.nama) + '</div>' +
+        '<div class="surat-spl-sig-role">' + escapeHTML(item.approver2.jabatan || 'HRD / Management') + '</div>' +
+        '<div class="surat-spl-sig-date">' + escapeHTML(item.approver2.tanggal || '-') + '</div>';
+    } else {
+      app2StampHtml = '<div class="surat-spl-stamp"><span class="text-muted extra-small">Belum Diverifikasi</span></div>' +
+        '<div class="surat-spl-sig-name">____________________</div>' +
+        '<div class="surat-spl-sig-role">HRD &amp; Management</div>';
+    }
+
+    var pemohonStampHtml =
+      '<div class="surat-spl-stamp">' +
+      '<div class="stamp-spl-badge submitted">' +
+      '<span>DIAJUKAN &amp; DIKONFIRMASI</span>' +
+      '<span>KARYAWAN</span>' +
+      '</div>' +
+      '</div>' +
+      '<div class="surat-spl-sig-name">' + escapeHTML(item.namaKaryawan) + '</div>' +
+      '<div class="surat-spl-sig-role">' + escapeHTML(item.jabatan || 'Karyawan') + '</div>' +
+      '<div class="surat-spl-sig-date">' + escapeHTML(item.tanggalPengajuan || '-') + '</div>';
+
+    // Build Paper HTML
+    var paperHtml =
+      '<div class="surat-spl-kop">' +
+      '<table style="width: 100%; border-collapse: collapse;">' +
+      '<tr>' +
+      '<td style="width: 85px; vertical-align: middle; text-align: left;">' +
+      '<img src="image/BBB.png" alt="Logo PT. Berkah Batu Bara" class="surat-spl-kop-logo">' +
+      '</td>' +
+      '<td style="text-align: center; vertical-align: middle; padding: 0 10px;">' +
+      '<div class="surat-spl-kop-company">PT. BERKAH BATU BARA</div>' +
+      '<div class="surat-spl-kop-division">GENERAL SUPPLIER TRANSPORT &amp; MINING CONTRACTOR</div>' +
+      '<div class="surat-spl-kop-address">JL. KH. Wahid Hasyim 1 Karya Baru No 56 RT 11 Kel. Sempaja Utara, Kota Samarinda<br>Telp: 0822 777 505 &nbsp;|&nbsp; Email: berkahbatubara2112@gmail.com</div>' +
+      '</td>' +
+      '<td style="width: 85px; vertical-align: middle;"></td>' +
+      '</tr>' +
+      '</table>' +
+      '</div>' +
+
+      '<div class="surat-spl-title">' +
+      '<h4>SURAT PERINTAH LEMBUR (SPL)</h4>' +
+      '<div class="surat-spl-nomor">Nomor: ' + escapeHTML(nomorSurat) + '</div>' +
+      '</div>' +
+
+      '<p style="margin-bottom: 12px; font-size: 10pt; text-align: justify; line-height: 1.5;">' +
+      'Sehubungan dengan adanya tuntutan operasional pekerjaan yang mendesak dan harus segera diselesaikan di luar jam kerja reguler, Manajemen <strong>PT. BERKAH BATU BARA</strong> dengan ini menugaskan dan memerintahkan kepada karyawan di bawah ini untuk melaksanakan kerja lembur:' +
+      '</p>' +
+
+      '<div class="surat-spl-section-header">I. DATA KARYAWAN YANG DITUGASKAN</div>' +
+      '<table class="surat-spl-table">' +
+      '<tr><td class="lbl">Nama Karyawan</td><td class="colon">:</td><td class="val">' + escapeHTML(item.namaKaryawan) + '</td></tr>' +
+      '<tr><td class="lbl">NIP / ID Karyawan</td><td class="colon">:</td><td class="val font-monospace">' + escapeHTML(item.empId) + '</td></tr>' +
+      '<tr><td class="lbl">Departemen / Divisi</td><td class="colon">:</td><td class="val">' + escapeHTML(item.dept) + '</td></tr>' +
+      '<tr><td class="lbl">Jabatan</td><td class="colon">:</td><td class="val">' + escapeHTML(item.jabatan) + '</td></tr>' +
+      '<tr><td class="lbl">Lokasi Pekerjaan</td><td class="colon">:</td><td class="val">' + escapeHTML(item.lokasiKerja || 'TRIOP') + '</td></tr>' +
+      '</table>' +
+
+      '<div class="surat-spl-section-header">II. RINCIAN JADWAL &amp; URAIAN TUGAS LEMBUR</div>' +
+      '<table class="surat-spl-table">' +
+      '<tr><td class="lbl">Hari, Tanggal Lembur</td><td class="colon">:</td><td class="val">' + escapeHTML(formatDateIndo(item.tanggalLembur)) + '</td></tr>' +
+      '<tr><td class="lbl">Waktu Pelaksanaan</td><td class="colon">:</td><td class="val"><strong>' + escapeHTML(item.jamMulai) + ' s/d ' + escapeHTML(item.jamSelesai) + ' WITA</strong></td></tr>' +
+      '<tr><td class="lbl">Total Durasi Lembur</td><td class="colon">:</td><td class="val"><strong>' + item.totalJam + ' Jam</strong></td></tr>' +
+      '<tr><td class="lbl">Uraian / Tugas Pekerjaan</td><td class="colon">:</td><td class="val" style="line-height: 1.5;">' + escapeHTML(item.uraianPekerjaan) + '</td></tr>' +
+      '</table>' +
+
+      '<div style="font-size: 8.5pt; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin: 12px 0; line-height: 1.4;">' +
+      '<strong>Ketentuan Pelaksanaan Lembur:</strong>' +
+      '<ol style="margin: 3px 0 0 0; padding-left: 18px;">' +
+      '<li>Karyawan wajib mematuhi seluruh standar Keselamatan dan Kesehatan Kerja (K3) serta menggunakan APD lengkap selama bertugas.</li>' +
+      '<li>Pekerjaan lembur ini telah diverifikasi dan disahkan oleh Atasan Langsung serta Manajemen HRD PT. Berkah Batu Bara.</li>' +
+      '<li>Surat Perintah Lembur (SPL) ini sah menjadi dokumen pertanggungjawaban operasional perusahaan.</li>' +
+      '</ol>' +
+      '</div>' +
+
+      '<div class="surat-spl-signatures">' +
+      '  <div class="surat-spl-sig-box">' +
+      '    <div class="surat-spl-sig-title">Pelaksana Tugas</div>' +
+      pemohonStampHtml +
+      '  </div>' +
+      '  <div class="surat-spl-sig-box">' +
+      '    <div class="surat-spl-sig-title">Atasan Langsung</div>' +
+      app1StampHtml +
+      '  </div>' +
+      '  <div class="surat-spl-sig-box">' +
+      '    <div class="surat-spl-sig-title">HRD &amp; Management</div>' +
+      app2StampHtml +
+      '  </div>' +
+      '</div>' +
+
+      '<div style="margin-top: 25px; padding-top: 8px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 7.5pt; color: #94a3b8;">' +
+      '<span>Dicetak otomatis oleh Sistem Portal PT. Berkah Batu Bara pada ' + escapeHTML(tanggalCetak) + '.</span>' +
+      '<span class="font-monospace">Ref: ' + escapeHTML(nomorSurat) + '</span>' +
+      '</div>';
+
+    var container = document.getElementById('suratSPLPaperContent');
+    if (container) container.innerHTML = paperHtml;
+
+    if (!bsModalCetakSuratSPL) {
+      bsModalCetakSuratSPL = new bootstrap.Modal(document.getElementById('modalCetakSuratSPL'));
+    }
+    bsModalCetakSuratSPL.show();
+  };
+
+  window.printSuratSPLDoc = function () {
+    var contentHtml = document.getElementById('suratSPLPaperContent').innerHTML;
+    if (!contentHtml) {
+      Swal.fire('Error', 'Dokumen SPL belum siap dicetak.', 'error');
+      return;
+    }
+
+    var iframe = document.getElementById('printIframeSPL');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'printIframeSPL';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+    }
+
+    var doc = iframe.contentWindow.document;
+    var cssContent =
+      'body { font-family: "Times New Roman", Times, serif; color: #0f172a; margin: 0; padding: 12mm 15mm; }' +
+      '.surat-spl-kop { border-bottom: 3px double #0f172a; padding-bottom: 8px; margin-bottom: 16px; }' +
+      '.surat-spl-kop-logo { max-width: 80px; max-height: 80px; object-fit: contain; }' +
+      '.surat-spl-kop-company { font-size: 15pt; font-weight: 900; letter-spacing: 0.8px; color: #0f172a; line-height: 1.2; }' +
+      '.surat-spl-kop-division { font-size: 9pt; font-weight: 700; color: #1e293b; letter-spacing: 0.5px; }' +
+      '.surat-spl-kop-address { font-size: 8pt; color: #475569; line-height: 1.35; }' +
+      '.surat-spl-title { text-align: center; margin-bottom: 16px; }' +
+      '.surat-spl-title h4 { font-size: 13pt; font-weight: 800; text-decoration: underline; color: #0f172a; margin-bottom: 2px; }' +
+      '.surat-spl-nomor { font-size: 9pt; color: #334155; font-weight: 600; }' +
+      '.surat-spl-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 9.5pt; }' +
+      '.surat-spl-table td { padding: 3.5px 5px; vertical-align: top; }' +
+      '.surat-spl-table .lbl { width: 28%; color: #334155; font-weight: 600; }' +
+      '.surat-spl-table .colon { width: 3%; text-align: center; font-weight: bold; }' +
+      '.surat-spl-table .val { width: 69%; color: #0f172a; font-weight: 600; }' +
+      '.surat-spl-section-header { font-size: 9.5pt; font-weight: 700; color: #0f172a; border-left: 3px solid #2563eb; padding-left: 6px; margin: 10px 0 6px 0; background: #f8fafc; padding-top: 2px; padding-bottom: 2px; }' +
+      '.surat-spl-signatures { display: flex !important; justify-content: space-between !important; margin-top: 20px; gap: 10px; }' +
+      '.surat-spl-sig-box { flex: 1 !important; text-align: center; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 8px 4px; background: #fafafa; }' +
+      '.surat-spl-sig-title { font-size: 8pt; font-weight: 700; color: #334155; text-transform: uppercase; margin-bottom: 2px; }' +
+      '.surat-spl-stamp { height: 55px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 2px 0; }' +
+      '.stamp-spl-badge { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 3px 6px; border-radius: 4px; font-size: 6.5pt; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }' +
+      '.stamp-spl-badge.submitted { border: 1.5px solid #2563eb; color: #2563eb; background-color: #eff6ff; }' +
+      '.stamp-spl-badge.approved-atasan { border: 1.5px solid #0284c7; color: #0284c7; background-color: #f0f9ff; }' +
+      '.stamp-spl-badge.approved-hrd { border: 1.5px solid #16a34a; color: #16a34a; background-color: #f0fdf4; }' +
+      '.surat-spl-sig-name { font-size: 8.5pt; font-weight: 800; color: #0f172a; text-decoration: underline; margin-bottom: 1px; }' +
+      '.surat-spl-sig-role { font-size: 7.5pt; color: #64748b; }' +
+      '.surat-spl-sig-date { font-size: 6.5pt; color: #94a3b8; }' +
+      '@page { size: A4 portrait; margin: 10mm; }';
+
+    doc.open();
+    doc.write('<!DOCTYPE html><html><head><base href="' + window.location.href + '"><title>Surat Perintah Lembur Resmi<\/title><style>' + cssContent + '<\/style><\/head><body>' + contentHtml + '<\/body><\/html>');
+    doc.close();
+
+    var triggerPrint = function () {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        window.print();
+      }
+    };
+
+    var imgs = doc.images || [];
+    if (imgs.length > 0) {
+      var loaded = 0;
+      var total = imgs.length;
+      var done = false;
+      var checkFinish = function () {
+        if (done) return;
+        loaded++;
+        if (loaded >= total) {
+          done = true;
+          setTimeout(triggerPrint, 200);
+        }
+      };
+      for (var i = 0; i < total; i++) {
+        if (imgs[i].complete) {
+          checkFinish();
+        } else {
+          imgs[i].onload = checkFinish;
+          imgs[i].onerror = checkFinish;
+        }
+      }
+      setTimeout(function () {
+        if (!done) {
+          done = true;
+          triggerPrint();
+        }
+      }, 600);
+    } else {
+      setTimeout(triggerPrint, 300);
+    }
+  };
+})();
+</script>

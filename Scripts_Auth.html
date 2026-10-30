@@ -741,6 +741,7 @@
           if (user.role === 'Admin' || isAtasan) {
             setTimeout(function () {
               loadRiwayatCuti(true);
+              if (typeof loadRiwayatSPL === 'function') loadRiwayatSPL(true);
               if (user.role === 'Admin') loadPendaftarList(false, true);
             }, 500);
           }

@@ -470,9 +470,27 @@
         } else if (pageName === 'slip-saya' || pageName === 'upload-slip') {
           var bSlip = document.getElementById('bnav-slip');
           if (bSlip) bSlip.classList.add('active');
-        } else if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'kalender-cuti' || pageName === 'master-roster') {
+        } else if (pageName === 'input-gaji' || pageName === 'pengajuan-spl' || pageName === 'riwayat-spl' || pageName === 'persetujuan-spl') {
+          var submG = document.getElementById('submenuGajiSPL');
+          if (submG) submG.classList.remove('d-none');
+          var dropG = document.getElementById('dropdownMenuGajiSPL');
+          if (dropG) dropG.classList.add('submenu-open');
+          var subItemG = document.getElementById('subitem-' + pageName);
+          if (subItemG) subItemG.classList.add('active');
+        }
+
+        if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'kalender-cuti' || pageName === 'master-roster') {
           var bCuti = document.getElementById('bnav-cuti');
           if (bCuti) bCuti.classList.add('active');
+        } else if (pageName === 'pengajuan-spl') {
+          hideFullPageLoading();
+          if (typeof initPengajuanSPLForm === 'function') initPengajuanSPLForm();
+        } else if (pageName === 'riwayat-spl') {
+          hideFullPageLoading();
+          if (typeof loadRiwayatSPL === 'function') loadRiwayatSPL();
+        } else if (pageName === 'persetujuan-spl') {
+          hideFullPageLoading();
+          if (typeof loadPersetujuanSPL === 'function') loadPersetujuanSPL();
         } else if (pageName === 'pengumuman') {
           var bPeng = document.getElementById('bnav-pengumuman');
           if (bPeng) bPeng.classList.add('active');
@@ -505,6 +523,9 @@
           'kalender-cuti': 'Kalender Cuti Tim & Departemen',
           'master-roster': 'Master Pola Roster Perusahaan',
           'input-gaji': 'Input Data Gaji Karyawan',
+          'pengajuan-spl': 'Formulir Surat Perintah Lembur (SPL)',
+          'riwayat-spl': 'Riwayat Surat Perintah Lembur (SPL)',
+          'persetujuan-spl': 'Persetujuan Surat Perintah Lembur (SPL)',
           'pengumuman': 'Pengumuman Perusahaan'
         };
         document.getElementById('pageTitle').innerText = titles[pageName] || 'Portal Slip Gaji';

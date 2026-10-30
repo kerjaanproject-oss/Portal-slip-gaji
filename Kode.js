@@ -53,7 +53,12 @@ const ALLOWED_PROTECTED_ACTIONS = [
   'getPeriodePayrollList',
   'openNewPeriodePayroll',
   'closePeriodePayroll',
-  'deletePeriodePayroll'
+  'deletePeriodePayroll',
+  'getPengajuanSPLList',
+  'simpanPengajuanSPL',
+  'processApprovalSPL',
+  'batalPengajuanSPL',
+  'deletePengajuanSPL'
 ];
 
 function doGet(e) {

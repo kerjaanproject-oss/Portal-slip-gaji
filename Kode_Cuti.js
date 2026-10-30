@@ -5,6 +5,7 @@
 // --- MODUL PENGAJUAN CUTI KARYAWAN ---
 
 function getOrCreatePengajuanCutiSheet(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName('PengajuanCuti') ||
     ss.getSheetByName('Pengajuan Cuti') ||
     ss.getSheetByName('Riwayat Cuti') ||
