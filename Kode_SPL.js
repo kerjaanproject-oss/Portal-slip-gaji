@@ -40,23 +40,24 @@ function getOrCreatePengajuanSPLSheet(ss) {
     'Departemen',             // 4
     'Jabatan',                // 5
     'Tanggal Lembur',         // 6
-    'Jam Mulai',              // 7
-    'Jam Selesai',            // 8
-    'Total Jam Lembur',       // 9
-    'Uraian Pekerjaan',       // 10
-    'Lokasi Kerja',           // 11
-    'Status',                 // 12
-    'Approver 1 Nama',        // 13 (Atasan Langsung)
-    'Approver 1 Jabatan',     // 14
-    'Approver 1 Tanggal',     // 15
-    'Approver 1 Status',      // 16
-    'Approver 1 Catatan',     // 17
-    'Approver 2 Nama',        // 18 (HRD / Management)
-    'Approver 2 Jabatan',     // 19
-    'Approver 2 Tanggal',     // 20
-    'Approver 2 Status',      // 21
-    'Approver 2 Catatan',     // 22
-    'Alasan Penolakan'        // 23
+    'Shift',                  // 7
+    'Jam Mulai',              // 8
+    'Jam Selesai',            // 9
+    'Total Jam Lembur',       // 10
+    'Uraian Pekerjaan',       // 11
+    'Lokasi Kerja',           // 12
+    'Status',                 // 13
+    'Approver 1 Nama',        // 14 (Atasan Langsung)
+    'Approver 1 Jabatan',     // 15
+    'Approver 1 Tanggal',     // 16
+    'Approver 1 Status',      // 17
+    'Approver 1 Catatan',     // 18
+    'Approver 2 Nama',        // 19 (HRD / Management)
+    'Approver 2 Jabatan',     // 20
+    'Approver 2 Tanggal',     // 21
+    'Approver 2 Status',      // 22
+    'Approver 2 Catatan',     // 23
+    'Alasan Penolakan'        // 24
   ];
 
   if (!sheet) {
@@ -126,6 +127,7 @@ function getPengajuanSPLList(token) {
   const deptIdx = headers.findIndex(function (h) { return h.includes('departemen') || h.includes('dept'); });
   const jabIdx = headers.findIndex(function (h) { return h.includes('jabatan'); });
   const tglLemburIdx = headers.findIndex(function (h) { return h.includes('tanggal lembur') || h.includes('tgl lembur'); });
+  const shiftIdx = headers.findIndex(function (h) { return h === 'shift' || h.includes('shift'); });
   const jamMulaiIdx = headers.findIndex(function (h) { return h.includes('jam mulai') || h.includes('jam awal'); });
   const jamSelesaiIdx = headers.findIndex(function (h) { return h.includes('jam selesai') || h.includes('jam akhir'); });
   const totalJamIdx = headers.findIndex(function (h) { return h.includes('total jam'); });
@@ -204,6 +206,24 @@ function getPengajuanSPLList(token) {
       ? Utilities.formatDate(tglLemburVal, 'Asia/Jakarta', 'yyyy-MM-dd')
       : String(tglLemburVal || '').trim();
 
+    function formatTimeHHMM(timeVal) {
+      if (!timeVal && timeVal !== 0) return '';
+      if (timeVal instanceof Date) {
+        return Utilities.formatDate(timeVal, 'Asia/Jakarta', 'HH:mm');
+      }
+      const s = String(timeVal || '').trim();
+      const match = s.match(/(?:^|\s|T)(\d{1,2}):(\d{2})/);
+      if (match) {
+        return match[1].padStart(2, '0') + ':' + match[2];
+      }
+      return s;
+    }
+
+    const rawJamMulai = jamMulaiIdx !== -1 ? row[jamMulaiIdx] : row[7];
+    const rawJamSelesai = jamSelesaiIdx !== -1 ? row[jamSelesaiIdx] : row[8];
+    const formattedJamMulai = formatTimeHHMM(rawJamMulai);
+    const formattedJamSelesai = formatTimeHHMM(rawJamSelesai);
+
     list.push({
       id: rowId,
       tanggalPengajuan: formattedTglPengajuan,
@@ -212,23 +232,24 @@ function getPengajuanSPLList(token) {
       dept: rowDept,
       jabatan: jabIdx !== -1 ? String(row[jabIdx] || '').trim() : String(row[5] || '').trim(),
       tanggalLembur: formattedTglLembur,
-      jamMulai: jamMulaiIdx !== -1 ? String(row[jamMulaiIdx] || '').trim() : String(row[7] || '').trim(),
-      jamSelesai: jamSelesaiIdx !== -1 ? String(row[jamSelesaiIdx] || '').trim() : String(row[8] || '').trim(),
+      shift: shiftIdx !== -1 ? String(row[shiftIdx] || 'Shift Pagi').trim() : 'Shift Pagi',
+      jamMulai: formattedJamMulai,
+      jamSelesai: formattedJamSelesai,
       totalJam: totalJamIdx !== -1 ? Number(row[totalJamIdx] || 0) : Number(row[9] || 0),
       uraianPekerjaan: uraianIdx !== -1 ? String(row[uraianIdx] || '').trim() : String(row[10] || '').trim(),
-      lokasiKerja: lokasiIdx !== -1 ? String(row[lokasiIdx] || 'TRIOP').trim() : 'TRIOP',
+      lokasiKerja: lokasiIdx !== -1 ? String(row[lokasiIdx] || '').trim() : '',
       status: rowStatus,
       approver1: {
         nama: app1NameIdx !== -1 ? String(row[app1NameIdx] || '').trim() : '',
         jabatan: app1JabIdx !== -1 ? String(row[app1JabIdx] || '').trim() : '',
-        tanggal: app1TglIdx !== -1 ? String(row[app1TglIdx] || '').trim() : '',
+        tanggal: app1TglIdx !== -1 ? (row[app1TglIdx] instanceof Date ? Utilities.formatDate(row[app1TglIdx], 'Asia/Jakarta', 'yyyy-MM-dd') : String(row[app1TglIdx] || '').trim()) : '',
         status: app1StatusIdx !== -1 ? String(row[app1StatusIdx] || '').trim() : '',
         catatan: app1CatatanIdx !== -1 ? String(row[app1CatatanIdx] || '').trim() : ''
       },
       approver2: {
         nama: app2NameIdx !== -1 ? String(row[app2NameIdx] || '').trim() : '',
         jabatan: app2JabIdx !== -1 ? String(row[app2JabIdx] || '').trim() : '',
-        tanggal: app2TglIdx !== -1 ? String(row[app2TglIdx] || '').trim() : '',
+        tanggal: app2TglIdx !== -1 ? (row[app2TglIdx] instanceof Date ? Utilities.formatDate(row[app2TglIdx], 'Asia/Jakarta', 'yyyy-MM-dd') : String(row[app2TglIdx] || '').trim()) : '',
         status: app2StatusIdx !== -1 ? String(row[app2StatusIdx] || '').trim() : '',
         catatan: app2CatatanIdx !== -1 ? String(row[app2CatatanIdx] || '').trim() : ''
       },
@@ -260,15 +281,17 @@ function simpanPengajuanSPL(token, payload) {
 
   payload = payload || {};
   const tanggalLembur = String(payload.tanggalLembur || '').trim();
+  const shift = String(payload.shift || 'Shift Pagi').trim();
   const jamMulai = String(payload.jamMulai || '').trim();
   const jamSelesai = String(payload.jamSelesai || '').trim();
   const totalJam = Number(payload.totalJam || 0);
   const uraianPekerjaan = String(payload.uraianPekerjaan || '').trim();
-  const lokasiKerja = String(payload.lokasiKerja || 'TRIOP').trim() || 'TRIOP';
+  const lokasiKerja = String(payload.lokasiKerja || '').trim();
 
   if (!tanggalLembur) return { success: false, message: 'Tanggal pelaksanaan lembur wajib diisi.' };
   if (!jamMulai || !jamSelesai) return { success: false, message: 'Jam mulai dan jam selesai lembur wajib diisi.' };
   if (totalJam <= 0) return { success: false, message: 'Total jam lembur harus lebih besar dari 0 jam.' };
+  if (!lokasiKerja) return { success: false, message: 'Lokasi kerja / jobsite wajib diisi.' };
   if (!uraianPekerjaan) return { success: false, message: 'Uraian pekerjaan lembur wajib diisi.' };
 
   const user = session.user;
@@ -337,24 +360,41 @@ function simpanPengajuanSPL(token, payload) {
     app1Cat = 'Diajukan oleh Atasan Departemen';
   }
 
-  const rowData = [
-    splId,
-    formattedNow,
-    empId,
-    namaKaryawan,
-    dept,
-    jabatan,
-    tanggalLembur,
-    jamMulai,
-    jamSelesai,
-    totalJam,
-    uraianPekerjaan,
-    lokasiKerja,
-    initialStatus,
-    app1Nama, app1Jab, app1Tgl, app1Stat, app1Cat,
-    app2Nama, app2Jab, app2Tgl, app2Stat, app2Cat,
-    '' // Alasan Penolakan
-  ];
+  const curHeaders = splSheet.getRange(1, 1, 1, splSheet.getLastColumn()).getValues()[0].map(function (h) {
+    return String(h || '').trim().toLowerCase();
+  });
+
+  const rowData = new Array(curHeaders.length).fill('');
+  function setCol(pred, val) {
+    const idx = curHeaders.findIndex(pred);
+    if (idx !== -1) rowData[idx] = val;
+  }
+
+  setCol(function (h) { return h.includes('id spl') || h === 'id'; }, splId);
+  setCol(function (h) { return h.includes('tanggal pengajuan') || h.includes('tgl pengajuan'); }, formattedNow);
+  setCol(function (h) { return h.includes('id karyawan') || h.includes('nik') || h === 'username'; }, empId);
+  setCol(function (h) { return h.includes('nama karyawan') || h === 'nama'; }, namaKaryawan);
+  setCol(function (h) { return h.includes('departemen') || h.includes('dept'); }, dept);
+  setCol(function (h) { return h.includes('jabatan'); }, jabatan);
+  setCol(function (h) { return h.includes('tanggal lembur') || h.includes('tgl lembur'); }, tanggalLembur);
+  setCol(function (h) { return h === 'shift' || h.includes('shift'); }, shift);
+  setCol(function (h) { return h.includes('jam mulai') || h.includes('jam awal'); }, jamMulai);
+  setCol(function (h) { return h.includes('jam selesai') || h.includes('jam akhir'); }, jamSelesai);
+  setCol(function (h) { return h.includes('total jam'); }, totalJam);
+  setCol(function (h) { return h.includes('uraian') || h.includes('pekerjaan') || h.includes('alasan'); }, uraianPekerjaan);
+  setCol(function (h) { return h.includes('lokasi'); }, lokasiKerja);
+  setCol(function (h) { return h.includes('status'); }, initialStatus);
+  setCol(function (h) { return h.includes('approver 1 nama'); }, app1Nama);
+  setCol(function (h) { return h.includes('approver 1 jabatan'); }, app1Jab);
+  setCol(function (h) { return h.includes('approver 1 tanggal'); }, app1Tgl);
+  setCol(function (h) { return h.includes('approver 1 status'); }, app1Stat);
+  setCol(function (h) { return h.includes('approver 1 catatan'); }, app1Cat);
+  setCol(function (h) { return h.includes('approver 2 nama'); }, app2Nama);
+  setCol(function (h) { return h.includes('approver 2 jabatan'); }, app2Jab);
+  setCol(function (h) { return h.includes('approver 2 tanggal'); }, app2Tgl);
+  setCol(function (h) { return h.includes('approver 2 status'); }, app2Stat);
+  setCol(function (h) { return h.includes('approver 2 catatan'); }, app2Cat);
+  setCol(function (h) { return h.includes('alasan penolakan') || h.includes('alasan tolak'); }, '');
 
   splSheet.appendRow(rowData);
   SpreadsheetApp.flush();
@@ -591,17 +631,80 @@ function batalPengajuanSPL(token, splId) {
 }
 
 /**
- * WRITE API: Hapus SPL dari Database (Hanya Admin / HRD)
+ * WRITE API: Update / Edit Pengajuan SPL
+ */
+function updatePengajuanSPL(token, payload) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  if (!payload || !payload.id) {
+    return { success: false, message: 'ID SPL tidak valid.' };
+  }
+
+  const splId = String(payload.id).trim();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const splSheet = getOrCreatePengajuanSPLSheet(ss);
+  const data = splSheet.getDataRange().getValues();
+  if (!data || data.length <= 1) return { success: false, message: 'Data SPL tidak ditemukan.' };
+
+  const headers = data[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+  const idIdx = headers.findIndex(function (h) { return h.includes('id spl') || h === 'id'; });
+  const empIdIdx = headers.findIndex(function (h) { return h.includes('id karyawan') || h.includes('nik') || h === 'username'; });
+  const statusIdx = headers.findIndex(function (h) { return h.includes('status'); });
+  const tglLemburIdx = headers.findIndex(function (h) { return h.includes('tanggal lembur') || h.includes('tgl lembur'); });
+  const shiftIdx = headers.findIndex(function (h) { return h === 'shift' || h.includes('shift'); });
+  const jamMulaiIdx = headers.findIndex(function (h) { return h.includes('jam mulai') || h.includes('jam awal'); });
+  const jamSelesaiIdx = headers.findIndex(function (h) { return h.includes('jam selesai') || h.includes('jam akhir'); });
+  const totalJamIdx = headers.findIndex(function (h) { return h.includes('total jam'); });
+  const uraianIdx = headers.findIndex(function (h) { return h.includes('uraian') || h.includes('pekerjaan') || h.includes('alasan'); });
+  const lokasiIdx = headers.findIndex(function (h) { return h.includes('lokasi'); });
+
+  const currentUsername = String(session.user.username || '').trim().toLowerCase();
+  const userRole = String(session.user.role || '').trim().toLowerCase();
+  const isAdmin = (userRole === 'admin' || userRole === 'admin master' || currentUsername === 'admin');
+
+  for (let i = 1; i < data.length; i++) {
+    const rowId = idIdx !== -1 ? String(data[i][idIdx] || '').trim() : String(data[i][0] || '').trim();
+    if (rowId === splId) {
+      const rowEmpId = empIdIdx !== -1 ? String(data[i][empIdIdx] || '').trim().toLowerCase() : '';
+      const currentStatus = statusIdx !== -1 ? String(data[i][statusIdx] || '').trim() : '';
+
+      if (!isAdmin && rowEmpId !== currentUsername) {
+        return { success: false, message: 'Akses ditolak: Anda tidak memiliki wewenang untuk mengubah pengajuan SPL ini.' };
+      }
+
+      if (currentStatus === 'Disetujui') {
+        return { success: false, message: 'SPL yang sudah disetujui penuh tidak dapat diedit lagi.' };
+      }
+
+      const rowIndex = i + 1;
+      if (tglLemburIdx !== -1 && payload.tanggalLembur) splSheet.getRange(rowIndex, tglLemburIdx + 1).setValue(payload.tanggalLembur);
+      if (shiftIdx !== -1 && payload.shift) splSheet.getRange(rowIndex, shiftIdx + 1).setValue(payload.shift);
+      if (jamMulaiIdx !== -1 && payload.jamMulai) splSheet.getRange(rowIndex, jamMulaiIdx + 1).setValue(payload.jamMulai);
+      if (jamSelesaiIdx !== -1 && payload.jamSelesai) splSheet.getRange(rowIndex, jamSelesaiIdx + 1).setValue(payload.jamSelesai);
+      if (totalJamIdx !== -1 && payload.totalJam !== undefined) splSheet.getRange(rowIndex, totalJamIdx + 1).setValue(payload.totalJam);
+      if (uraianIdx !== -1 && payload.uraianPekerjaan) splSheet.getRange(rowIndex, uraianIdx + 1).setValue(payload.uraianPekerjaan);
+      if (lokasiIdx !== -1 && payload.lokasiKerja) splSheet.getRange(rowIndex, lokasiIdx + 1).setValue(payload.lokasiKerja);
+
+      SpreadsheetApp.flush();
+
+      return { success: true, message: 'Pengajuan SPL ' + splId + ' berhasil diperbarui.' };
+    }
+  }
+
+  return { success: false, message: 'Data SPL tidak ditemukan.' };
+}
+
+/**
+ * WRITE API: Hapus SPL dari Database (Admin / HRD atau Karyawan Pemilik sebelum Disetujui)
  */
 function deletePengajuanSPL(token, splId) {
   const session = validateSession(token);
   if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
 
+  const currentUsername = String(session.user.username || '').trim().toLowerCase();
   const userRole = String(session.user.role || '').trim().toLowerCase();
-  const isHRD = (userRole === 'admin' || userRole === 'hrd');
-  if (!isHRD) {
-    return { success: false, message: 'Akses ditolak: Hanya Admin / HRD yang dapat menghapus data SPL.' };
-  }
+  const isHRD = (userRole === 'admin' || userRole === 'hrd' || currentUsername === 'admin');
 
   splId = String(splId || '').trim();
   if (!splId) return { success: false, message: 'ID SPL tidak valid.' };
@@ -611,8 +714,25 @@ function deletePengajuanSPL(token, splId) {
   const data = splSheet.getDataRange().getValues();
   if (!data || data.length <= 1) return { success: false, message: 'Data SPL tidak ditemukan.' };
 
+  const headers = data[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+  const idIdx = headers.findIndex(function (h) { return h.includes('id spl') || h === 'id'; });
+  const empIdIdx = headers.findIndex(function (h) { return h.includes('id karyawan') || h.includes('nik') || h === 'username'; });
+  const statusIdx = headers.findIndex(function (h) { return h.includes('status'); });
+
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0] || '').trim() === splId) {
+    const rowId = idIdx !== -1 ? String(data[i][idIdx] || '').trim() : String(data[i][0] || '').trim();
+    if (rowId === splId) {
+      const rowEmpId = empIdIdx !== -1 ? String(data[i][empIdIdx] || '').trim().toLowerCase() : '';
+      const currentStatus = statusIdx !== -1 ? String(data[i][statusIdx] || '').trim() : '';
+
+      if (!isHRD && rowEmpId !== currentUsername) {
+        return { success: false, message: 'Akses ditolak: Anda tidak memiliki wewenang untuk menghapus pengajuan ini.' };
+      }
+
+      if (currentStatus === 'Disetujui' && !isHRD) {
+        return { success: false, message: 'SPL yang sudah disetujui penuh tidak dapat dihapus.' };
+      }
+
       splSheet.deleteRow(i + 1);
       SpreadsheetApp.flush();
       return { success: true, message: 'Data SPL ' + splId + ' berhasil dihapus dari database.' };

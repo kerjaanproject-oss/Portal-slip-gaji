@@ -482,15 +482,6 @@
         if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'kalender-cuti' || pageName === 'master-roster') {
           var bCuti = document.getElementById('bnav-cuti');
           if (bCuti) bCuti.classList.add('active');
-        } else if (pageName === 'pengajuan-spl') {
-          hideFullPageLoading();
-          if (typeof initPengajuanSPLForm === 'function') initPengajuanSPLForm();
-        } else if (pageName === 'riwayat-spl') {
-          hideFullPageLoading();
-          if (typeof loadRiwayatSPL === 'function') loadRiwayatSPL();
-        } else if (pageName === 'persetujuan-spl') {
-          hideFullPageLoading();
-          if (typeof loadPersetujuanSPL === 'function') loadPersetujuanSPL();
         } else if (pageName === 'pengumuman') {
           var bPeng = document.getElementById('bnav-pengumuman');
           if (bPeng) bPeng.classList.add('active');
@@ -1019,6 +1010,15 @@
         } else if (pageName === 'master-roster') {
           hideFullPageLoading();
           loadRosterData();
+        } else if (pageName === 'pengajuan-spl') {
+          hideFullPageLoading();
+          if (typeof initPengajuanSPLForm === 'function') initPengajuanSPLForm();
+        } else if (pageName === 'riwayat-spl') {
+          hideFullPageLoading();
+          if (typeof loadRiwayatSPL === 'function') loadRiwayatSPL();
+        } else if (pageName === 'persetujuan-spl') {
+          hideFullPageLoading();
+          if (typeof loadPersetujuanSPL === 'function') loadPersetujuanSPL();
         } else if (pageName === 'pengumuman') {
           hideFullPageLoading();
           loadPengumuman();

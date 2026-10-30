@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycby2PVEAiRYQ67dvUQtzbDRR8OLLUtKjdvErxK5EhVlpNNm3vVgfVDWs0hrAgdo5buqI/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbwL4l7gBHLNYc548BmM-DIXP3STeHolzA0LJjT_vsU5Pv38KE36sRX9L3O--cYUpqSn/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -1520,10 +1520,12 @@
                       </div>
                       <div class="col-12 col-sm-6">
                         <label class="form-label fw-semibold small text-dark mb-1">
-                          Lokasi Kerja / Jobsite <span class="text-danger">*</span>
+                          Shift Kerja <span class="text-danger">*</span>
                         </label>
-                        <input type="text" class="form-control" id="splLokasiKerja" value="Jobsite TRIOP"
-                          placeholder="Contoh: Jobsite TRIOP / Samarinda" required>
+                        <select class="form-select fw-semibold" id="splShift" required>
+                          <option value="Shift Pagi">☀️ Shift Pagi</option>
+                          <option value="Shift Malam">🌙 Shift Malam</option>
+                        </select>
                       </div>
                       <div class="col-12 col-sm-6">
                         <label class="form-label fw-semibold small text-dark mb-1">
@@ -1538,6 +1540,13 @@
                         </label>
                         <input type="time" class="form-control" id="splJamSelesai" value="20:00"
                           onchange="calcTotalJamLembur()" required>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label fw-semibold small text-dark mb-1">
+                          Lokasi Kerja / Jobsite <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="splLokasiKerja"
+                          placeholder="Masukkan lokasi kerja / jobsite..." required>
                       </div>
                     </div>
                   </div>
@@ -1612,30 +1621,86 @@
               <h6 class="fw-bold m-0 text-dark"><i class="bi bi-list-check text-primary me-2"></i>Daftar Pengajuan SPL
                 Saya</h6>
             </div>
+
+            <!-- Toolbar Filter & Pencarian Riwayat SPL -->
+            <div class="p-3 border-bottom bg-light bg-opacity-50">
+              <div class="row g-2 align-items-center">
+                <!-- Pencarian berdasarkan Lokasi -->
+                <div class="col-12 col-md-4">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0 text-muted">
+                      <i class="bi bi-geo-alt-fill text-primary"></i>
+                    </span>
+                    <input type="text" class="form-control border-start-0 ps-0" id="filterSPLLokasi"
+                      placeholder="Cari lokasi kerja..." oninput="handleFilterSPLChange()">
+                  </div>
+                </div>
+
+                <!-- Filter berdasarkan Pilihan Shift -->
+                <div class="col-6 col-md-3">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0 text-muted">
+                      <i class="bi bi-clock-history text-primary"></i>
+                    </span>
+                    <select class="form-select border-start-0 ps-0 fw-medium" id="filterSPLShift"
+                      onchange="handleFilterSPLChange()">
+                      <option value="SEMUA">Semua Shift</option>
+                      <option value="Shift Pagi">☀️ Shift Pagi</option>
+                      <option value="Shift Malam">🌙 Shift Malam</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Filter Tanggal SPL -->
+                <div class="col-6 col-md-3">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0 text-muted">
+                      <i class="bi bi-calendar-event text-primary"></i>
+                    </span>
+                    <input type="date" class="form-control border-start-0 ps-0 fw-medium" id="filterSPLTanggal"
+                      onchange="handleFilterSPLChange()" title="Filter Tanggal Pelaksanaan SPL">
+                  </div>
+                </div>
+
+                <!-- Tombol Reset Filter -->
+                <div class="col-12 col-md-2 d-flex justify-content-md-end">
+                  <button type="button" class="btn btn-sm btn-outline-secondary w-100 fw-semibold"
+                    onclick="resetFilterSPL()" title="Reset semua filter">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="card-body p-0">
               <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem;">
                   <thead class="table-light">
                     <tr>
-                      <th class="text-center" style="width: 50px;">No</th>
-                      <th>No. SPL &amp; Tgl Buat</th>
-                      <th>Tanggal Lembur &amp; Lokasi</th>
-                      <th>Jam Lembur</th>
-                      <th>Durasi</th>
+                      <th class="text-center text-nowrap" style="width: 45px;">No</th>
+                      <th class="text-nowrap">No. SPL</th>
+                      <th class="text-nowrap">Tanggal Buat</th>
+                      <th class="text-nowrap">Tanggal SPL</th>
+                      <th class="text-nowrap">Shift</th>
+                      <th class="text-nowrap">Lokasi</th>
+                      <th class="text-nowrap">Jam Lembur</th>
+                      <th class="text-nowrap">Durasi</th>
                       <th>Uraian Tugas</th>
-                      <th>Status Persetujuan</th>
-                      <th class="text-center" style="width: 130px;">Aksi</th>
+                      <th class="text-nowrap">Status Persetujuan</th>
+                      <th class="text-center text-nowrap" style="min-width: 230px;">Aksi</th>
                     </tr>
                   </thead>
                   <tbody id="tableBodyRiwayatSPL">
                     <tr>
-                      <td colspan="8" class="text-center text-muted py-4">
+                      <td colspan="11" class="text-center text-muted py-4">
                         <div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat data SPL...
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+              <!-- Kontrol Pagination Riwayat SPL -->
+              <div id="paginationRiwayatSPL"></div>
             </div>
           </div>
         </div>
@@ -1698,11 +1763,11 @@
                       <th class="text-center" style="width: 50px;">No</th>
                       <th>No. SPL &amp; Tgl</th>
                       <th>Karyawan Pemohon</th>
-                      <th>Tanggal &amp; Jam Lembur</th>
+                      <th>Tanggal, Shift &amp; Jam</th>
                       <th>Durasi</th>
                       <th>Uraian Tugas</th>
                       <th>Status</th>
-                      <th class="text-center" style="width: 140px;">Tindakan</th>
+                      <th class="text-center text-nowrap" style="min-width: 165px;">Tindakan</th>
                     </tr>
                   </thead>
                   <tbody id="tableBodyPersetujuanSPL">
@@ -4208,6 +4273,8 @@
                 </div>
                 <div class="mb-1.5"><span class="text-muted extra-small">Tanggal:</span> <strong class="text-dark small"
                     id="splDetailTglLembur">-</strong></div>
+                <div class="mb-1.5"><span class="text-muted extra-small">Shift Kerja:</span> <span
+                    class="badge bg-light text-dark border small" id="splDetailShift">-</span></div>
                 <div class="mb-1.5"><span class="text-muted extra-small">Jam Kerja:</span> <span
                     class="badge bg-light text-dark border font-monospace small" id="splDetailJam">-</span></div>
                 <div><span class="text-muted extra-small">Lokasi:</span> <span class="text-dark small"
@@ -4260,9 +4327,96 @@
         <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
           <button type="button" class="btn btn-success btn-sm fw-semibold shadow-sm d-none" id="btnCetakFromDetailSPL">
-            <i class="bi bi-printer me-1"></i>Cetak Surat SPL Resmi
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i>Export Jadi PDF
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: EDIT SURAT PERINTAH LEMBUR (SPL)    -->
+  <!-- ========================================== -->
+  <div class="modal fade" id="modalEditSPL" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem;">
+        <div class="modal-header bg-light py-3 px-4 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center"
+              style="width: 36px; height: 36px;">
+              <i class="bi bi-pencil-square fs-5 text-warning"></i>
+            </div>
+            <div>
+              <h6 class="modal-title fw-bold text-dark mb-0">Edit Surat Perintah Lembur</h6>
+              <small class="text-muted extra-small font-monospace" id="splEditIdDisplay">-</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="formEditSPL" onsubmit="submitFormEditSPL(event)">
+          <div class="modal-body p-4">
+            <input type="hidden" id="splEditId">
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small text-dark mb-1">
+                  Tanggal Pelaksanaan Lembur <span class="text-danger">*</span>
+                </label>
+                <input type="date" class="form-control" id="splEditTanggalLembur" required>
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small text-dark mb-1">
+                  Shift Kerja <span class="text-danger">*</span>
+                </label>
+                <select class="form-select fw-semibold" id="splEditShift" required>
+                  <option value="Shift Pagi">☀️ Shift Pagi</option>
+                  <option value="Shift Malam">🌙 Shift Malam</option>
+                </select>
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small text-dark mb-1">
+                  Jam Mulai Lembur <span class="text-danger">*</span>
+                </label>
+                <input type="time" class="form-control" id="splEditJamMulai" onchange="calcTotalJamLemburEdit()"
+                  required>
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small text-dark mb-1">
+                  Jam Selesai Lembur <span class="text-danger">*</span>
+                </label>
+                <input type="time" class="form-control" id="splEditJamSelesai" onchange="calcTotalJamLemburEdit()"
+                  required>
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small text-dark mb-1">
+                  Total Durasi Lembur
+                </label>
+                <input type="text" class="form-control fw-bold text-primary bg-light" id="splEditTotalJamDisplay"
+                  readonly value="3 Jam">
+                <input type="hidden" id="splEditTotalJamVal" value="3">
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small text-dark mb-1">
+                  Lokasi Kerja / Jobsite <span class="text-danger">*</span>
+                </label>
+                <input type="text" class="form-control" id="splEditLokasiKerja"
+                  placeholder="Masukkan lokasi kerja / jobsite..." required>
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold small text-dark mb-1">
+                  Uraian / Deskripsi Tugas Pekerjaan <span class="text-danger">*</span>
+                </label>
+                <textarea class="form-control" id="splEditUraianPekerjaan" rows="3"
+                  placeholder="Jelaskan alasan dan tugas pekerjaan lembur..." required></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary btn-sm fw-semibold shadow-sm" id="btnSubmitEditSPL">
+              Simpan Perubahan
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -4305,12 +4459,16 @@
                 <span class="text-muted extra-small">Departemen / Jabatan:</span>
                 <span class="d-block text-dark small fw-semibold" id="appModalDept">-</span>
               </div>
-              <div class="col-12 col-sm-6">
+              <div class="col-12 col-sm-4">
                 <span class="text-muted extra-small">Waktu Lembur:</span>
                 <strong class="d-block text-dark small" id="appModalTglLembur">-</strong>
                 <span class="badge bg-light text-dark border font-monospace extra-small" id="appModalJam">-</span>
               </div>
-              <div class="col-12 col-sm-6">
+              <div class="col-12 col-sm-4">
+                <span class="text-muted extra-small">Shift Kerja:</span>
+                <strong class="d-block text-dark small" id="appModalShift">-</strong>
+              </div>
+              <div class="col-12 col-sm-4">
                 <span class="text-muted extra-small">Lokasi Penugasan:</span>
                 <span class="d-block text-dark small" id="appModalLokasi">-</span>
               </div>
@@ -4358,14 +4516,14 @@
         <div class="modal-header bg-light py-2 px-3 py-md-3 px-md-4 border-bottom">
           <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
             <div
-              class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0"
+              class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center flex-shrink-0"
               style="width: 36px; height: 36px;">
-              <i class="bi bi-printer-fill fs-5"></i>
+              <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
             </div>
             <div class="overflow-hidden">
               <h6 class="modal-title fw-bold text-dark mb-0 text-truncate">Surat Perintah Lembur (SPL) Resmi</h6>
               <small class="text-muted extra-small text-truncate d-block" id="modalCetakSPLSubtitle">Pratinjau Dokumen
-                Siap Cetak &amp; PDF</small>
+                Siap Export Jadi PDF</small>
             </div>
           </div>
           <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="modal"></button>
@@ -4391,9 +4549,9 @@
             <button type="button" class="btn btn-secondary btn-sm flex-fill flex-sm-grow-0"
               data-bs-dismiss="modal">Tutup</button>
             <button type="button"
-              class="btn btn-primary btn-sm fw-semibold shadow-sm flex-fill flex-sm-grow-0 text-nowrap"
-              onclick="printSuratSPLDoc()">
-              <i class="bi bi-printer me-1"></i>Cetak / Simpan PDF
+              class="btn btn-danger btn-sm fw-semibold shadow-sm flex-fill flex-sm-grow-0 text-nowrap"
+              onclick="exportSuratSPLPdf()">
+              <i class="bi bi-file-earmark-pdf-fill me-1"></i>Export Jadi PDF
             </button>
           </div>
         </div>

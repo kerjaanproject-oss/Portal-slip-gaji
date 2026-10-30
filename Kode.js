@@ -58,7 +58,8 @@ const ALLOWED_PROTECTED_ACTIONS = [
   'simpanPengajuanSPL',
   'processApprovalSPL',
   'batalPengajuanSPL',
-  'deletePengajuanSPL'
+  'deletePengajuanSPL',
+  'updatePengajuanSPL'
 ];
 
 function doGet(e) {
