@@ -1302,6 +1302,12 @@
                 </div>
                 <div class="d-flex align-items-center gap-2">
                   <button
+                    class="btn btn-success btn-sm fw-semibold shadow-sm px-3 py-2 d-flex align-items-center gap-1.5 text-white"
+                    onclick="printSlipGajiSayaLandscape()" title="Cetak Slip Gaji Resmi (Format A4 Lanskap)">
+                    <i class="bi bi-receipt"></i>
+                    <span>Cetak Slip Gaji (A4)</span>
+                  </button>
+                  <button
                     class="btn btn-outline-danger btn-sm fw-semibold shadow-sm px-3 py-2 d-flex align-items-center gap-1.5"
                     onclick="printRincianGajiSayaDoc()" title="Cetak atau Simpan sebagai PDF">
                     <i class="bi bi-printer-fill"></i>
@@ -3936,6 +3942,10 @@
               <button class="btn btn-outline-danger btn-sm fw-semibold shadow-sm" id="btnRincianPrintPdf"
                 onclick="printRincianGajiCurrentEmp()" title="Cetak / Simpan Laporan Rincian sebagai PDF">
                 <i class="bi bi-printer-fill me-1"></i>Cetak / Simpan PDF
+              </button>
+              <button class="btn btn-outline-success btn-sm fw-semibold shadow-sm" id="btnRincianPrintSlipLandscape"
+                onclick="printSlipGajiCurrentEmpLandscape()" title="Cetak Slip Gaji Resmi (Format A4 Lanskap)">
+                <i class="bi bi-receipt me-1"></i>Slip Gaji (A4)
               </button>
               <button class="btn btn-primary btn-sm fw-semibold" id="btnRincianAddToday"
                 onclick="openInputFromRincian()">
