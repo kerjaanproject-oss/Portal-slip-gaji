@@ -20,6 +20,8 @@
     var bsModalRincianGaji = null;
     var bsModalBukaPeriode = null;
     var currentRincianEmpId = null;
+    var currentPageRincianLog = 1;
+    var pageSizeRincianLog = 10;
 
     var NAMA_HARI_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
@@ -360,11 +362,19 @@
         var pkwtTgl = empSummary ? (empSummary.tanggalKompensasiPKWT || '') : ((detailPot && detailPot.tanggalKompensasiPKWT) || '');
         var pkwtCat = empSummary ? (empSummary.keteranganPKWT || '') : ((detailPot && detailPot.keteranganPKWT) || '');
 
+        var totalKlaim = empSummary ? (Number(empSummary.totalKlaim) || 0) : ((detailPot && Number(detailPot.totalKlaim)) || 0);
+        var klaimTravel = empSummary ? (Number(empSummary.klaimTravel) || 0) : ((detailPot && Number(detailPot.klaimTravel)) || 0);
+        var klaimMCU = empSummary ? (Number(empSummary.klaimMCU) || 0) : ((detailPot && Number(detailPot.klaimMCU)) || 0);
+        var klaimLainnya = empSummary ? (Number(empSummary.klaimLainnya) || 0) : ((detailPot && Number(detailPot.klaimLainnya)) || 0);
+        var listKlaim = (empSummary && Array.isArray(empSummary.listKlaim) && empSummary.listKlaim.length > 0)
+          ? empSummary.listKlaim
+          : ((detailPot && Array.isArray(detailPot.listKlaim)) ? detailPot.listKlaim : []);
+
         var totalPotonganPokok = potKes + potTk + potPph;
         var gajiPokokBersih = Math.max(0, basic - totalPotonganPokok);
         var totalTambahan = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
-        var grandTotalBruto = basic + totalTambahan + pkwtNom;
-        var gajiSebelumKasbon = gajiPokokBersih + totalTambahan + pkwtNom;
+        var grandTotalBruto = basic + totalTambahan + pkwtNom + totalKlaim;
+        var gajiSebelumKasbon = gajiPokokBersih + totalTambahan + pkwtNom + totalKlaim;
         var totalPotongan = totalPotonganPokok + potKasbon + potLain;
         var takeHomePay = Math.max(0, grandTotalBruto - totalPotongan);
 
@@ -399,6 +409,11 @@
           kompensasiPKWT: pkwtNom,
           tanggalKompensasiPKWT: pkwtTgl,
           keteranganPKWT: pkwtCat,
+          totalKlaim: totalKlaim,
+          klaimTravel: klaimTravel,
+          klaimMCU: klaimMCU,
+          klaimLainnya: klaimLainnya,
+          listKlaim: listKlaim,
           logs: kLogs
         };
       });
@@ -549,12 +564,15 @@
           (emp.kompensasiPKWT > 0
             ? '<br><span class="badge bg-success-subtle text-success border border-success-subtle mt-0.5" style="font-size: 0.65rem;" title="Termasuk Kompensasi PKWT: ' + formatRupiahVal(emp.kompensasiPKWT) + ' (Tgl: ' + (emp.tanggalKompensasiPKWT || '-') + ')"><i class="bi bi-award-fill me-1"></i>+PKWT ' + formatRupiahVal(emp.kompensasiPKWT) + '</span>'
             : '') +
+          (emp.totalKlaim > 0
+            ? '<br><span class="badge bg-primary-subtle text-primary border border-primary-subtle mt-0.5" style="font-size: 0.65rem;" title="Termasuk Klaim Reimbursement: ' + formatRupiahVal(emp.totalKlaim) + '"><i class="bi bi-receipt-cutoff me-1"></i>+Klaim ' + formatRupiahVal(emp.totalKlaim) + '</span>'
+            : '') +
           '</td>' +
           '<td class="text-center"><span class="badge ' + (emp.daysCount > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-muted border') + ' fw-semibold">' + emp.daysCount + ' Hari</span></td>' +
           '<td class="text-center text-nowrap">' +
           '  <div class="action-group">' +
           actionBtnHtml +
-          '    <button class="btn btn-sm btn-outline-warning py-1 px-2.5 ms-1 text-dark" onclick="openModalPotonganGaji(\'' + escapeHTML(emp.id) + '\')" title="Atur Potongan (BPJS, PPh 21, Kasbon) &amp; Kompensasi PKWT"><i class="bi bi-sliders me-1"></i>Atur Gaji</button>' +
+          '    <button class="btn btn-sm btn-outline-warning py-1 px-2.5 ms-1 text-dark" onclick="openModalPotonganGaji(\'' + escapeHTML(emp.id) + '\')" title="Atur Potongan (BPJS, PPh 21, Kasbon), Klaim &amp; Kompensasi PKWT"><i class="bi bi-sliders me-1"></i>Atur Gaji</button>' +
           '    <button class="btn btn-sm btn-outline-info py-1 px-2.5 ms-1" onclick="openRincianEmp(\'' + escapeHTML(emp.id) + '\')" title="Lihat Rincian Riwayat Harian"><i class="bi bi-eye me-1"></i>Rincian</button>' +
           '    <button class="btn btn-sm btn-outline-success py-1 px-2.5 ms-1" onclick="printSlipGajiLandscape(\'' + escapeHTML(emp.id) + '\')" title="Cetak Slip Gaji Resmi (Format A4 Lanskap)"><i class="bi bi-receipt me-1"></i>Slip Gaji</button>' +
           '    <button class="btn btn-sm btn-outline-danger py-1 px-2.5 ms-1" onclick="printRincianGajiEmp(\'' + escapeHTML(emp.id) + '\')" title="Cetak / Simpan PDF Laporan Rincian"><i class="bi bi-printer me-1"></i>PDF</button>' +
@@ -1140,6 +1158,7 @@
     // --- MODAL 2: RINCIAN RIWAYAT GAJI KARYAWAN ---
     window.openRincianEmp = function (empId) {
       currentRincianEmpId = empId;
+      currentPageRincianLog = 1;
       var modalEl = document.getElementById('modalRincianGaji');
       if (!modalEl) return;
       if (!bsModalRincianGaji) {
@@ -1231,11 +1250,17 @@
       var pkwtTgl = empSummary ? (empSummary.tanggalKompensasiPKWT || '') : '';
       var pkwtCat = empSummary ? (empSummary.keteranganPKWT || '') : '';
 
+      var totalKlaim = empSummary ? (Number(empSummary.totalKlaim) || 0) : 0;
+      var klaimTravel = empSummary ? (Number(empSummary.klaimTravel) || 0) : 0;
+      var klaimMCU = empSummary ? (Number(empSummary.klaimMCU) || 0) : 0;
+      var klaimLainnya = empSummary ? (Number(empSummary.klaimLainnya) || 0) : 0;
+      var listKlaim = (empSummary && Array.isArray(empSummary.listKlaim)) ? empSummary.listKlaim : [];
+
       var totalPotPokok = potKes + potTk + potPph;
       var gajiPokokBersih = Math.max(0, basicVal - totalPotPokok);
       var totalTambahan = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
-      var grandTotalBruto = basicVal + totalTambahan + pkwtNom;
-      var gajiSebelumKasbon = gajiPokokBersih + totalTambahan + pkwtNom;
+      var grandTotalBruto = basicVal + totalTambahan + pkwtNom + totalKlaim;
+      var gajiSebelumKasbon = gajiPokokBersih + totalTambahan + pkwtNom + totalKlaim;
       var totalPotongan = totalPotPokok + potKasbon + potLain;
       var takeHomePay = Math.max(0, grandTotalBruto - totalPotongan);
 
@@ -1261,6 +1286,25 @@
         }
       }
 
+      var boxKlaim = document.getElementById('boxRincianKlaim');
+      if (boxKlaim) {
+        if (totalKlaim > 0) {
+          boxKlaim.style.display = 'block';
+          var elKlaimVal = document.getElementById('rincianEmpKlaim');
+          if (elKlaimVal) elKlaimVal.innerText = '+ ' + formatRupiahVal(totalKlaim);
+          var elKlaimCat = document.getElementById('rincianEmpCatKlaim');
+          if (elKlaimCat) {
+            var kParts = [];
+            if (klaimTravel > 0) kParts.push('Travel: ' + formatRupiahVal(klaimTravel));
+            if (klaimMCU > 0) kParts.push('MCU: ' + formatRupiahVal(klaimMCU));
+            if (klaimLainnya > 0) kParts.push('Lain: ' + formatRupiahVal(klaimLainnya));
+            elKlaimCat.innerText = kParts.join(' | ') || (listKlaim.length + ' Transaksi Klaim');
+          }
+        } else {
+          boxKlaim.style.display = 'none';
+        }
+      }
+
       var elSblmKasbon = document.getElementById('rincianEmpSblmKasbon');
       if (elSblmKasbon) elSblmKasbon.innerText = formatRupiahVal(gajiSebelumKasbon);
       var elKasbon = document.getElementById('rincianEmpKasbon');
@@ -1281,18 +1325,31 @@
         btnAddRincian.style.display = isCurrentPeriodClosed ? 'none' : 'inline-block';
       }
 
-      // Render Tabel Log
+      // Render Tabel Log dengan Pagination
       var tbody = document.getElementById('tableBodyRincianLog');
+      var pagContainer = document.getElementById('paginationRincianLog');
       if (!tbody) return;
       tbody.innerHTML = '';
 
       if (kLogs.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Belum ada catatan log kerja harian untuk karyawan ini. ' +
           (isCurrentPeriodClosed ? '<span class="text-danger fw-semibold">(Periode Ditutup Buku)</span>' : 'Klik tombol "+ Input Harian Baru" untuk menambahkan.') + '</td></tr>';
+        if (pagContainer) pagContainer.innerHTML = '';
         return;
       }
 
-      kLogs.forEach(function (log, idx) {
+      var totalLogs = kLogs.length;
+      var effectivePageSize = pageSizeRincianLog > 0 ? pageSizeRincianLog : totalLogs;
+      var totalPages = Math.ceil(totalLogs / effectivePageSize) || 1;
+      if (currentPageRincianLog > totalPages) currentPageRincianLog = totalPages;
+      if (currentPageRincianLog < 1) currentPageRincianLog = 1;
+
+      var startIdx = (currentPageRincianLog - 1) * effectivePageSize;
+      var endIdx = Math.min(startIdx + effectivePageSize, totalLogs);
+      var pageLogs = kLogs.slice(startIdx, endIdx);
+
+      pageLogs.forEach(function (log, idx) {
+        var rowNo = startIdx + idx + 1;
         var jOt = Number(log.jamOvertime || 0);
         var subOt = Number(log.totalOvertime || (jOt * Number(log.tarifOvertime || 0)));
         var jSPL = Number(log.jamSPL || 0);
@@ -1324,7 +1381,7 @@
 
         var tr = document.createElement('tr');
         tr.innerHTML =
-          '<td class="text-center text-muted extra-small text-nowrap">' + (idx + 1) + '</td>' +
+          '<td class="text-center text-muted extra-small text-nowrap">' + rowNo + '</td>' +
           '<td class="fw-bold text-nowrap"><i class="bi bi-calendar-event me-1 text-primary"></i>' + escapeHTML(formatDateWithDay(log.tanggal)) + '</td>' +
           '<td class="text-end text-nowrap">' + otStr + '</td>' +
           '<td class="text-end text-nowrap">' + splStr + '</td>' +
@@ -1338,6 +1395,79 @@
 
         tbody.appendChild(tr);
       });
+
+      renderPaginationRincianLog(totalLogs, currentPageRincianLog);
+    }
+
+    window.setRincianLogPage = function (newPage) {
+      currentPageRincianLog = newPage;
+      if (currentRincianEmpId) {
+        renderRincianModal(currentRincianEmpId);
+      }
+    };
+
+    window.changePageSizeRincianLog = function (newSize) {
+      pageSizeRincianLog = parseInt(newSize, 10);
+      currentPageRincianLog = 1;
+      if (currentRincianEmpId) {
+        renderRincianModal(currentRincianEmpId);
+      }
+    };
+
+    function renderPaginationRincianLog(totalItems, currentPage) {
+      var container = document.getElementById('paginationRincianLog');
+      if (!container) return;
+
+      if (!totalItems || totalItems === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      var effectivePageSize = pageSizeRincianLog > 0 ? pageSizeRincianLog : totalItems;
+      var totalPages = Math.ceil(totalItems / effectivePageSize) || 1;
+      var startItem = (currentPage - 1) * effectivePageSize + 1;
+      var endItem = Math.min(currentPage * effectivePageSize, totalItems);
+
+      var sizeOptions = [5, 10, 15, 25, 50];
+      var sizeOptionsHtml = '<select class="form-select form-select-sm py-0 px-2 extra-small border-secondary-subtle" style="width: auto; height: 26px; font-size: 0.75rem; display: inline-block;" onchange="changePageSizeRincianLog(this.value)">';
+      sizeOptions.forEach(function (s) {
+        sizeOptionsHtml += '<option value="' + s + '" ' + (pageSizeRincianLog === s ? 'selected' : '') + '>' + s + ' / hal</option>';
+      });
+      sizeOptionsHtml += '<option value="-1" ' + (pageSizeRincianLog === -1 ? 'selected' : '') + '>Semua</option>';
+      sizeOptionsHtml += '</select>';
+
+      var html = '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 px-3 py-2 border border-top-0 rounded-bottom bg-light shadow-sm">' +
+        '<div class="d-flex align-items-center gap-2 extra-small text-muted fw-semibold">' +
+        '  <span>Tampilkan:</span>' +
+        sizeOptionsHtml +
+        '  <span class="ms-1 text-secondary">(' + startItem + ' - ' + endItem + ' dari ' + totalItems + ' entri harian)</span>' +
+        '</div>' +
+        '<nav><ul class="pagination pagination-sm m-0">';
+
+      if (currentPage === 1) {
+        html += '<li class="page-item disabled"><span class="page-link py-1 px-2 extra-small"><i class="bi bi-chevron-left"></i></span></li>';
+      } else {
+        html += '<li class="page-item"><a class="page-link py-1 px-2 extra-small" href="javascript:void(0)" onclick="setRincianLogPage(' + (currentPage - 1) + ')" title="Halaman Sebelumnya"><i class="bi bi-chevron-left"></i></a></li>';
+      }
+
+      for (var p = 1; p <= totalPages; p++) {
+        if (p === currentPage) {
+          html += '<li class="page-item active"><span class="page-link py-1 px-2.5 extra-small fw-bold">' + p + '</span></li>';
+        } else if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
+          html += '<li class="page-item"><a class="page-link py-1 px-2.5 extra-small" href="javascript:void(0)" onclick="setRincianLogPage(' + p + ')">' + p + '</a></li>';
+        } else if (p === 2 || p === totalPages - 1) {
+          html += '<li class="page-item disabled"><span class="page-link py-1 px-1.5 extra-small">...</span></li>';
+        }
+      }
+
+      if (currentPage === totalPages || totalPages === 0) {
+        html += '<li class="page-item disabled"><span class="page-link py-1 px-2 extra-small"><i class="bi bi-chevron-right"></i></span></li>';
+      } else {
+        html += '<li class="page-item"><a class="page-link py-1 px-2 extra-small" href="javascript:void(0)" onclick="setRincianLogPage(' + (currentPage + 1) + ')" title="Halaman Selanjutnya"><i class="bi bi-chevron-right"></i></a></li>';
+      }
+
+      html += '</ul></nav></div>';
+      container.innerHTML = html;
     }
 
     window.openInputFromRincian = function () {
@@ -1378,7 +1508,7 @@
 
         showFullPageLoading('Menghapus data...');
 
-        gasRun('deleteDataGaji', Auth.getToken(), logId).then(function (resp) {
+        gasRun('deleteDataGaji', Auth.getToken(), logId, currentRincianEmpId, date).then(function (resp) {
           hideFullPageLoading();
           if (handleSessionExpired(resp)) return;
 
@@ -1391,7 +1521,12 @@
               showConfirmButton: false
             });
             // Segarkan data di memori seketika agar UI langsung responsif
-            cachedDataGajiLogs = cachedDataGajiLogs.filter(function (l) { return l.id !== logId; });
+            var delId = (resp && resp.deletedId) || logId;
+            cachedDataGajiLogs = cachedDataGajiLogs.filter(function (l) {
+              if (delId && l.id === delId) return false;
+              if (date && currentRincianEmpId && matchLogToEmp(l, { id: currentRincianEmpId }) && l.tanggal === date) return false;
+              return true;
+            });
             renderDataGajiTable();
             if (currentRincianEmpId && bsModalRincianGaji) {
               renderRincianModal(currentRincianEmpId);
@@ -2239,8 +2374,18 @@
       var pTglPKWT = pEmpSum ? (pEmpSum.tanggalKompensasiPKWT || '') : ((emp && emp.tanggalKompensasiPKWT) || '');
       var pKetPKWT = pEmpSum ? (pEmpSum.keteranganPKWT || '') : ((emp && emp.keteranganPKWT) || '');
 
+      var pKlaim = Number(pEmpSum && pEmpSum.totalKlaim !== undefined ? pEmpSum.totalKlaim : (emp.totalKlaim || 0)) || 0;
+      var pKlaimTravel = Number(pEmpSum && pEmpSum.klaimTravel !== undefined ? pEmpSum.klaimTravel : (emp.klaimTravel || 0)) || 0;
+      var pKlaimMCU = Number(pEmpSum && pEmpSum.klaimMCU !== undefined ? pEmpSum.klaimMCU : (emp.klaimMCU || 0)) || 0;
+      var pKlaimLain = Number(pEmpSum && pEmpSum.klaimLainnya !== undefined ? pEmpSum.klaimLainnya : (emp.klaimLainnya || 0)) || 0;
+      var kSubParts = [];
+      if (pKlaimTravel > 0) kSubParts.push('Travel: ' + formatRupiahVal(pKlaimTravel));
+      if (pKlaimMCU > 0) kSubParts.push('MCU: ' + formatRupiahVal(pKlaimMCU));
+      if (pKlaimLain > 0) kSubParts.push('Lain: ' + formatRupiahVal(pKlaimLain));
+      var klaimSubTextReport = kSubParts.join(', ') || (pKlaim > 0 ? formatRupiahVal(pKlaim) : '');
+
       var totalPenghasilanHarian = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
-      var grandTotal = basicVal + totalPenghasilanHarian + pPKWT;
+      var grandTotal = basicVal + totalPenghasilanHarian + pPKWT + pKlaim;
       var totalHariKerja = uniqueDates.size || sortedLogs.length;
 
       var pTotalPotPokok = pKes + pTk + pPph;
@@ -2382,6 +2527,9 @@
         '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">Tunjangan Harian</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700;">' + formatRupiahVal(totalTunjangan) + '</td></tr>' +
         (pPKWT > 0
           ? '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #0f766e;">Uang Kompensasi PKWT' + (pKetPKWT ? '<br><small style="color: #64748b; font-weight: normal;">' + escapeHTML(pKetPKWT) + '</small>' : '') + '</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #0f766e;">' + formatRupiahVal(pPKWT) + '</td></tr>'
+          : '') +
+        (pKlaim > 0
+          ? '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #2563eb;">Klaim Reimbursement' + (klaimSubTextReport ? '<br><small style="color: #64748b; font-weight: normal;">' + escapeHTML(klaimSubTextReport) + '</small>' : '') + '</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #2563eb;">' + formatRupiahVal(pKlaim) + '</td></tr>'
           : '') +
         '</tbody>' +
         '<tfoot><tr style="background: #f1f5f9; font-weight: 800;"><td style="padding: 4px 6px; border-top: 1.5px solid #0f172a;">TOTAL GAJI KOTOR (BRUTO)</td><td style="padding: 4px 6px; border-top: 1.5px solid #0f172a; text-align: right; color: #0f172a;">' + formatRupiahVal(grandTotal) + '</td></tr></tfoot>' +
@@ -2716,8 +2864,20 @@
       var pTglPKWT = (pEmpSum && pEmpSum.tanggalKompensasiPKWT) || emp.tanggalKompensasiPKWT || '';
       var pKetPKWT = (pEmpSum && pEmpSum.keteranganPKWT) || emp.keteranganPKWT || '';
 
+      var pKlaim = Number(pEmpSum && pEmpSum.totalKlaim !== undefined ? pEmpSum.totalKlaim : (emp.totalKlaim || 0)) || 0;
+      var pKlaimTravel = Number(pEmpSum && pEmpSum.klaimTravel !== undefined ? pEmpSum.klaimTravel : (emp.klaimTravel || 0)) || 0;
+      var pKlaimMCU = Number(pEmpSum && pEmpSum.klaimMCU !== undefined ? pEmpSum.klaimMCU : (emp.klaimMCU || 0)) || 0;
+      var pKlaimLain = Number(pEmpSum && pEmpSum.klaimLainnya !== undefined ? pEmpSum.klaimLainnya : (emp.klaimLainnya || 0)) || 0;
+      var kSlipParts = [];
+      if (pKlaimTravel > 0) kSlipParts.push('Travel: ' + formatRupiahVal(pKlaimTravel));
+      if (pKlaimMCU > 0) kSlipParts.push('MCU: ' + formatRupiahVal(pKlaimMCU));
+      if (pKlaimLain > 0) kSlipParts.push('Lain: ' + formatRupiahVal(pKlaimLain));
+      var klaimSubText = pKlaim > 0
+        ? escapeHTML(kSlipParts.join(', ') || (pKlaim > 0 ? formatRupiahVal(pKlaim) : '-'))
+        : '<span style="color: #94a3b8;">-</span>';
+
       var totalPenghasilanHarian = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
-      var totalPenghasilanBruto = basicVal + totalPenghasilanHarian + pPKWT;
+      var totalPenghasilanBruto = basicVal + totalPenghasilanHarian + pPKWT + pKlaim;
       var totalPotonganPokok = pKes + pTk + pPph;
       var gajiPokokBersih = Math.max(0, basicVal - totalPotonganPokok);
       var totalPotongan = totalPotonganPokok + pKas + pLain;
@@ -2869,6 +3029,11 @@
         '<td><strong>6. Uang Kompensasi PKWT</strong></td>' +
         '<td style="text-align: center; color: #0f766e; font-size: 6.8pt;">' + pkwtSubText + '</td>' +
         '<td style="text-align: right; font-weight: 700; color: #0f766e;">' + formatRupiahVal(pPKWT) + '</td>' +
+        '</tr>' +
+        '<tr>' +
+        '<td><strong>7. Klaim / Reimbursement</strong></td>' +
+        '<td style="text-align: center; color: #2563eb; font-size: 6.8pt;">' + klaimSubText + '</td>' +
+        '<td style="text-align: right; font-weight: 700; color: #2563eb;">' + formatRupiahVal(pKlaim) + '</td>' +
         '</tr>' +
         '</tbody>' +
         '<tfoot>' +
@@ -3241,7 +3406,12 @@
         catatanPotonganLain: empSummary ? empSummary.catatanPotonganLain : '',
         kompensasiPKWT: empSummary ? empSummary.kompensasiPKWT : 0,
         tanggalKompensasiPKWT: empSummary ? empSummary.tanggalKompensasiPKWT : '',
-        keteranganPKWT: empSummary ? empSummary.keteranganPKWT : ''
+        keteranganPKWT: empSummary ? empSummary.keteranganPKWT : '',
+        totalKlaim: empSummary ? empSummary.totalKlaim : 0,
+        klaimTravel: empSummary ? empSummary.klaimTravel : 0,
+        klaimMCU: empSummary ? empSummary.klaimMCU : 0,
+        klaimLainnya: empSummary ? empSummary.klaimLainnya : 0,
+        listKlaim: (empSummary && empSummary.listKlaim) ? empSummary.listKlaim : []
       };
 
       var logs = (cachedGajiSayaData && Array.isArray(cachedGajiSayaData.list))
@@ -3385,6 +3555,64 @@
       }
     };
 
+    // --- REIMBURSEMENT / KLAIM MULTI-ENTRY PER TRANSAKSI ---
+    window.addKlaimRow = function (tgl, kategori, nominal, catatan) {
+      var tbody = document.getElementById('tbodyKlaimList');
+      if (!tbody) return;
+
+      var defaultDate = tgl || (currentActivePeriodInfo && currentActivePeriodInfo.startDate ? currentActivePeriodInfo.startDate : '') || new Date().toISOString().split('T')[0];
+      var defaultKat = kategori || 'Klaim Travel';
+      var defaultNom = Number(nominal) || 0;
+      var defaultCat = catatan || '';
+
+      var tr = document.createElement('tr');
+      tr.className = 'klaim-item-row';
+      tr.innerHTML =
+        '<td>' +
+        '  <input type="date" class="form-control form-control-sm klaim-item-date" value="' + escapeHTML(defaultDate) + '" onchange="calculatePotonganLive()">' +
+        '</td>' +
+        '<td>' +
+        '  <select class="form-select form-select-sm klaim-item-kategori fw-semibold" onchange="calculatePotonganLive()">' +
+        '    <option value="Klaim Travel"' + (defaultKat === 'Klaim Travel' ? ' selected' : '') + '>Klaim Travel</option>' +
+        '    <option value="Klaim MCU Mandiri"' + (defaultKat === 'Klaim MCU Mandiri' ? ' selected' : '') + '>Klaim MCU Mandiri</option>' +
+        '    <option value="Klaim Lainnya"' + (defaultKat === 'Klaim Lainnya' ? ' selected' : '') + '>Klaim Lainnya</option>' +
+        '  </select>' +
+        '</td>' +
+        '<td>' +
+        '  <div class="input-group input-group-sm">' +
+        '    <span class="input-group-text bg-light text-muted" style="font-size: 0.75rem;">Rp</span>' +
+        '    <input type="text" class="form-control form-control-sm text-end fw-bold text-primary klaim-item-nominal" placeholder="0" value="' + (defaultNom > 0 ? formatRupiahVal(defaultNom) : 'Rp 0') + '" oninput="setupRupiahMask(this); calculatePotonganLive();">' +
+        '  </div>' +
+        '</td>' +
+        '<td>' +
+        '  <input type="text" class="form-control form-control-sm klaim-item-note" placeholder="Contoh: Tiket travel / kwitansi lab MCU" value="' + escapeHTML(defaultCat) + '" oninput="calculatePotonganLive()">' +
+        '</td>' +
+        '<td class="text-center">' +
+        '  <button type="button" class="btn btn-sm btn-outline-danger py-0.5 px-1.5" onclick="removeKlaimRow(this)" title="Hapus Klaim Ini">' +
+        '    <i class="bi bi-trash"></i>' +
+        '  </button>' +
+        '</td>';
+
+      tbody.appendChild(tr);
+
+      var nomInput = tr.querySelector('.klaim-item-nominal');
+      if (nomInput) setupRupiahMask(nomInput);
+
+      calculatePotonganLive();
+    };
+
+    window.removeKlaimRow = function (btn) {
+      var tr = btn ? btn.closest('tr') : null;
+      if (tr) {
+        tr.remove();
+        var tbody = document.getElementById('tbodyKlaimList');
+        if (tbody && tbody.children.length === 0) {
+          addKlaimRow();
+        }
+        calculatePotonganLive();
+      }
+    };
+
     window.openModalPotonganGaji = function (empId) {
       if (isCurrentPeriodClosed) {
         Swal.fire({
@@ -3496,6 +3724,27 @@
         }
       }
 
+      // RENDER BARIS KLAIM REIMBURSEMENT
+      var tbodyKlaim = document.getElementById('tbodyKlaimList');
+      if (tbodyKlaim) {
+        tbodyKlaim.innerHTML = '';
+        var listKlaim = (detailPot && Array.isArray(detailPot.listKlaim) && detailPot.listKlaim.length > 0)
+          ? detailPot.listKlaim
+          : (empSummary && Array.isArray(empSummary.listKlaim) && empSummary.listKlaim.length > 0 ? empSummary.listKlaim : []);
+
+        if (listKlaim.length > 0) {
+          listKlaim.forEach(function (kl) {
+            addKlaimRow(kl.tanggal, kl.kategori, kl.nominal, kl.catatan);
+          });
+        } else if (empSummary && empSummary.totalKlaim > 0) {
+          if (empSummary.klaimTravel > 0) addKlaimRow('', 'Klaim Travel', empSummary.klaimTravel, 'Reimbursement Travel');
+          if (empSummary.klaimMCU > 0) addKlaimRow('', 'Klaim MCU Mandiri', empSummary.klaimMCU, 'Medical Check-Up Mandiri');
+          if (empSummary.klaimLainnya > 0) addKlaimRow('', 'Klaim Lainnya', empSummary.klaimLainnya, 'Klaim Lainnya');
+        } else {
+          addKlaimRow('', 'Klaim Travel', 0, '');
+        }
+      }
+
       // Set Potongan Lain
       var elLainTgl = document.getElementById('potonganLainTanggal');
       if (elLainTgl) elLainTgl.value = (detailPot && detailPot.potonganLainTanggal) ? detailPot.potonganLainTanggal : '';
@@ -3503,6 +3752,13 @@
       if (elLainNom) { elLainNom.value = potLain > 0 ? formatRupiahVal(potLain) : 'Rp 0'; setupRupiahMask(elLainNom); }
       var elLainCat = document.getElementById('potonganLainCatatan');
       if (elLainCat) elLainCat.value = catPotLain;
+
+      // Reset Tab aktif ke Tab 1 (Potongan Pokok)
+      var tabPotonganBtn = document.getElementById('tab-potongan-btn');
+      if (tabPotonganBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+        var triggerTab = new bootstrap.Tab(tabPotonganBtn);
+        triggerTab.show();
+      }
 
       calculatePotonganLive();
       bsModalPotonganGaji.show();
@@ -3585,13 +3841,40 @@
         }
       });
 
+      // Hitung seluruh item klaim reimbursement dari tabel
+      var klaimRows = document.querySelectorAll('#tbodyKlaimList tr.klaim-item-row');
+      var totalKlaim = 0;
+      var klaimTravel = 0;
+      var klaimMCU = 0;
+      var klaimLainnya = 0;
+      var countKlaim = 0;
+
+      klaimRows.forEach(function (row) {
+        var nomInput = row.querySelector('.klaim-item-nominal');
+        var katSelect = row.querySelector('.klaim-item-kategori');
+        var nom = parseRupiahVal(nomInput ? nomInput.value : 0);
+        var kat = katSelect ? katSelect.value : 'Klaim Travel';
+
+        if (nom > 0) {
+          totalKlaim += nom;
+          countKlaim++;
+          if (kat === 'Klaim Travel') {
+            klaimTravel += nom;
+          } else if (kat === 'Klaim MCU Mandiri') {
+            klaimMCU += nom;
+          } else {
+            klaimLainnya += nom;
+          }
+        }
+      });
+
       var potLain = parseRupiahVal(document.getElementById('potonganLainNominal') ? document.getElementById('potonganLainNominal').value : 0);
       var pkwtNom = parseRupiahVal(document.getElementById('potonganPkwtNominal') ? document.getElementById('potonganPkwtNominal').value : 0);
 
       var subtotalPotPokok = potKes + potTk + potPph;
       var gajiPokokBersih = Math.max(0, basic - subtotalPotPokok);
       var tambahan = Number(currentSelectedPotonganEmp.totalTambahan) || 0;
-      var gajiSebelumKasbon = gajiPokokBersih + tambahan + pkwtNom;
+      var gajiSebelumKasbon = gajiPokokBersih + tambahan + pkwtNom + totalKlaim;
       var subtotalKasbonLain = totalKasbon + potLain;
       var takeHomePay = Math.max(0, gajiSebelumKasbon - subtotalKasbonLain);
 
@@ -3600,6 +3883,27 @@
       if (elTotalKasbon) elTotalKasbon.innerText = formatRupiahVal(totalKasbon);
       var elCountKasbon = document.getElementById('textKasbonCount');
       if (elCountKasbon) elCountKasbon.innerText = countKasbon + ' Transaksi Pinjaman (' + formatRupiahVal(totalKasbon) + ')';
+
+      // Update text di tabel klaim
+      var elTotalKlaim = document.getElementById('textTotalKlaimModal');
+      if (elTotalKlaim) elTotalKlaim.innerText = formatRupiahVal(totalKlaim);
+      var elCountKlaim = document.getElementById('textKlaimCount');
+      if (elCountKlaim) elCountKlaim.innerText = countKlaim + ' Item Klaim (' + formatRupiahVal(totalKlaim) + ')';
+      var elBadgeTravel = document.getElementById('textKlaimTravelBadge');
+      if (elBadgeTravel) elBadgeTravel.innerText = 'Travel: ' + formatRupiahVal(klaimTravel);
+      var elBadgeMCU = document.getElementById('textKlaimMCUBadge');
+      if (elBadgeMCU) elBadgeMCU.innerText = 'MCU: ' + formatRupiahVal(klaimMCU);
+      var elBadgeLainnya = document.getElementById('textKlaimLainnyaBadge');
+      if (elBadgeLainnya) elBadgeLainnya.innerText = 'Lainnya: ' + formatRupiahVal(klaimLainnya);
+      var badgeKlaimNav = document.getElementById('badgeKlaimCount');
+      if (badgeKlaimNav) {
+        if (countKlaim > 0) {
+          badgeKlaimNav.style.display = 'inline-block';
+          badgeKlaimNav.innerText = countKlaim;
+        } else {
+          badgeKlaimNav.style.display = 'none';
+        }
+      }
 
       var elPreviewPokokBersih = document.getElementById('previewGajiPokokBersih');
       if (elPreviewPokokBersih) elPreviewPokokBersih.innerText = formatRupiahVal(gajiPokokBersih);
@@ -3616,6 +3920,8 @@
       if (elPrevTambahan) elPrevTambahan.innerText = '+ ' + formatRupiahVal(tambahan);
       var elPrevPkwt = document.getElementById('prevPkwtVal');
       if (elPrevPkwt) elPrevPkwt.innerText = '+ ' + formatRupiahVal(pkwtNom);
+      var elPrevKlaim = document.getElementById('prevKlaimVal');
+      if (elPrevKlaim) elPrevKlaim.innerText = '+ ' + formatRupiahVal(totalKlaim);
       var elPrevSblmKasbon = document.getElementById('prevSblmKasbonVal');
       if (elPrevSblmKasbon) elPrevSblmKasbon.innerText = formatRupiahVal(gajiSebelumKasbon);
       var elPrevKasbonLain = document.getElementById('prevKasbonLainVal');
@@ -3661,6 +3967,40 @@
         }
       });
 
+      // Ambil list transaksi klaim reimbursement
+      var listKlaim = [];
+      var klaimRows = document.querySelectorAll('#tbodyKlaimList tr.klaim-item-row');
+      var totalKlaim = 0;
+      var klaimTravel = 0;
+      var klaimMCU = 0;
+      var klaimLainnya = 0;
+
+      klaimRows.forEach(function (row) {
+        var dateInput = row.querySelector('.klaim-item-date');
+        var katSelect = row.querySelector('.klaim-item-kategori');
+        var nomInput = row.querySelector('.klaim-item-nominal');
+        var noteInput = row.querySelector('.klaim-item-note');
+
+        var tgl = dateInput ? dateInput.value : '';
+        var kat = katSelect ? katSelect.value : 'Klaim Travel';
+        var nom = parseRupiahVal(nomInput ? nomInput.value : 0);
+        var note = noteInput ? noteInput.value.trim() : '';
+
+        if (nom > 0) {
+          totalKlaim += nom;
+          if (kat === 'Klaim Travel') klaimTravel += nom;
+          else if (kat === 'Klaim MCU Mandiri') klaimMCU += nom;
+          else klaimLainnya += nom;
+
+          listKlaim.push({
+            tanggal: tgl,
+            kategori: kat,
+            nominal: nom,
+            catatan: note
+          });
+        }
+      });
+
       var catKasbonStr = kasbonNotes.join('; ');
       var potLainTgl = document.getElementById('potonganLainTanggal') ? document.getElementById('potonganLainTanggal').value : '';
       var potLain = parseRupiahVal(document.getElementById('potonganLainNominal') ? document.getElementById('potonganLainNominal').value : 0);
@@ -3690,6 +4030,11 @@
         kompensasiPKWT: pkwtNom,
         tanggalKompensasiPKWT: pkwtTgl,
         keteranganPKWT: pkwtCat,
+        totalKlaim: totalKlaim,
+        klaimTravel: klaimTravel,
+        klaimMCU: klaimMCU,
+        klaimLainnya: klaimLainnya,
+        listKlaim: listKlaim,
         detailPotongan: {
           bpjsKesSetting: kesSet,
           bpjsKesNominal: potKes,
@@ -3700,7 +4045,12 @@
           potonganLainTanggal: potLainTgl,
           kompensasiPKWT: pkwtNom,
           tanggalKompensasiPKWT: pkwtTgl,
-          keteranganPKWT: pkwtCat
+          keteranganPKWT: pkwtCat,
+          totalKlaim: totalKlaim,
+          klaimTravel: klaimTravel,
+          klaimMCU: klaimMCU,
+          klaimLainnya: klaimLainnya,
+          listKlaim: listKlaim
         }
       };
 
@@ -3713,7 +4063,7 @@
       gasRun('savePotonganGaji', Auth.getToken(), payload).then(function (res) {
         if (btnSubmit) {
           btnSubmit.disabled = false;
-          btnSubmit.innerHTML = '<i class="bi bi-check2-circle me-1.5"></i>Simpan Potongan Gaji';
+          btnSubmit.innerHTML = '<i class="bi bi-check2-circle me-1.5"></i>Simpan Potongan, Klaim &amp; Kompensasi';
         }
 
         if (handleSessionExpired(res)) return;
@@ -3722,8 +4072,8 @@
           if (bsModalPotonganGaji) bsModalPotonganGaji.hide();
           Swal.fire({
             icon: 'success',
-            title: 'Potongan Tersimpan',
-            text: res.message || 'Potongan gaji karyawan berhasil diperbarui.',
+            title: 'Berhasil Disimpan',
+            text: res.message || 'Pengaturan potongan, klaim & kompensasi berhasil diperbarui.',
             timer: 1800,
             showConfirmButton: false
           });
@@ -3734,7 +4084,7 @@
       }).catch(function (err) {
         if (btnSubmit) {
           btnSubmit.disabled = false;
-          btnSubmit.innerHTML = '<i class="bi bi-check2-circle me-1.5"></i>Simpan Potongan Gaji';
+          btnSubmit.innerHTML = '<i class="bi bi-check2-circle me-1.5"></i>Simpan Potongan, Klaim &amp; Kompensasi';
         }
         Swal.fire('Error', err.toString(), 'error');
       });

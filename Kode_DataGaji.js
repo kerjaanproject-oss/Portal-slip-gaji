@@ -54,7 +54,9 @@ const DATA_GAJI_HEADERS = [
   'Detail Potongan JSON',      // 25 (col 26)
   'Kompensasi PKWT',           // 26 (col 27)
   'Tanggal Kompensasi PKWT',   // 27 (col 28)
-  'Keterangan PKWT'            // 28 (col 29)
+  'Keterangan PKWT',           // 28 (col 29)
+  'Total Klaim Reimbursement', // 29 (col 30)
+  'Detail Klaim JSON'          // 30 (col 31)
 ];
 
 /**
@@ -118,9 +120,12 @@ function formatDataGajiDataRange(sheet, rowCount) {
     sheet.getRange(startRow, 25, count, 1).setNumberFormat('"Rp "#,##0');
   }
 
-  // Kolom Rupiah Kompensasi PKWT: (col 27)
+  // Kolom Rupiah Kompensasi PKWT: (col 27) & Total Klaim: (col 30)
   if (sheet.getLastColumn() >= 27) {
     sheet.getRange(startRow, 27, count, 1).setNumberFormat('"Rp "#,##0');
+  }
+  if (sheet.getLastColumn() >= 30) {
+    sheet.getRange(startRow, 30, count, 1).setNumberFormat('"Rp "#,##0');
   }
 }
 
@@ -365,7 +370,9 @@ function syncEmployeesToDataGajiForPeriod(ss, sheet, periodId) {
       detailPotonganJson,
       0, // Kompensasi PKWT
       '', // Tanggal Kompensasi PKWT
-      '' // Keterangan PKWT
+      '', // Keterangan PKWT
+      0, // Total Klaim Reimbursement
+      '{}' // Detail Klaim JSON
     ]);
   }
 
@@ -507,6 +514,27 @@ function getOrCreateDataGajiSheet(ss) {
         if (lastR > 1) {
           const defaultVals = new Array(lastR - 1).fill([0, '', '']);
           sheet.getRange(2, lastC + 1, lastR - 1, pkwtCols.length).setValues(defaultVals);
+        }
+        formatDataGajiHeaders(sheet);
+        formatDataGajiDataRange(sheet, lastR - 1);
+      }
+
+      // Periksa apakah kolom Total Klaim Reimbursement sudah ada
+      const existingHeadersWithKlaim = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function (h) {
+        return String(h || '').trim().toLowerCase();
+      });
+      if (!existingHeadersWithKlaim.includes('total klaim reimbursement') && !existingHeadersWithKlaim.includes('total klaim')) {
+        const lastC = sheet.getLastColumn();
+        const klaimCols = [
+          'Total Klaim Reimbursement',
+          'Detail Klaim JSON'
+        ];
+        sheet.insertColumnsAfter(lastC, klaimCols.length);
+        sheet.getRange(1, lastC + 1, 1, klaimCols.length).setValues([klaimCols]);
+        const lastR = sheet.getLastRow();
+        if (lastR > 1) {
+          const defaultVals = new Array(lastR - 1).fill([0, '{}']);
+          sheet.getRange(2, lastC + 1, lastR - 1, klaimCols.length).setValues(defaultVals);
         }
         formatDataGajiHeaders(sheet);
         formatDataGajiDataRange(sheet, lastR - 1);
@@ -991,6 +1019,22 @@ function getDataGaji(token, filterDept, filterTanggal, filterPeriodeId) {
     const tanggalKompensasiPKWT = pkwtTglIdx !== -1 ? String(row[pkwtTglIdx] || '').trim() : '';
     const keteranganPKWT = pkwtKetIdx !== -1 ? String(row[pkwtKetIdx] || '').trim() : '';
 
+    const klaimNomIdx = hList.findIndex(function (h) { return h.includes('total klaim'); });
+    const klaimJsonIdx = hList.findIndex(function (h) { return h.includes('detail klaim'); });
+
+    let totalKlaim = klaimNomIdx !== -1 ? cleanSalaryNum(row[klaimNomIdx]) : 0;
+    let detailKlaim = {};
+    if (klaimJsonIdx !== -1 && row[klaimJsonIdx]) {
+      try { detailKlaim = JSON.parse(row[klaimJsonIdx]); } catch (e) { detailKlaim = {}; }
+    }
+    if (totalKlaim === 0 && detailPot && detailPot.totalKlaim) {
+      totalKlaim = cleanSalaryNum(detailPot.totalKlaim);
+    }
+    const listKlaim = (detailKlaim && Array.isArray(detailKlaim.listKlaim)) ? detailKlaim.listKlaim : ((detailPot && Array.isArray(detailPot.listKlaim)) ? detailPot.listKlaim : []);
+    const klaimTravel = detailKlaim && detailKlaim.klaimTravel !== undefined ? cleanSalaryNum(detailKlaim.klaimTravel) : (detailPot && detailPot.klaimTravel !== undefined ? cleanSalaryNum(detailPot.klaimTravel) : 0);
+    const klaimMCU = detailKlaim && detailKlaim.klaimMCU !== undefined ? cleanSalaryNum(detailKlaim.klaimMCU) : (detailPot && detailPot.klaimMCU !== undefined ? cleanSalaryNum(detailPot.klaimMCU) : 0);
+    const klaimLainnya = detailKlaim && detailKlaim.klaimLainnya !== undefined ? cleanSalaryNum(detailKlaim.klaimLainnya) : (detailPot && detailPot.klaimLainnya !== undefined ? cleanSalaryNum(detailPot.klaimLainnya) : 0);
+
     employeesSummary.push({
       periodId: rowPeriodId,
       id: empId,
@@ -1022,7 +1066,12 @@ function getDataGaji(token, filterDept, filterTanggal, filterPeriodeId) {
       detailPotongan: detailPot,
       kompensasiPKWT: kompensasiPKWT,
       tanggalKompensasiPKWT: tanggalKompensasiPKWT,
-      keteranganPKWT: keteranganPKWT
+      keteranganPKWT: keteranganPKWT,
+      totalKlaim: totalKlaim,
+      listKlaim: listKlaim,
+      klaimTravel: klaimTravel,
+      klaimMCU: klaimMCU,
+      klaimLainnya: klaimLainnya
     });
   }
 
@@ -1243,6 +1292,7 @@ function saveDataGaji(token, payload) {
   let existingPotLain = 0, existingCatPotLain = '';
   let existingDetailPotJson = '{}';
   let existingKompensasiPKWT = 0, existingTglPKWT = '', existingKetPKWT = '';
+  let existingTotalKlaim = 0, existingDetailKlaimJson = '{}';
 
   if (targetRowIndex > 0) {
     const existingRow = data[targetRowIndex - 1];
@@ -1259,6 +1309,9 @@ function saveDataGaji(token, payload) {
     const pkwtTglIdx = headerList.findIndex(function (h) { return h.includes('tanggal kompensasi'); });
     const pkwtKetIdx = headerList.findIndex(function (h) { return h.includes('keterangan pkwt'); });
 
+    const klaimNomIdx = headerList.findIndex(function (h) { return h.includes('total klaim'); });
+    const klaimJsonIdx = headerList.findIndex(function (h) { return h.includes('detail klaim'); });
+
     if (pKesIdx !== -1) existingPotKes = cleanSalaryNum(existingRow[pKesIdx]);
     if (pTkIdx !== -1) existingPotTk = cleanSalaryNum(existingRow[pTkIdx]);
     if (pPphIdx !== -1) existingPotPph = cleanSalaryNum(existingRow[pPphIdx]);
@@ -1271,9 +1324,18 @@ function saveDataGaji(token, payload) {
     if (pkwtNomIdx !== -1) existingKompensasiPKWT = cleanSalaryNum(existingRow[pkwtNomIdx]);
     if (pkwtTglIdx !== -1) existingTglPKWT = String(existingRow[pkwtTglIdx] || '').trim();
     if (pkwtKetIdx !== -1) existingKetPKWT = String(existingRow[pkwtKetIdx] || '').trim();
+
+    if (klaimNomIdx !== -1) existingTotalKlaim = cleanSalaryNum(existingRow[klaimNomIdx]);
+    else if (dPotIdx !== -1 && existingDetailPotJson) {
+      try {
+        const dP = JSON.parse(existingDetailPotJson);
+        if (dP.totalKlaim) existingTotalKlaim = cleanSalaryNum(dP.totalKlaim);
+      } catch (e) {}
+    }
+    if (klaimJsonIdx !== -1) existingDetailKlaimJson = String(existingRow[klaimJsonIdx] || '{}');
   }
 
-  const totalGajiBerjalan = basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan + existingKompensasiPKWT;
+  const totalGajiBerjalan = basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan + existingKompensasiPKWT + existingTotalKlaim;
   const totalPotonganSave = existingPotKes + existingPotTk + existingPotPph + existingKasbon + existingPotLain;
   const takeHomePaySave = Math.max(0, totalGajiBerjalan - totalPotonganSave);
 
@@ -1306,7 +1368,9 @@ function saveDataGaji(token, payload) {
     existingDetailPotJson,
     existingKompensasiPKWT,
     existingTglPKWT,
-    existingKetPKWT
+    existingKetPKWT,
+    existingTotalKlaim,
+    existingDetailKlaimJson
   ];
 
   if (targetRowIndex > 0) {
@@ -1342,7 +1406,7 @@ function saveDataGaji(token, payload) {
 /**
  * DELETE API: Hapus catatan log harian tertentu
  */
-function deleteDataGaji(token, id) {
+function deleteDataGaji(token, id, empId, date) {
   const session = validateSession(token);
   if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
 
@@ -1353,18 +1417,113 @@ function deleteDataGaji(token, id) {
   }
 
   const cleanId = String(id || '').trim();
-  if (!cleanId) return { success: false, message: 'ID data gaji tidak valid.' };
+  const cleanEmpId = String(empId || '').trim().toLowerCase();
+  const cleanEmpDigits = cleanEmpId.replace(/\D/g, '');
+  const cleanDate = date ? normalizeDateYMD(date) : '';
+
+  if (!cleanId && !cleanDate) {
+    return { success: false, message: 'ID data gaji atau tanggal catatan harian tidak valid.' };
+  }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = getOrCreateDataGajiSheet(ss);
   const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    return { success: false, message: 'Catatan harian tidak ditemukan.' };
+  }
+
+  const headerListDel = data[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+  let jsonColIdx = headerListDel.findIndex(function (h) { return h.includes('rincian_log_harian') || h.includes('log'); });
+  if (jsonColIdx === -1) {
+    if (data.length > 1 && String(data[1][14] || '').startsWith('[')) {
+      jsonColIdx = 14;
+    } else if (data.length > 1 && String(data[1][12] || '').startsWith('[')) {
+      jsonColIdx = 12;
+    }
+  }
+
+  const periodColIdx = headerListDel.findIndex(function (h) { return h.includes('id periode') || h === 'periode'; });
+  const empIdColIdx = headerListDel.findIndex(function (h) { return h.includes('id karyawan'); });
+  const empNameColIdx = headerListDel.findIndex(function (h) { return h.includes('nama karyawan'); });
+  const basicIdx = headerListDel.findIndex(function (h) { return h.includes('gaji pokok'); });
+  const jamOtIdx = headerListDel.findIndex(function (h) { return h === 'total jam overtime' || h.includes('jam overtime'); });
+  const nomOtIdx = headerListDel.findIndex(function (h) { return h === 'total nominal overtime' || h.includes('nominal overtime'); });
+  const jamSplIdx = headerListDel.findIndex(function (h) { return h === 'total jam spl' || h.includes('jam spl'); });
+  const nomSplIdx = headerListDel.findIndex(function (h) { return h === 'total nominal spl' || h.includes('nominal spl'); });
+  const ritaseIdx = headerListDel.findIndex(function (h) { return h === 'total ritase' || (h.includes('ritase') && !h.includes('nominal')); });
+  const nomRitIdx = headerListDel.findIndex(function (h) { return h === 'total nominal ritase' || h.includes('nominal ritase'); });
+  const tunjIdx = headerListDel.findIndex(function (h) { return h === 'total tunjangan' || h.includes('tunjangan'); });
+  const grandTotalIdx = headerListDel.findIndex(function (h) { return h === 'total gaji berjalan' || h.includes('total gaji'); });
+  const hariKerjaIdx = headerListDel.findIndex(function (h) { return h === 'hari kerja'; });
+  const updatedIdx = headerListDel.findIndex(function (h) { return h.includes('terakhir diupdate'); });
+  const pkwtNomDelIdx = headerListDel.findIndex(function (h) { return h === 'kompensasi pkwt'; });
+  const totPotDelIdx = headerListDel.findIndex(function (h) { return h.includes('total potongan'); });
+  const thpDelIdx = headerListDel.findIndex(function (h) { return h.includes('take home pay'); });
+
+  let targetRowIndex = -1;
+  let targetLogIndex = -1;
+  let targetLogs = null;
 
   for (let i = 1; i < data.length; i++) {
-    const rawJson = String(data[i][12] || '').trim();
-    if (!rawJson.includes(cleanId)) continue;
+    const rawJson = jsonColIdx !== -1 ? String(data[i][jsonColIdx] || '').trim() : String(data[i][14] || data[i][12] || '').trim();
+    if (!rawJson || !rawJson.startsWith('[')) continue;
 
-    // Cek apakah periode baris ini sudah ditutup
-    const rowPeriodId = String(data[i][0] || '').trim();
+    let logs = [];
+    try {
+      logs = JSON.parse(rawJson);
+    } catch (e) {
+      logs = [];
+    }
+    if (!Array.isArray(logs) || logs.length === 0) continue;
+
+    let logIdx = -1;
+    // 1. Prioritas 1: Cari berdasarkan ID log yang cocok persis
+    if (cleanId) {
+      logIdx = logs.findIndex(function (l) {
+        return String(l.id || '').trim() === cleanId;
+      });
+    }
+
+    // 2. Prioritas 2: Jika ID tidak cocok dan ada cleanDate atau empId
+    if (logIdx === -1 && (cleanDate || cleanId)) {
+      let isEmpMatch = true;
+      if (cleanEmpId) {
+        const rowEmpId = empIdColIdx !== -1 ? String(data[i][empIdColIdx] || '').trim().toLowerCase() : String(data[i][1] || '').trim().toLowerCase();
+        const rowEmpDigits = rowEmpId.replace(/\D/g, '');
+        isEmpMatch = (rowEmpId === cleanEmpId) || (cleanEmpDigits && rowEmpDigits === cleanEmpDigits) || rowEmpId.includes(cleanEmpId) || cleanEmpId.includes(rowEmpId);
+      }
+      if (isEmpMatch) {
+        let targetDateStr = cleanDate;
+        if (!targetDateStr && cleanId.startsWith('GJ-') && cleanId.length >= 11) {
+          const dPart = cleanId.substring(3, 11);
+          if (/^\d{8}$/.test(dPart)) {
+            targetDateStr = dPart.substring(0, 4) + '-' + dPart.substring(4, 6) + '-' + dPart.substring(6, 8);
+          }
+        }
+        if (targetDateStr) {
+          logIdx = logs.findIndex(function (l) {
+            const lDate = normalizeDateYMD(l.tanggal, ss);
+            return lDate === targetDateStr;
+          });
+        }
+      }
+    }
+
+    if (logIdx !== -1) {
+      targetRowIndex = i;
+      targetLogIndex = logIdx;
+      targetLogs = logs;
+      break;
+    }
+  }
+
+  if (targetRowIndex === -1 || targetLogIndex === -1 || !targetLogs) {
+    return { success: false, message: 'Catatan harian tidak ditemukan.' };
+  }
+
+  // Cek apakah periode baris ini sudah ditutup
+  const rowPeriodId = periodColIdx !== -1 ? String(data[targetRowIndex][periodColIdx] || '').trim() : String(data[targetRowIndex][0] || '').trim();
+  if (rowPeriodId) {
     const pSheet = getOrCreatePeriodePayrollSheet(ss);
     const pData = pSheet.getDataRange().getValues();
     for (let p = 1; p < pData.length; p++) {
@@ -1372,97 +1531,104 @@ function deleteDataGaji(token, id) {
         return { success: false, message: 'Periode payroll ini sudah ditutup buku. Data tidak dapat dihapus.' };
       }
     }
-
-    let logs = [];
-    try {
-      if (rawJson && rawJson.startsWith('[')) {
-        logs = JSON.parse(rawJson);
-      }
-    } catch (e) {
-      logs = [];
-    }
-
-    const logIdx = logs.findIndex(function (l) { return String(l.id || '').trim() === cleanId; });
-    if (logIdx !== -1) {
-      logs.splice(logIdx, 1);
-
-      // Hitung ulang akumulasi total
-      let totalJamOt = 0;
-      let totalNominalOt = 0;
-      let totalJamSPL = 0;
-      let totalNominalSPL = 0;
-      let totalRitase = 0;
-      let totalNominalRit = 0;
-      let totalTunjangan = 0;
-      const uniqueDates = new Set();
-
-      logs.forEach(function (l) {
-        totalJamOt += Number(l.jamOvertime || 0);
-        totalNominalOt += Number(l.totalOvertime || 0);
-        totalJamSPL += Number(l.jamSPL || 0);
-        totalNominalSPL += Number(l.totalSPL || 0);
-        totalRitase += Number(l.ritase || 0);
-        totalNominalRit += Number(l.totalRitase || 0);
-        totalTunjangan += Number(l.tunjanganHarian || 0);
-        if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
-      });
-
-      const headerListDel = data[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
-      const pkwtNomDelIdx = headerListDel.findIndex(function (h) { return h === 'kompensasi pkwt'; });
-      const totPotDelIdx = headerListDel.findIndex(function (h) { return h.includes('total potongan'); });
-      const thpDelIdx = headerListDel.findIndex(function (h) { return h.includes('take home pay'); });
-
-      let existingKompensasiPKWT = 0;
-      if (pkwtNomDelIdx !== -1) existingKompensasiPKWT = cleanSalaryNum(data[i][pkwtNomDelIdx]);
-
-      const basic = cleanSalaryNum(data[i][4]);
-      const hariKerja = uniqueDates.size || logs.length;
-      const totalGajiBerjalan = basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan + existingKompensasiPKWT;
-      const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
-      const jsonStr = JSON.stringify(logs);
-
-      // Update kolom 6 s/d 16 di baris karyawan tersebut
-      sheet.getRange(i + 1, 6, 1, 11).setValues([[
-        totalJamOt,
-        totalNominalOt,
-        totalJamSPL,
-        totalNominalSPL,
-        totalRitase,
-        totalNominalRit,
-        totalTunjangan,
-        totalGajiBerjalan,
-        hariKerja,
-        jsonStr,
-        nowStr
-      ]]);
-
-      if (thpDelIdx !== -1) {
-        const totPot = totPotDelIdx !== -1 ? cleanSalaryNum(data[i][totPotDelIdx]) : 0;
-        const thp = Math.max(0, totalGajiBerjalan - totPot);
-        sheet.getRange(i + 1, thpDelIdx + 1).setValue(thp);
-      }
-      formatDataGajiDataRange(sheet, 1);
-      SpreadsheetApp.flush();
-
-      return {
-        success: true,
-        message: 'Catatan harian berhasil dihapus.',
-        totals: {
-          totalJamOt: totalJamOt,
-          totalNominalOt: totalNominalOt,
-          totalJamSPL: totalJamSPL,
-          totalNominalSPL: totalNominalSPL,
-          totalRitase: totalRitase,
-          totalNominalRit: totalNominalRit,
-          totalTunjangan: totalTunjangan,
-          totalGajiBerjalan: totalGajiBerjalan,
-          hariKerja: hariKerja
-        }
-      };
-    }
   }
 
-  return { success: false, message: 'Catatan harian tidak ditemukan.' };
+  const removedLog = targetLogs.splice(targetLogIndex, 1)[0];
+
+  // Hitung ulang akumulasi total
+  let totalJamOt = 0;
+  let totalNominalOt = 0;
+  let totalJamSPL = 0;
+  let totalNominalSPL = 0;
+  let totalRitase = 0;
+  let totalNominalRit = 0;
+  let totalTunjangan = 0;
+  const uniqueDates = new Set();
+
+  targetLogs.forEach(function (l) {
+    const jOt = Number(l.jamOvertime || 0);
+    const nOt = Number(l.totalOvertime || (jOt * Number(l.tarifOvertime || 0)));
+    const jSPL = Number(l.jamSPL || 0);
+    const nSPL = Number(l.totalSPL || (jSPL * Number(l.tarifSPL || 0)));
+    const rit = Number(l.ritase || 0);
+    const nRit = Number(l.totalRitase || (rit * Number(l.tarifRitase || 0)));
+    const tunj = Number(l.tunjanganHarian || 0);
+
+    totalJamOt += jOt;
+    totalNominalOt += nOt;
+    totalJamSPL += jSPL;
+    totalNominalSPL += nSPL;
+    totalRitase += rit;
+    totalNominalRit += nRit;
+    totalTunjangan += tunj;
+
+    const tglStr = normalizeDateYMD(l.tanggal, ss);
+    if (tglStr) uniqueDates.add(tglStr);
+    else if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
+  });
+
+  let existingKompensasiPKWT = 0;
+  if (pkwtNomDelIdx !== -1) existingKompensasiPKWT = cleanSalaryNum(data[targetRowIndex][pkwtNomDelIdx]);
+
+  const klaimNomDelIdx = headerListDel.findIndex(function (h) { return h.includes('total klaim'); });
+  let existingTotalKlaim = 0;
+  if (klaimNomDelIdx !== -1) existingTotalKlaim = cleanSalaryNum(data[targetRowIndex][klaimNomDelIdx]);
+  else {
+    try {
+      const dPotIdx = headerListDel.findIndex(function (h) { return h.includes('detail potongan'); });
+      if (dPotIdx !== -1) {
+        const dPot = JSON.parse(data[targetRowIndex][dPotIdx] || '{}');
+        if (dPot.totalKlaim) existingTotalKlaim = cleanSalaryNum(dPot.totalKlaim);
+      }
+    } catch(e) {}
+  }
+
+  const basic = basicIdx !== -1 ? cleanSalaryNum(data[targetRowIndex][basicIdx]) : cleanSalaryNum(data[targetRowIndex][4]);
+  const hariKerja = uniqueDates.size || targetLogs.length;
+  const totalGajiBerjalan = basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan + existingKompensasiPKWT + existingTotalKlaim;
+  const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+  const jsonStr = JSON.stringify(targetLogs);
+
+  // Salin seluruh baris dan perbarui nilai-nilai kolom yang relevan
+  const currentRow = data[targetRowIndex].slice();
+  if (jamOtIdx !== -1) currentRow[jamOtIdx] = totalJamOt;
+  if (nomOtIdx !== -1) currentRow[nomOtIdx] = totalNominalOt;
+  if (jamSplIdx !== -1) currentRow[jamSplIdx] = totalJamSPL;
+  if (nomSplIdx !== -1) currentRow[nomSplIdx] = totalNominalSPL;
+  if (ritaseIdx !== -1) currentRow[ritaseIdx] = totalRitase;
+  if (nomRitIdx !== -1) currentRow[nomRitIdx] = totalNominalRit;
+  if (tunjIdx !== -1) currentRow[tunjIdx] = totalTunjangan;
+  if (grandTotalIdx !== -1) currentRow[grandTotalIdx] = totalGajiBerjalan;
+  if (hariKerjaIdx !== -1) currentRow[hariKerjaIdx] = hariKerja;
+  if (jsonColIdx !== -1) currentRow[jsonColIdx] = jsonStr;
+  if (updatedIdx !== -1) currentRow[updatedIdx] = nowStr;
+
+  if (thpDelIdx !== -1) {
+    const totPot = totPotDelIdx !== -1 ? cleanSalaryNum(currentRow[totPotDelIdx]) : 0;
+    const thp = Math.max(0, totalGajiBerjalan - totPot);
+    currentRow[thpDelIdx] = thp;
+  }
+
+  sheet.getRange(targetRowIndex + 1, 1, 1, currentRow.length).setValues([currentRow]);
+  formatDataGajiDataRange(sheet, 1);
+  SpreadsheetApp.flush();
+
+  return {
+    success: true,
+    message: 'Catatan harian berhasil dihapus.',
+    deletedId: cleanId || (removedLog ? removedLog.id : ''),
+    totals: {
+      totalJamOt: totalJamOt,
+      totalNominalOt: totalNominalOt,
+      totalJamSPL: totalJamSPL,
+      totalNominalSPL: totalNominalSPL,
+      totalRitase: totalRitase,
+      totalNominalRit: totalNominalRit,
+      totalTunjangan: totalTunjangan,
+      totalGajiBerjalan: totalGajiBerjalan,
+      hariKerja: hariKerja
+    }
+  };
 }
 
 
@@ -2105,6 +2271,9 @@ function savePotonganGaji(token, payload) {
   const pkwtTglIdx = headerList.findIndex(function (h) { return h.includes('tanggal kompensasi'); });
   const pkwtKetIdx = headerList.findIndex(function (h) { return h.includes('keterangan pkwt'); });
 
+  const klaimNomIdx = headerList.findIndex(function (h) { return h.includes('total klaim'); });
+  const klaimJsonIdx = headerList.findIndex(function (h) { return h.includes('detail klaim'); });
+
   const potKes = cleanSalaryNum(payload.potonganBPJSKes);
   const potTk = cleanSalaryNum(payload.potonganBPJSTK);
   const potPph = cleanSalaryNum(payload.potonganPPh21);
@@ -2117,7 +2286,13 @@ function savePotonganGaji(token, payload) {
   const tanggalPKWT = String(payload.tanggalKompensasiPKWT || '').trim();
   const keteranganPKWT = String(payload.keteranganPKWT || '').trim();
 
-  // Hitung ulang Total Gaji Berjalan & THP dengan memasukkan Kompensasi PKWT
+  const totalKlaim = Math.max(0, cleanSalaryNum(payload.totalKlaim));
+  const klaimTravel = Math.max(0, cleanSalaryNum(payload.klaimTravel));
+  const klaimMCU = Math.max(0, cleanSalaryNum(payload.klaimMCU));
+  const klaimLainnya = Math.max(0, cleanSalaryNum(payload.klaimLainnya));
+  const listKlaim = Array.isArray(payload.listKlaim) ? payload.listKlaim : (payload.detailPotongan && Array.isArray(payload.detailPotongan.listKlaim) ? payload.detailPotongan.listKlaim : []);
+
+  // Hitung ulang Total Gaji Berjalan & THP dengan memasukkan Kompensasi PKWT dan Total Klaim
   const existingRow = data[targetRowIndex - 1];
   const basicIdx = headerList.findIndex(function (h) { return h === 'gaji pokok'; });
   const nomOtIdx = headerList.findIndex(function (h) { return h.includes('nominal overtime') || h.includes('total nominal overtime'); });
@@ -2132,10 +2307,24 @@ function savePotonganGaji(token, payload) {
   const rowTunj = tunjIdx !== -1 ? cleanSalaryNum(existingRow[tunjIdx]) : cleanSalaryNum(existingRow[11]);
   const operasional = rowNomOt + rowNomSPL + rowNomRit + rowTunj;
 
-  const totalGajiBerjalan = rowBasic + operasional + kompensasiPKWT;
+  const totalGajiBerjalan = rowBasic + operasional + kompensasiPKWT + totalKlaim;
   const totalPotongan = potKes + potTk + potPph + potKasbon + potLain;
   const takeHomePay = Math.max(0, totalGajiBerjalan - totalPotongan);
-  const detailJson = JSON.stringify(payload.detailPotongan || {});
+
+  const detailPotObj = payload.detailPotongan || {};
+  detailPotObj.totalKlaim = totalKlaim;
+  detailPotObj.klaimTravel = klaimTravel;
+  detailPotObj.klaimMCU = klaimMCU;
+  detailPotObj.klaimLainnya = klaimLainnya;
+  detailPotObj.listKlaim = listKlaim;
+  const detailJson = JSON.stringify(detailPotObj);
+  const detailKlaimJson = JSON.stringify({
+    totalKlaim: totalKlaim,
+    klaimTravel: klaimTravel,
+    klaimMCU: klaimMCU,
+    klaimLainnya: klaimLainnya,
+    listKlaim: listKlaim
+  });
 
   if (grandTotalIdx !== -1) sheet.getRange(targetRowIndex, grandTotalIdx + 1).setValue(totalGajiBerjalan);
   if (potKesIdx !== -1) sheet.getRange(targetRowIndex, potKesIdx + 1).setValue(potKes);
@@ -2153,6 +2342,9 @@ function savePotonganGaji(token, payload) {
   if (pkwtTglIdx !== -1) sheet.getRange(targetRowIndex, pkwtTglIdx + 1).setValue(tanggalPKWT);
   if (pkwtKetIdx !== -1) sheet.getRange(targetRowIndex, pkwtKetIdx + 1).setValue(keteranganPKWT);
 
+  if (klaimNomIdx !== -1) sheet.getRange(targetRowIndex, klaimNomIdx + 1).setValue(totalKlaim);
+  if (klaimJsonIdx !== -1) sheet.getRange(targetRowIndex, klaimJsonIdx + 1).setValue(detailKlaimJson);
+
   // Update kolom Terakhir Diupdate
   const updatedIdx = headerList.findIndex(function (h) { return h.includes('terakhir diupdate'); });
   if (updatedIdx !== -1) {
@@ -2164,7 +2356,7 @@ function savePotonganGaji(token, payload) {
 
   return {
     success: true,
-    message: 'Pengaturan potongan & kompensasi untuk ' + (empName || empId) + ' berhasil disimpan.',
+    message: 'Pengaturan potongan, klaim & kompensasi untuk ' + (empName || empId) + ' berhasil disimpan.',
     summary: {
       empId: empId,
       potonganBPJSKes: potKes,
@@ -2177,8 +2369,13 @@ function savePotonganGaji(token, payload) {
       kompensasiPKWT: kompensasiPKWT,
       tanggalKompensasiPKWT: tanggalPKWT,
       keteranganPKWT: keteranganPKWT,
-      totalGajiBerjalan: totalGajiBerjalan,
+      totalKlaim: totalKlaim,
+      klaimTravel: klaimTravel,
+      klaimMCU: klaimMCU,
+      klaimLainnya: klaimLainnya,
+      listKlaim: listKlaim,
       totalPotongan: totalPotongan,
+      grandTotal: totalGajiBerjalan,
       takeHomePay: takeHomePay
     }
   };
