@@ -345,12 +345,16 @@
         bpjsTKSetting: k.bpjsTKSetting || 'Tidak Ikut'
       };
 
+      var pkwtNom = empSummary ? (Number(empSummary.kompensasiPKWT) || 0) : ((detailPot && Number(detailPot.kompensasiPKWT)) || 0);
+      var pkwtTgl = empSummary ? (empSummary.tanggalKompensasiPKWT || '') : ((detailPot && detailPot.tanggalKompensasiPKWT) || '');
+      var pkwtCat = empSummary ? (empSummary.keteranganPKWT || '') : ((detailPot && detailPot.keteranganPKWT) || '');
+
       var totalPotonganPokok = potKes + potTk + potPph;
       var gajiPokokBersih = Math.max(0, basic - totalPotonganPokok);
       var totalTambahan = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
-      var gajiSebelumKasbon = gajiPokokBersih + totalTambahan;
+      var grandTotalBruto = basic + totalTambahan + pkwtNom;
+      var gajiSebelumKasbon = gajiPokokBersih + totalTambahan + pkwtNom;
       var totalPotongan = totalPotonganPokok + potKasbon + potLain;
-      var grandTotalBruto = basic + totalTambahan;
       var takeHomePay = Math.max(0, grandTotalBruto - totalPotongan);
 
       return {
@@ -381,6 +385,9 @@
         totalPotongan: totalPotongan,
         takeHomePay: takeHomePay,
         detailPotongan: detailPot,
+        kompensasiPKWT: pkwtNom,
+        tanggalKompensasiPKWT: pkwtTgl,
+        keteranganPKWT: pkwtCat,
         logs: kLogs
       };
     });
@@ -528,12 +535,15 @@
         '<td class="text-end">' +
         '  <div class="fw-bold text-success" style="font-size: 0.92rem;">' + formatRupiahVal(emp.takeHomePay) + '</div>' +
         '  <small class="text-muted extra-small">Bruto: ' + formatRupiahVal(emp.grandTotal) + '</small>' +
+        (emp.kompensasiPKWT > 0
+          ? '<br><span class="badge bg-success-subtle text-success border border-success-subtle mt-0.5" style="font-size: 0.65rem;" title="Termasuk Kompensasi PKWT: ' + formatRupiahVal(emp.kompensasiPKWT) + ' (Tgl: ' + (emp.tanggalKompensasiPKWT || '-') + ')"><i class="bi bi-award-fill me-1"></i>+PKWT ' + formatRupiahVal(emp.kompensasiPKWT) + '</span>'
+          : '') +
         '</td>' +
         '<td class="text-center"><span class="badge ' + (emp.daysCount > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-muted border') + ' fw-semibold">' + emp.daysCount + ' Hari</span></td>' +
         '<td class="text-center text-nowrap">' +
         '  <div class="action-group">' +
         actionBtnHtml +
-        '    <button class="btn btn-sm btn-outline-warning py-1 px-2.5 ms-1 text-dark" onclick="openModalPotonganGaji(\'' + escapeHTML(emp.id) + '\')" title="Atur Potongan (BPJS, PPh 21, Kasbon)"><i class="bi bi-scissors me-1"></i>Potongan</button>' +
+        '    <button class="btn btn-sm btn-outline-warning py-1 px-2.5 ms-1 text-dark" onclick="openModalPotonganGaji(\'' + escapeHTML(emp.id) + '\')" title="Atur Potongan (BPJS, PPh 21, Kasbon) &amp; Kompensasi PKWT"><i class="bi bi-sliders me-1"></i>Atur Gaji</button>' +
         '    <button class="btn btn-sm btn-outline-info py-1 px-2.5 ms-1" onclick="openRincianEmp(\'' + escapeHTML(emp.id) + '\')" title="Lihat Rincian Riwayat Harian"><i class="bi bi-eye me-1"></i>Rincian</button>' +
         '    <button class="btn btn-sm btn-outline-danger py-1 px-2.5 ms-1" onclick="printRincianGajiEmp(\'' + escapeHTML(emp.id) + '\')" title="Cetak / Simpan PDF Laporan Rincian"><i class="bi bi-printer me-1"></i>PDF</button>' +
         '  </div>' +
@@ -1202,12 +1212,16 @@
     var potLain = empSummary ? (Number(empSummary.potonganLain) || 0) : 0;
     var catPotLain = empSummary ? (empSummary.catatanPotonganLain || '') : '';
 
+    var pkwtNom = empSummary ? (Number(empSummary.kompensasiPKWT) || 0) : 0;
+    var pkwtTgl = empSummary ? (empSummary.tanggalKompensasiPKWT || '') : '';
+    var pkwtCat = empSummary ? (empSummary.keteranganPKWT || '') : '';
+
     var totalPotPokok = potKes + potTk + potPph;
     var gajiPokokBersih = Math.max(0, basicVal - totalPotPokok);
     var totalTambahan = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
-    var gajiSebelumKasbon = gajiPokokBersih + totalTambahan;
+    var grandTotalBruto = basicVal + totalTambahan + pkwtNom;
+    var gajiSebelumKasbon = gajiPokokBersih + totalTambahan + pkwtNom;
     var totalPotongan = totalPotPokok + potKasbon + potLain;
-    var grandTotalBruto = basicVal + totalTambahan;
     var takeHomePay = Math.max(0, grandTotalBruto - totalPotongan);
 
     var elPotPokok = document.getElementById('rincianEmpPotPokok');
@@ -1218,6 +1232,20 @@
     if (elHariKerja) elHariKerja.innerText = kLogs.length + ' Hari Kerja';
     var elTambahan = document.getElementById('rincianEmpTambahan');
     if (elTambahan) elTambahan.innerText = formatRupiahVal(totalTambahan);
+
+    var boxPKWT = document.getElementById('boxRincianPKWT');
+    if (boxPKWT) {
+      if (pkwtNom > 0) {
+        boxPKWT.style.display = 'block';
+        var elPKWTVal = document.getElementById('rincianEmpPKWT');
+        if (elPKWTVal) elPKWTVal.innerText = '+ ' + formatRupiahVal(pkwtNom);
+        var elPKWTCat = document.getElementById('rincianEmpCatPKWT');
+        if (elPKWTCat) elPKWTCat.innerText = (pkwtTgl ? safeFormatDateDMY(pkwtTgl) + ': ' : '') + (pkwtCat || 'Kompensasi PKWT');
+      } else {
+        boxPKWT.style.display = 'none';
+      }
+    }
+
     var elSblmKasbon = document.getElementById('rincianEmpSblmKasbon');
     if (elSblmKasbon) elSblmKasbon.innerText = formatRupiahVal(gajiSebelumKasbon);
     var elKasbon = document.getElementById('rincianEmpKasbon');
@@ -1778,6 +1806,9 @@
       'Total Ritase',
       'Nominal Ritase',
       'Total Tunjangan',
+      'Kompensasi PKWT',
+      'Tgl Kompensasi PKWT',
+      'Keterangan PKWT',
       'Total Gaji Bruto',
       'Potongan BPJS Kes',
       'Potongan BPJS TK',
@@ -1792,7 +1823,7 @@
     ];
     s1Data.push(s1Headers);
 
-    var sumBasic = 0, sumJamOt = 0, sumNomOt = 0, sumJamSPL = 0, sumNomSPL = 0, sumRit = 0, sumNomRit = 0, sumTunj = 0, sumGrandTotal = 0, sumDays = 0;
+    var sumBasic = 0, sumJamOt = 0, sumNomOt = 0, sumJamSPL = 0, sumNomSPL = 0, sumRit = 0, sumNomRit = 0, sumTunj = 0, sumPKWT = 0, sumGrandTotal = 0, sumDays = 0;
 
     empList.forEach(function (emp, idx) {
       sumBasic += emp.basic;
@@ -1813,6 +1844,11 @@
       var eKas = sEmpSum ? (Number(sEmpSum.potonganKasbon) || 0) : 0;
       var eCatKas = sEmpSum ? (sEmpSum.catatanKasbon || '') : '';
       var eLain = sEmpSum ? (Number(sEmpSum.potonganLain) || 0) : 0;
+      var ePKWT = sEmpSum ? (Number(sEmpSum.kompensasiPKWT) || 0) : (Number(emp.kompensasiPKWT) || 0);
+      var eTglPKWT = sEmpSum ? (sEmpSum.tanggalKompensasiPKWT || '') : (emp.tanggalKompensasiPKWT || '');
+      var eKetPKWT = sEmpSum ? (sEmpSum.keteranganPKWT || '') : (emp.keteranganPKWT || '');
+      sumPKWT += ePKWT;
+
       var ePotPokok = eKes + eTk + ePph;
       var ePokokBersih = Math.max(0, emp.basic - ePotPokok);
       var eTotPot = ePotPokok + eKas + eLain;
@@ -1832,6 +1868,9 @@
         emp.totalRitase,
         emp.totalNominalRit,
         emp.totalTunjangan,
+        ePKWT,
+        eTglPKWT,
+        eKetPKWT,
         emp.grandTotal,
         eKes,
         eTk,
@@ -1860,6 +1899,9 @@
       sumRit,
       sumNomRit,
       sumTunj,
+      sumPKWT,
+      '',
+      '',
       sumGrandTotal,
       sumDays
     ]);
@@ -2168,10 +2210,6 @@
       });
     }
 
-    var totalPenghasilanHarian = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
-    var grandTotal = basicVal + totalPenghasilanHarian;
-    var totalHariKerja = uniqueDates.size || sortedLogs.length;
-
     var pEmpSum = (cachedDataGajiEmployees || []).find(function (s) { return matchLogToEmp({ empId: s.id, empName: s.name }, emp); });
     var pKes = pEmpSum ? (Number(pEmpSum.potonganBPJSKes) || 0) : (Number(emp.bpjsKesNominal) || 0);
     var pTk = pEmpSum ? (Number(pEmpSum.potonganBPJSTK) || 0) : (Number(emp.bpjsTKNominal) || 0);
@@ -2180,6 +2218,13 @@
     var pCatKas = pEmpSum ? (pEmpSum.catatanKasbon || '') : '';
     var pLain = pEmpSum ? (Number(pEmpSum.potonganLain) || 0) : 0;
     var pCatLain = pEmpSum ? (pEmpSum.catatanPotonganLain || '') : '';
+    var pPKWT = pEmpSum ? (Number(pEmpSum.kompensasiPKWT) || 0) : ((emp && Number(emp.kompensasiPKWT)) || 0);
+    var pTglPKWT = pEmpSum ? (pEmpSum.tanggalKompensasiPKWT || '') : ((emp && emp.tanggalKompensasiPKWT) || '');
+    var pKetPKWT = pEmpSum ? (pEmpSum.keteranganPKWT || '') : ((emp && emp.keteranganPKWT) || '');
+
+    var totalPenghasilanHarian = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
+    var grandTotal = basicVal + totalPenghasilanHarian + pPKWT;
+    var totalHariKerja = uniqueDates.size || sortedLogs.length;
 
     var pTotalPotPokok = pKes + pTk + pPph;
     var pPokokBersih = Math.max(0, basicVal - pTotalPotPokok);
@@ -2318,6 +2363,9 @@
       '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">SPL (' + totalJamSPL + ' Jam)</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #15803d;">' + formatRupiahVal(totalNominalSPL) + '</td></tr>' +
       '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">Ritase (' + totalRitase + ' Rit)</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #b45309;">' + formatRupiahVal(totalNominalRit) + '</td></tr>' +
       '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">Tunjangan Harian</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700;">' + formatRupiahVal(totalTunjangan) + '</td></tr>' +
+      (pPKWT > 0
+        ? '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #0f766e;">Uang Kompensasi PKWT' + (pTglPKWT ? ' (' + safeFormatDateDMY(pTglPKWT) + ')' : '') + (pKetPKWT ? '<br><small style="color: #64748b; font-weight: normal;">' + escapeHTML(pKetPKWT) + '</small>' : '') + '</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #0f766e;">' + formatRupiahVal(pPKWT) + '</td></tr>'
+        : '') +
       '</tbody>' +
       '<tfoot><tr style="background: #f1f5f9; font-weight: 800;"><td style="padding: 4px 6px; border-top: 1.5px solid #0f172a;">TOTAL GAJI KOTOR (BRUTO)</td><td style="padding: 4px 6px; border-top: 1.5px solid #0f172a; text-align: right; color: #0f172a;">' + formatRupiahVal(grandTotal) + '</td></tr></tfoot>' +
       '</table>' +
@@ -2829,6 +2877,10 @@
     var potLain = empSummary ? (Number(empSummary.potonganLain) || 0) : 0;
     var catPotLain = empSummary ? (empSummary.catatanPotonganLain || '') : '';
 
+    var pkwtNom = empSummary ? (Number(empSummary.kompensasiPKWT) || 0) : ((detailPot && Number(detailPot.kompensasiPKWT)) || 0);
+    var pkwtTgl = empSummary ? (empSummary.tanggalKompensasiPKWT || '') : ((detailPot && detailPot.tanggalKompensasiPKWT) || '');
+    var pkwtCat = empSummary ? (empSummary.keteranganPKWT || '') : ((detailPot && detailPot.keteranganPKWT) || '');
+
     var detailPot = (empSummary && empSummary.detailPotongan) ? empSummary.detailPotongan : {};
     var kesSet = detailPot.bpjsKesSetting || k.bpjsKesSetting || 'Tidak Ikut';
     var tkSet = detailPot.bpjsTKSetting || k.bpjsTKSetting || 'Tidak Ikut';
@@ -2863,6 +2915,16 @@
     var elPphNom = document.getElementById('potonganPph21Nominal');
     if (elPphNom) { elPphNom.value = potPph > 0 ? formatRupiahVal(potPph) : 'Rp 0'; setupRupiahMask(elPphNom); }
 
+    // Set Kompensasi PKWT
+    var elPkwtTgl = document.getElementById('potonganPkwtTanggal');
+    if (elPkwtTgl) elPkwtTgl.value = pkwtTgl;
+    var elPkwtNom = document.getElementById('potonganPkwtNominal');
+    if (elPkwtNom) { elPkwtNom.value = pkwtNom > 0 ? formatRupiahVal(pkwtNom) : 'Rp 0'; setupRupiahMask(elPkwtNom); }
+    var elPkwtCat = document.getElementById('potonganPkwtCatatan');
+    if (elPkwtCat) elPkwtCat.value = pkwtCat;
+    var elHelperBulan = document.getElementById('helperPkwtBulan');
+    if (elHelperBulan) elHelperBulan.value = '12';
+
     // RENDER BARIS PINJAMAN KASBON SESUAI TANGGAL
     var tbodyKasbon = document.getElementById('tbodyKasbonList');
     if (tbodyKasbon) {
@@ -2892,6 +2954,23 @@
 
     calculatePotonganLive();
     bsModalPotonganGaji.show();
+  };
+
+  window.quickCalcPKWTModal = function () {
+    if (!currentSelectedPotonganEmp) return;
+    var basic = Number(currentSelectedPotonganEmp.basic) || 0;
+    var elBulan = document.getElementById('helperPkwtBulan');
+    var bulan = elBulan ? (parseFloat(elBulan.value) || 12) : 12;
+    var calcNom = Math.round((bulan / 12) * basic);
+    var elNom = document.getElementById('potonganPkwtNominal');
+    if (elNom) {
+      elNom.value = formatRupiahVal(calcNom);
+    }
+    var elCat = document.getElementById('potonganPkwtCatatan');
+    if (elCat && !elCat.value.trim()) {
+      elCat.value = 'Kompensasi PKWT ' + bulan + ' Bulan (PP 35/2021)';
+    }
+    calculatePotonganLive();
   };
 
   window.onPotonganModalKesSettingChange = function () {
@@ -2955,11 +3034,12 @@
     });
 
     var potLain = parseRupiahVal(document.getElementById('potonganLainNominal') ? document.getElementById('potonganLainNominal').value : 0);
+    var pkwtNom = parseRupiahVal(document.getElementById('potonganPkwtNominal') ? document.getElementById('potonganPkwtNominal').value : 0);
 
     var subtotalPotPokok = potKes + potTk + potPph;
     var gajiPokokBersih = Math.max(0, basic - subtotalPotPokok);
     var tambahan = Number(currentSelectedPotonganEmp.totalTambahan) || 0;
-    var gajiSebelumKasbon = gajiPokokBersih + tambahan;
+    var gajiSebelumKasbon = gajiPokokBersih + tambahan + pkwtNom;
     var subtotalKasbonLain = totalKasbon + potLain;
     var takeHomePay = Math.max(0, gajiSebelumKasbon - subtotalKasbonLain);
 
@@ -2982,6 +3062,8 @@
     if (elPrevPokokBersih) elPrevPokokBersih.innerText = formatRupiahVal(gajiPokokBersih);
     var elPrevTambahan = document.getElementById('prevTambahanVal');
     if (elPrevTambahan) elPrevTambahan.innerText = '+ ' + formatRupiahVal(tambahan);
+    var elPrevPkwt = document.getElementById('prevPkwtVal');
+    if (elPrevPkwt) elPrevPkwt.innerText = '+ ' + formatRupiahVal(pkwtNom);
     var elPrevSblmKasbon = document.getElementById('prevSblmKasbonVal');
     if (elPrevSblmKasbon) elPrevSblmKasbon.innerText = formatRupiahVal(gajiSebelumKasbon);
     var elPrevKasbonLain = document.getElementById('prevKasbonLainVal');
@@ -3038,6 +3120,10 @@
     var kesSet = document.getElementById('potonganBpjsKesSetting') ? document.getElementById('potonganBpjsKesSetting').value : 'Tidak Ikut';
     var tkSet = document.getElementById('potonganBpjsTKSetting') ? document.getElementById('potonganBpjsTKSetting').value : 'Tidak Ikut';
 
+    var pkwtTgl = document.getElementById('potonganPkwtTanggal') ? document.getElementById('potonganPkwtTanggal').value : '';
+    var pkwtNom = parseRupiahVal(document.getElementById('potonganPkwtNominal') ? document.getElementById('potonganPkwtNominal').value : 0);
+    var pkwtCat = document.getElementById('potonganPkwtCatatan') ? document.getElementById('potonganPkwtCatatan').value.trim() : '';
+
     var payload = {
       empId: empId,
       empName: currentSelectedPotonganEmp.empName,
@@ -3049,6 +3135,9 @@
       catatanKasbon: catKasbonStr,
       potonganLain: potLain,
       catatanPotonganLain: catPotLain,
+      kompensasiPKWT: pkwtNom,
+      tanggalKompensasiPKWT: pkwtTgl,
+      keteranganPKWT: pkwtCat,
       detailPotongan: {
         bpjsKesSetting: kesSet,
         bpjsKesNominal: potKes,
@@ -3056,7 +3145,10 @@
         bpjsTKNominal: potTk,
         pph21Nominal: potPph,
         listKasbon: listKasbon,
-        potonganLainTanggal: potLainTgl
+        potonganLainTanggal: potLainTgl,
+        kompensasiPKWT: pkwtNom,
+        tanggalKompensasiPKWT: pkwtTgl,
+        keteranganPKWT: pkwtCat
       }
     };
 

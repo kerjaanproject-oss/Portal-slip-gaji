@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbya_MuzGqtcL_b3sGdI_InEr_ei27CoLzlqlOFZFdQR_dd0n9NBF9aaesA3Ulxhb5r1/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbxLrwNilA3eEh9RtJYhxsP7vgNlaksQrSCX2nyiLLRvmDdmdsQgMhxii04hCP5gklv4/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -3506,9 +3506,9 @@
               <i class="bi bi-scissors fs-5"></i>
             </div>
             <div>
-              <h6 class="modal-title fw-bold mb-0" id="modalPotonganTitle">Atur Potongan Gaji Karyawan</h6>
-              <small class="text-white-50 extra-small">Skema Potongan 2-Tier: Potongan Pokok (BPJS &amp; Pajak) &amp;
-                Potongan Bersih (Kasbon)</small>
+              <h6 class="modal-title fw-bold mb-0" id="modalPotonganTitle">Atur Potongan &amp; Kompensasi PKWT</h6>
+              <small class="text-white-50 extra-small">Skema 2-Tier: Potongan Pokok (BPJS &amp; Pajak), Kompensasi PKWT,
+                &amp; Kasbon Pinjaman</small>
             </div>
           </div>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -3638,6 +3638,79 @@
               </div>
             </div>
 
+            <!-- SECTION KOMPENSASI PKWT (PENAMBAHAN GAJI AKHIR KONTRAK) -->
+            <div class="card border-0 shadow-sm mb-3"
+              style="background: #f0fdfa; border-left: 4px solid #0d9488 !important;">
+              <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 pb-2 border-bottom">
+                  <div>
+                    <h6 class="fw-bold mb-0 d-flex align-items-center gap-1.5"
+                      style="font-size: 0.9rem; color: #0f766e;">
+                      <i class="bi bi-award-fill"></i> Kompensasi PKWT (Uang Kompensasi Akhir Kontrak)
+                    </h6>
+                    <small class="text-muted extra-small">Penambah penghasilan bruto (Earnings) yang langsung menambah
+                      Take Home Pay</small>
+                  </div>
+                  <span
+                    class="badge bg-success-subtle text-success border border-success-subtle extra-small fw-semibold">
+                    <i class="bi bi-plus-circle me-1"></i>Penambah THP
+                  </span>
+                </div>
+
+                <div class="row g-2.5">
+                  <!-- Tanggal Pencairan Kompensasi -->
+                  <div class="col-12 col-md-4">
+                    <label class="form-label extra-small fw-semibold text-dark mb-1">
+                      <i class="bi bi-calendar-event text-success me-1"></i>Tgl Kompensasi (Bebas):
+                    </label>
+                    <input type="date" id="potonganPkwtTanggal" class="form-control form-control-sm"
+                      onchange="calculatePotonganLive()">
+                    <div class="form-text extra-small text-muted">Bebas diisi tanggal berapa saja</div>
+                  </div>
+
+                  <!-- Nominal Kompensasi Manual -->
+                  <div class="col-12 col-md-4">
+                    <label class="form-label extra-small fw-semibold text-dark mb-1">
+                      <i class="bi bi-cash-coin text-success me-1"></i>Nominal Kompensasi (Rp):
+                    </label>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text bg-white extra-small text-muted">Rp</span>
+                      <input type="text" id="potonganPkwtNominal"
+                        class="form-control form-control-sm text-end fw-bold text-success" placeholder="0"
+                        oninput="calculatePotonganLive()">
+                    </div>
+                    <div class="form-text extra-small text-muted">Diisi manual (kosongkan jika tidak ada)</div>
+                  </div>
+
+                  <!-- Keterangan Kontrak -->
+                  <div class="col-12 col-md-4">
+                    <label class="form-label extra-small fw-semibold text-dark mb-1">
+                      <i class="bi bi-file-earmark-text text-success me-1"></i>Keterangan / No Kontrak:
+                    </label>
+                    <input type="text" id="potonganPkwtCatatan" class="form-control form-control-sm"
+                      placeholder="Contoh: Selesai Kontrak PKWT 12 Bulan (Periode 2025-2026)">
+                    <div class="form-text extra-small text-muted">Catatan masa kontrak / nomor SK</div>
+                  </div>
+                </div>
+
+                <!-- BANTUAN ESTIMASI HITUNG CEPAT PP 35/2021 (OPSIONAL) -->
+                <div
+                  class="p-2 rounded-2 bg-white border mt-2.5 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div class="d-flex align-items-center gap-2 extra-small text-muted">
+                    <i class="bi bi-magic text-success fs-6"></i>
+                    <span><strong>Bantuan Hitung Cepat (PP 35/2021):</strong> Masa Kerja:</span>
+                    <input type="number" id="helperPkwtBulan" class="form-control form-control-sm text-center fw-bold"
+                      style="width: 65px;" min="1" max="60" value="12">
+                    <span>Bulan</span>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-success extra-small fw-bold shadow-sm"
+                    onclick="quickCalcPKWTModal()" title="Hitung estimasi otomatis: (Masa Kerja / 12) × Gaji Pokok">
+                    <i class="bi bi-calculator me-1"></i>Hitung Otomatis (Bulan / 12 × Basic)
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- TIER 2: POTONGAN DARI TOTAL BERSIH / BERJALAN (KASBON SESUAI TANGGAL & LAINNYA) -->
             <div class="card border-0 shadow-sm mb-3"
               style="background: #fdfaf6; border-left: 4px solid #f97316 !important;">
@@ -3648,9 +3721,11 @@
                       style="font-size: 0.9rem;">
                       <i class="bi bi-cash-stack"></i> Tier 2: Pinjaman / Kasbon Karyawan &amp; Potongan Lain
                     </h6>
-                    <small class="text-muted extra-small">Dicatat per tanggal transaksi dan dipotong dari total gaji berjalan</small>
+                    <small class="text-muted extra-small">Dicatat per tanggal transaksi dan dipotong dari total gaji
+                      berjalan</small>
                   </div>
-                  <button type="button" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" onclick="addKasbonRow()">
+                  <button type="button" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm"
+                    onclick="addKasbonRow()">
                     <i class="bi bi-plus-circle me-1"></i>+ Tambah Pinjaman
                   </button>
                 </div>
@@ -3658,9 +3733,11 @@
                 <!-- DAFTAR TRANSAKSI PINJAMAN KASBON SESUAI TANGGAL -->
                 <div class="mb-3">
                   <label class="form-label extra-small fw-bold text-dark mb-1">
-                    <i class="bi bi-calendar-check text-warning me-1"></i>Daftar Pinjaman / Kasbon Karyawan Sesuai Tanggal:
+                    <i class="bi bi-calendar-check text-warning me-1"></i>Daftar Pinjaman / Kasbon Karyawan Sesuai
+                    Tanggal:
                   </label>
-                  <div class="table-responsive border rounded bg-white shadow-sm" style="max-height: 240px; overflow-y: auto;">
+                  <div class="table-responsive border rounded bg-white shadow-sm"
+                    style="max-height: 240px; overflow-y: auto;">
                     <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.82rem;">
                       <thead class="table-light extra-small text-uppercase fw-bold text-muted">
                         <tr>
@@ -3677,13 +3754,15 @@
                         <tr>
                           <td class="text-uppercase extra-small text-muted">Total Pinjaman:</td>
                           <td class="text-end text-danger fw-bold" id="textTotalKasbonModal">Rp 0</td>
-                          <td colspan="2"><small class="text-muted extra-small" id="textKasbonCount">0 Transaksi Pinjaman</small></td>
+                          <td colspan="2"><small class="text-muted extra-small" id="textKasbonCount">0 Transaksi
+                              Pinjaman</small></td>
                         </tr>
                       </tfoot>
                     </table>
                   </div>
                   <small class="text-muted extra-small mt-1 d-block">
-                    <i class="bi bi-info-circle me-1"></i>Anda dapat mencatat lebih dari satu pinjaman pada tanggal berbeda dalam periode ini.
+                    <i class="bi bi-info-circle me-1"></i>Anda dapat mencatat lebih dari satu pinjaman pada tanggal
+                    berbeda dalam periode ini.
                   </small>
                 </div>
 
@@ -3703,12 +3782,16 @@
                       <label class="form-label extra-small fw-semibold text-muted mb-1">Nominal Potongan Lain:</label>
                       <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white extra-small text-muted">Rp</span>
-                        <input type="text" id="potonganLainNominal" class="form-control form-control-sm text-end fw-bold text-danger" placeholder="0" oninput="calculatePotonganLive()">
+                        <input type="text" id="potonganLainNominal"
+                          class="form-control form-control-sm text-end fw-bold text-danger" placeholder="0"
+                          oninput="calculatePotonganLive()">
                       </div>
                     </div>
                     <div class="col-12 col-md-4">
-                      <label class="form-label extra-small fw-semibold text-muted mb-1">Keterangan Potongan Lain:</label>
-                      <input type="text" id="potonganLainCatatan" class="form-control form-control-sm" placeholder="Contoh: Denda telat / seragam" oninput="calculatePotonganLive()">
+                      <label class="form-label extra-small fw-semibold text-muted mb-1">Keterangan Potongan
+                        Lain:</label>
+                      <input type="text" id="potonganLainCatatan" class="form-control form-control-sm"
+                        placeholder="Contoh: Denda telat / seragam" oninput="calculatePotonganLive()">
                     </div>
                   </div>
                 </div>
@@ -3744,15 +3827,19 @@
                     <span class="text-muted d-block">4. (+) Tambahan Lapangan:</span>
                     <strong class="text-success" id="prevTambahanVal">+ Rp 0</strong>
                   </div>
-                  <div class="col-6 col-md-4">
-                    <span class="text-muted d-block">5. (=) Gaji Sebelum Kasbon:</span>
+                  <div class="col-6 col-md-3 mt-md-2 pt-md-2 border-top">
+                    <span class="text-muted d-block">5. (+) Kompensasi PKWT:</span>
+                    <strong class="fw-bold" id="prevPkwtVal" style="color: #0f766e;">+ Rp 0</strong>
+                  </div>
+                  <div class="col-6 col-md-3 mt-md-2 pt-md-2 border-top">
+                    <span class="text-muted d-block">6. (=) Gaji Sblm Kasbon:</span>
                     <strong class="text-dark" id="prevSblmKasbonVal">Rp 0</strong>
                   </div>
-                  <div class="col-6 col-md-4">
-                    <span class="text-muted d-block">6. (-) Kasbon &amp; Pot. Lain:</span>
+                  <div class="col-6 col-md-3 mt-md-2 pt-md-2 border-top">
+                    <span class="text-muted d-block">7. (-) Kasbon &amp; Pot. Lain:</span>
                     <strong class="text-danger" id="prevKasbonLainVal">- Rp 0</strong>
                   </div>
-                  <div class="col-12 col-md-4 text-md-end">
+                  <div class="col-6 col-md-3 text-md-end mt-md-2 pt-md-2 border-top">
                     <span class="text-muted d-block fw-bold text-success text-uppercase">TAKE HOME PAY (THP):</span>
                     <h5 class="fw-bold text-success mb-0" id="prevTakeHomePayVal">Rp 0</h5>
                   </div>
@@ -3763,7 +3850,7 @@
             <div class="d-flex justify-content-end gap-2 pt-2 border-top">
               <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">Batal</button>
               <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm" id="btnSavePotonganGaji">
-                <i class="bi bi-check2-circle me-1.5"></i>Simpan Potongan Gaji
+                <i class="bi bi-check2-circle me-1.5"></i>Simpan Potongan &amp; Kompensasi
               </button>
             </div>
           </form>
@@ -3806,6 +3893,12 @@
                 <strong class="text-success small" id="rincianEmpTambahan">Rp 0</strong>
                 <div class="extra-small text-muted">Lembur, SPL, Rit, Tunj</div>
               </div>
+              <div class="col-md-3 col-6" id="boxRincianPKWT" style="display: none;">
+                <small class="text-muted extra-small d-block text-uppercase"
+                  style="color: #0f766e !important;">Kompensasi PKWT</small>
+                <strong class="small fw-bold" id="rincianEmpPKWT" style="color: #0f766e;">+Rp 0</strong>
+                <div class="extra-small text-muted text-truncate" id="rincianEmpCatPKWT">-</div>
+              </div>
               <div class="col-md-3 col-6 mt-2 pt-2 border-top">
                 <small class="text-muted extra-small d-block text-uppercase">Total Gaji Sebelum Kasbon</small>
                 <strong class="text-dark small" id="rincianEmpSblmKasbon">Rp 0</strong>
@@ -3836,8 +3929,9 @@
             </div>
             <div class="d-flex align-items-center gap-2">
               <button class="btn btn-outline-warning btn-sm fw-semibold text-dark shadow-sm" id="btnRincianEditPotongan"
-                onclick="openPotonganFromRincian()" title="Atur Potongan BPJS, PPh21, dan Kasbon Karyawan ini">
-                <i class="bi bi-scissors me-1"></i>Atur Potongan
+                onclick="openPotonganFromRincian()"
+                title="Atur Potongan BPJS, PPh21, Kasbon, dan Kompensasi PKWT Karyawan ini">
+                <i class="bi bi-sliders me-1"></i>Atur Potongan &amp; Kompensasi
               </button>
               <button class="btn btn-outline-danger btn-sm fw-semibold shadow-sm" id="btnRincianPrintPdf"
                 onclick="printRincianGajiCurrentEmp()" title="Cetak / Simpan Laporan Rincian sebagai PDF">

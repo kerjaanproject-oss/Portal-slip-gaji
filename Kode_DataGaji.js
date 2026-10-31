@@ -51,7 +51,10 @@ const DATA_GAJI_HEADERS = [
   'Catatan Potongan Lain',     // 22 (col 23)
   'Total Potongan',            // 23 (col 24)
   'Take Home Pay',             // 24 (col 25)
-  'Detail Potongan JSON'       // 25 (col 26)
+  'Detail Potongan JSON',      // 25 (col 26)
+  'Kompensasi PKWT',           // 26 (col 27)
+  'Tanggal Kompensasi PKWT',   // 27 (col 28)
+  'Keterangan PKWT'            // 28 (col 29)
 ];
 
 /**
@@ -113,6 +116,11 @@ function formatDataGajiDataRange(sheet, rowCount) {
     sheet.getRange(startRow, 22, count, 1).setNumberFormat('"Rp "#,##0');
     sheet.getRange(startRow, 24, count, 1).setNumberFormat('"Rp "#,##0');
     sheet.getRange(startRow, 25, count, 1).setNumberFormat('"Rp "#,##0');
+  }
+
+  // Kolom Rupiah Kompensasi PKWT: (col 27)
+  if (sheet.getLastColumn() >= 27) {
+    sheet.getRange(startRow, 27, count, 1).setNumberFormat('"Rp "#,##0');
   }
 }
 
@@ -306,7 +314,10 @@ function syncEmployeesToDataGajiForPeriod(ss, sheet, periodId) {
       '', // Catatan Potongan Lain
       totalPotongan,
       takeHomePay,
-      detailPotonganJson
+      detailPotonganJson,
+      0, // Kompensasi PKWT
+      '', // Tanggal Kompensasi PKWT
+      '' // Keterangan PKWT
     ]);
   }
 
@@ -426,6 +437,28 @@ function getOrCreateDataGajiSheet(ss) {
         if (lastR > 1) {
           const defaultVals = new Array(lastR - 1).fill([0, 0, 0, 0, '', 0, '', 0, 0, '{}']);
           sheet.getRange(2, lastC + 1, lastR - 1, newCols.length).setValues(defaultVals);
+        }
+        formatDataGajiHeaders(sheet);
+        formatDataGajiDataRange(sheet, lastR - 1);
+      }
+
+      // Periksa apakah kolom Kompensasi PKWT sudah ada
+      const existingHeadersWithPKWT = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function (h) {
+        return String(h || '').trim().toLowerCase();
+      });
+      if (!existingHeadersWithPKWT.includes('kompensasi pkwt')) {
+        const lastC = sheet.getLastColumn();
+        const pkwtCols = [
+          'Kompensasi PKWT',
+          'Tanggal Kompensasi PKWT',
+          'Keterangan PKWT'
+        ];
+        sheet.insertColumnsAfter(lastC, pkwtCols.length);
+        sheet.getRange(1, lastC + 1, 1, pkwtCols.length).setValues([pkwtCols]);
+        const lastR = sheet.getLastRow();
+        if (lastR > 1) {
+          const defaultVals = new Array(lastR - 1).fill([0, '', '']);
+          sheet.getRange(2, lastC + 1, lastR - 1, pkwtCols.length).setValues(defaultVals);
         }
         formatDataGajiHeaders(sheet);
         formatDataGajiDataRange(sheet, lastR - 1);
@@ -894,6 +927,14 @@ function getDataGaji(token, filterDept, filterTanggal, filterPeriodeId) {
       try { detailPot = JSON.parse(row[detailPotIdx]); } catch (e) { detailPot = {}; }
     }
 
+    const pkwtNomIdx = hList.findIndex(function (h) { return h === 'kompensasi pkwt'; });
+    const pkwtTglIdx = hList.findIndex(function (h) { return h.includes('tanggal kompensasi'); });
+    const pkwtKetIdx = hList.findIndex(function (h) { return h.includes('keterangan pkwt'); });
+
+    const kompensasiPKWT = pkwtNomIdx !== -1 ? cleanSalaryNum(row[pkwtNomIdx]) : 0;
+    const tanggalKompensasiPKWT = pkwtTglIdx !== -1 ? String(row[pkwtTglIdx] || '').trim() : '';
+    const keteranganPKWT = pkwtKetIdx !== -1 ? String(row[pkwtKetIdx] || '').trim() : '';
+
     employeesSummary.push({
       periodId: rowPeriodId,
       id: empId,
@@ -922,7 +963,10 @@ function getDataGaji(token, filterDept, filterTanggal, filterPeriodeId) {
       catatanPotonganLain: catPotLain,
       totalPotongan: totPot,
       takeHomePay: thp,
-      detailPotongan: detailPot
+      detailPotongan: detailPot,
+      kompensasiPKWT: kompensasiPKWT,
+      tanggalKompensasiPKWT: tanggalKompensasiPKWT,
+      keteranganPKWT: keteranganPKWT
     });
   }
 
@@ -1135,7 +1179,6 @@ function saveDataGaji(token, payload) {
   });
 
   const hariKerja = uniqueDates.size || existingLogs.length;
-  const totalGajiBerjalan = basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
   const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
   const jsonStr = JSON.stringify(existingLogs);
 
@@ -1143,6 +1186,8 @@ function saveDataGaji(token, payload) {
   let existingKasbon = 0, existingCatKasbon = '';
   let existingPotLain = 0, existingCatPotLain = '';
   let existingDetailPotJson = '{}';
+  let existingKompensasiPKWT = 0, existingTglPKWT = '', existingKetPKWT = '';
+
   if (targetRowIndex > 0) {
     const existingRow = data[targetRowIndex - 1];
     const pKesIdx = headerList.findIndex(function (h) { return h.includes('bpjs kesehatan') || h.includes('bpjs kes'); });
@@ -1154,6 +1199,10 @@ function saveDataGaji(token, payload) {
     const cLainIdx = headerList.findIndex(function (h) { return h.includes('catatan potongan lain'); });
     const dPotIdx = headerList.findIndex(function (h) { return h.includes('detail potongan'); });
 
+    const pkwtNomIdx = headerList.findIndex(function (h) { return h === 'kompensasi pkwt'; });
+    const pkwtTglIdx = headerList.findIndex(function (h) { return h.includes('tanggal kompensasi'); });
+    const pkwtKetIdx = headerList.findIndex(function (h) { return h.includes('keterangan pkwt'); });
+
     if (pKesIdx !== -1) existingPotKes = cleanSalaryNum(existingRow[pKesIdx]);
     if (pTkIdx !== -1) existingPotTk = cleanSalaryNum(existingRow[pTkIdx]);
     if (pPphIdx !== -1) existingPotPph = cleanSalaryNum(existingRow[pPphIdx]);
@@ -1162,8 +1211,13 @@ function saveDataGaji(token, payload) {
     if (pLainIdx !== -1) existingPotLain = cleanSalaryNum(existingRow[pLainIdx]);
     if (cLainIdx !== -1) existingCatPotLain = String(existingRow[cLainIdx] || '').trim();
     if (dPotIdx !== -1) existingDetailPotJson = String(existingRow[dPotIdx] || '{}');
+
+    if (pkwtNomIdx !== -1) existingKompensasiPKWT = cleanSalaryNum(existingRow[pkwtNomIdx]);
+    if (pkwtTglIdx !== -1) existingTglPKWT = String(existingRow[pkwtTglIdx] || '').trim();
+    if (pkwtKetIdx !== -1) existingKetPKWT = String(existingRow[pkwtKetIdx] || '').trim();
   }
 
+  const totalGajiBerjalan = basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan + existingKompensasiPKWT;
   const totalPotonganSave = existingPotKes + existingPotTk + existingPotPph + existingKasbon + existingPotLain;
   const takeHomePaySave = Math.max(0, totalGajiBerjalan - totalPotonganSave);
 
@@ -1193,7 +1247,10 @@ function saveDataGaji(token, payload) {
     existingCatPotLain,
     totalPotonganSave,
     takeHomePaySave,
-    existingDetailPotJson
+    existingDetailPotJson,
+    existingKompensasiPKWT,
+    existingTglPKWT,
+    existingKetPKWT
   ];
 
   if (targetRowIndex > 0) {
@@ -1294,9 +1351,17 @@ function deleteDataGaji(token, id) {
         if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
       });
 
+      const headerListDel = data[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+      const pkwtNomDelIdx = headerListDel.findIndex(function (h) { return h === 'kompensasi pkwt'; });
+      const totPotDelIdx = headerListDel.findIndex(function (h) { return h.includes('total potongan'); });
+      const thpDelIdx = headerListDel.findIndex(function (h) { return h.includes('take home pay'); });
+
+      let existingKompensasiPKWT = 0;
+      if (pkwtNomDelIdx !== -1) existingKompensasiPKWT = cleanSalaryNum(data[i][pkwtNomDelIdx]);
+
       const basic = cleanSalaryNum(data[i][4]);
       const hariKerja = uniqueDates.size || logs.length;
-      const totalGajiBerjalan = basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
+      const totalGajiBerjalan = basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan + existingKompensasiPKWT;
       const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
       const jsonStr = JSON.stringify(logs);
 
@@ -1314,6 +1379,12 @@ function deleteDataGaji(token, id) {
         jsonStr,
         nowStr
       ]]);
+
+      if (thpDelIdx !== -1) {
+        const totPot = totPotDelIdx !== -1 ? cleanSalaryNum(data[i][totPotDelIdx]) : 0;
+        const thp = Math.max(0, totalGajiBerjalan - totPot);
+        sheet.getRange(i + 1, thpDelIdx + 1).setValue(thp);
+      }
       formatDataGajiDataRange(sheet, 1);
       SpreadsheetApp.flush();
 
@@ -1974,6 +2045,10 @@ function savePotonganGaji(token, payload) {
   const detailPotIdx = headerList.findIndex(function (h) { return h.includes('detail potongan'); });
   const grandTotalIdx = headerList.findIndex(function (h) { return h.includes('total gaji berjalan') || h.includes('total gaji'); });
 
+  const pkwtNomIdx = headerList.findIndex(function (h) { return h === 'kompensasi pkwt'; });
+  const pkwtTglIdx = headerList.findIndex(function (h) { return h.includes('tanggal kompensasi'); });
+  const pkwtKetIdx = headerList.findIndex(function (h) { return h.includes('keterangan pkwt'); });
+
   const potKes = cleanSalaryNum(payload.potonganBPJSKes);
   const potTk = cleanSalaryNum(payload.potonganBPJSTK);
   const potPph = cleanSalaryNum(payload.potonganPPh21);
@@ -1982,11 +2057,31 @@ function savePotonganGaji(token, payload) {
   const potLain = cleanSalaryNum(payload.potonganLain);
   const catPotLain = String(payload.catatanPotonganLain || '').trim();
 
+  const kompensasiPKWT = Math.max(0, cleanSalaryNum(payload.kompensasiPKWT));
+  const tanggalPKWT = String(payload.tanggalKompensasiPKWT || '').trim();
+  const keteranganPKWT = String(payload.keteranganPKWT || '').trim();
+
+  // Hitung ulang Total Gaji Berjalan & THP dengan memasukkan Kompensasi PKWT
+  const existingRow = data[targetRowIndex - 1];
+  const basicIdx = headerList.findIndex(function (h) { return h === 'gaji pokok'; });
+  const nomOtIdx = headerList.findIndex(function (h) { return h.includes('nominal overtime') || h.includes('total nominal overtime'); });
+  const nomSplIdx = headerList.findIndex(function (h) { return h.includes('nominal spl') || h.includes('total nominal spl'); });
+  const nomRitIdx = headerList.findIndex(function (h) { return h.includes('nominal ritase') || h.includes('total nominal ritase'); });
+  const tunjIdx = headerList.findIndex(function (h) { return h === 'total tunjangan'; });
+
+  const rowBasic = basicIdx !== -1 ? cleanSalaryNum(existingRow[basicIdx]) : cleanSalaryNum(existingRow[4]);
+  const rowNomOt = nomOtIdx !== -1 ? cleanSalaryNum(existingRow[nomOtIdx]) : cleanSalaryNum(existingRow[6]);
+  const rowNomSPL = nomSplIdx !== -1 ? cleanSalaryNum(existingRow[nomSplIdx]) : cleanSalaryNum(existingRow[8]);
+  const rowNomRit = nomRitIdx !== -1 ? cleanSalaryNum(existingRow[nomRitIdx]) : cleanSalaryNum(existingRow[10]);
+  const rowTunj = tunjIdx !== -1 ? cleanSalaryNum(existingRow[tunjIdx]) : cleanSalaryNum(existingRow[11]);
+  const operasional = rowNomOt + rowNomSPL + rowNomRit + rowTunj;
+
+  const totalGajiBerjalan = rowBasic + operasional + kompensasiPKWT;
   const totalPotongan = potKes + potTk + potPph + potKasbon + potLain;
-  const totalGajiBerjalan = grandTotalIdx !== -1 ? cleanSalaryNum(data[targetRowIndex - 1][grandTotalIdx]) : 0;
   const takeHomePay = Math.max(0, totalGajiBerjalan - totalPotongan);
   const detailJson = JSON.stringify(payload.detailPotongan || {});
 
+  if (grandTotalIdx !== -1) sheet.getRange(targetRowIndex, grandTotalIdx + 1).setValue(totalGajiBerjalan);
   if (potKesIdx !== -1) sheet.getRange(targetRowIndex, potKesIdx + 1).setValue(potKes);
   if (potTkIdx !== -1) sheet.getRange(targetRowIndex, potTkIdx + 1).setValue(potTk);
   if (potPphIdx !== -1) sheet.getRange(targetRowIndex, potPphIdx + 1).setValue(potPph);
@@ -1997,6 +2092,10 @@ function savePotonganGaji(token, payload) {
   if (totPotIdx !== -1) sheet.getRange(targetRowIndex, totPotIdx + 1).setValue(totalPotongan);
   if (thpIdx !== -1) sheet.getRange(targetRowIndex, thpIdx + 1).setValue(takeHomePay);
   if (detailPotIdx !== -1) sheet.getRange(targetRowIndex, detailPotIdx + 1).setValue(detailJson);
+
+  if (pkwtNomIdx !== -1) sheet.getRange(targetRowIndex, pkwtNomIdx + 1).setValue(kompensasiPKWT);
+  if (pkwtTglIdx !== -1) sheet.getRange(targetRowIndex, pkwtTglIdx + 1).setValue(tanggalPKWT);
+  if (pkwtKetIdx !== -1) sheet.getRange(targetRowIndex, pkwtKetIdx + 1).setValue(keteranganPKWT);
 
   // Update kolom Terakhir Diupdate
   const updatedIdx = headerList.findIndex(function (h) { return h.includes('terakhir diupdate'); });
@@ -2009,7 +2108,7 @@ function savePotonganGaji(token, payload) {
 
   return {
     success: true,
-    message: 'Potongan gaji untuk ' + (empName || empId) + ' berhasil disimpan.',
+    message: 'Pengaturan potongan & kompensasi untuk ' + (empName || empId) + ' berhasil disimpan.',
     summary: {
       empId: empId,
       potonganBPJSKes: potKes,
@@ -2019,6 +2118,10 @@ function savePotonganGaji(token, payload) {
       catatanKasbon: catKasbon,
       potonganLain: potLain,
       catatanPotonganLain: catPotLain,
+      kompensasiPKWT: kompensasiPKWT,
+      tanggalKompensasiPKWT: tanggalPKWT,
+      keteranganPKWT: keteranganPKWT,
+      totalGajiBerjalan: totalGajiBerjalan,
       totalPotongan: totalPotongan,
       takeHomePay: takeHomePay
     }
