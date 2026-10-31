@@ -479,7 +479,7 @@
           if (subItemG) subItemG.classList.add('active');
         }
 
-        if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'kalender-cuti' || pageName === 'master-roster') {
+        if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'master-roster') {
           var bCuti = document.getElementById('bnav-cuti');
           if (bCuti) bCuti.classList.add('active');
         } else if (pageName === 'pengumuman') {
@@ -490,7 +490,7 @@
           if (bProf) bProf.classList.add('active');
         }
 
-        if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'kalender-cuti' || pageName === 'master-roster') {
+        if (pageName === 'pengajuan-cuti' || pageName === 'riwayat-cuti' || pageName === 'persetujuan-cuti' || pageName === 'master-roster') {
           var subm = document.getElementById('submenuCuti');
           if (subm) subm.classList.remove('d-none');
           var dropEl = document.getElementById('dropdownMenuCuti');
@@ -511,7 +511,6 @@
           'pengajuan-cuti': 'Formulir Pengajuan Cuti',
           'riwayat-cuti': 'Riwayat Cuti Saya',
           'persetujuan-cuti': 'Persetujuan Cuti Karyawan',
-          'kalender-cuti': 'Kalender Cuti Tim & Departemen',
           'master-roster': 'Master Pola Roster Perusahaan',
           'input-gaji': 'Input Data Gaji Karyawan',
           'pengajuan-spl': 'Formulir Surat Perintah Lembur (SPL)',
@@ -1004,9 +1003,7 @@
         } else if (pageName === 'persetujuan-cuti') {
           hideFullPageLoading();
           loadRiwayatCuti();
-        } else if (pageName === 'kalender-cuti') {
-          hideFullPageLoading();
-          loadKalenderCuti();
+        
         } else if (pageName === 'master-roster') {
           hideFullPageLoading();
           loadRosterData();
