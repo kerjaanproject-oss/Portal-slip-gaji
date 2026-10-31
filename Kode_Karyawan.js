@@ -401,6 +401,101 @@ function saveKaryawan(token, payload) {
           }
         }
       }
+
+      // Sync ke sheet DataGaji untuk periode aktif/terbuka agar pengaturan BPJS & Pajak langsung terupdate
+      try {
+        const dataGajiSheet = ss.getSheetByName('DataGaji') || ss.getSheetByName('Data Gaji') || ss.getSheetByName('Data_Gaji');
+        if (dataGajiSheet && dataGajiSheet.getLastRow() > 1) {
+          const dgData = dataGajiSheet.getDataRange().getValues();
+          const dgHeaders = dgData[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+
+          const pSheet = ss.getSheetByName('PeriodePayroll');
+          const openPeriodIds = new Set();
+          if (pSheet && pSheet.getLastRow() > 1) {
+            const pData = pSheet.getDataRange().getValues();
+            for (let p = 1; p < pData.length; p++) {
+              const pStatus = String(pData[p][4] || '').trim().toUpperCase();
+              if (pStatus === 'TERBUKA') {
+                openPeriodIds.add(String(pData[p][0] || '').trim());
+              }
+            }
+          }
+
+          const potKesIdx = dgHeaders.findIndex(function (h) { return h.includes('bpjs kesehatan') || h.includes('bpjs kes'); });
+          const potTkIdx = dgHeaders.findIndex(function (h) { return h.includes('bpjs ketenagakerjaan') || h.includes('bpjs tk'); });
+          const potPphIdx = dgHeaders.findIndex(function (h) { return h.includes('pph 21') || h.includes('pph21'); });
+          const basicIdx = dgHeaders.findIndex(function (h) { return h === 'gaji pokok'; });
+          const deptJabIdx = dgHeaders.findIndex(function (h) { return h.includes('departemen & jabatan') || h.includes('departemen'); });
+          const empIdIdx = 1;   // Col 2
+          const empNameIdx = 2; // Col 3
+          const kasbonIdx = dgHeaders.findIndex(function (h) { return h.includes('kasbon') || h.includes('pinjaman'); });
+          const potLainIdx = dgHeaders.findIndex(function (h) { return h.includes('potongan lain') && !h.includes('catatan'); });
+          const totPotIdx = dgHeaders.findIndex(function (h) { return h.includes('total potongan'); });
+          const thpIdx = dgHeaders.findIndex(function (h) { return h.includes('take home pay') || h.includes('thp'); });
+          const detailPotIdx = dgHeaders.findIndex(function (h) { return h.includes('detail potongan'); });
+          const grandTotalIdx = dgHeaders.findIndex(function (h) { return h.includes('total gaji berjalan') || h.includes('total gaji'); });
+
+          const newBasic = Number(payload.gajiPokok) || 0;
+          const newDeptJabatan = payload.dept ? (payload.dept + (payload.jabatan ? ' - ' + payload.jabatan : '')) : payload.jabatan;
+
+          const kesSet = String(payload.bpjsKesSetting || 'Tidak Ikut').trim();
+          let newPotKes = (kesSet === 'Tidak Ikut') ? 0 : (Number(payload.bpjsKesNominal) || 0);
+
+          const tkSet = String(payload.bpjsTKSetting || 'Tidak Ikut').trim();
+          let newPotTk = (tkSet === 'Tidak Ikut') ? 0 : (Number(payload.bpjsTKNominal) || 0);
+
+          let newPotPph = Number(payload.pph21Nominal) || 0;
+
+          const targetEmpIdLower = String(payload.id).trim().toLowerCase();
+          const oldEmpIdLower = String(oldId).trim().toLowerCase();
+
+          for (let r = 1; r < dgData.length; r++) {
+            const rowPeriod = String(dgData[r][0] || '').trim();
+            // Hanya perbarui periode yang masih terbuka (jika ada daftar periode terbuka)
+            if (openPeriodIds.size > 0 && !openPeriodIds.has(rowPeriod)) continue;
+
+            const rEmpId = String(dgData[r][1] || '').trim().toLowerCase();
+            if (rEmpId === targetEmpIdLower || rEmpId === oldEmpIdLower) {
+              const rowNum = r + 1; // 1-based index
+
+              // Perbarui ID, Nama, Dept & Jabatan, Gaji Pokok
+              if (empIdIdx !== -1) dataGajiSheet.getRange(rowNum, empIdIdx + 1).setValue(payload.id);
+              if (empNameIdx !== -1) dataGajiSheet.getRange(rowNum, empNameIdx + 1).setValue(payload.name);
+              if (deptJabIdx !== -1) dataGajiSheet.getRange(rowNum, deptJabIdx + 1).setValue(newDeptJabatan);
+              if (basicIdx !== -1) dataGajiSheet.getRange(rowNum, basicIdx + 1).setValue(newBasic);
+
+              // Perbarui Potongan BPJS & Pajak PPh 21
+              if (potKesIdx !== -1) dataGajiSheet.getRange(rowNum, potKesIdx + 1).setValue(newPotKes);
+              if (potTkIdx !== -1) dataGajiSheet.getRange(rowNum, potTkIdx + 1).setValue(newPotTk);
+              if (potPphIdx !== -1) dataGajiSheet.getRange(rowNum, potPphIdx + 1).setValue(newPotPph);
+
+              // Hitung ulang Total Potongan & THP
+              const curKasbon = kasbonIdx !== -1 ? (Number(dgData[r][kasbonIdx]) || 0) : 0;
+              const curPotLain = potLainIdx !== -1 ? (Number(dgData[r][potLainIdx]) || 0) : 0;
+              const curTotalPot = newPotKes + newPotTk + newPotPph + curKasbon + curPotLain;
+              if (totPotIdx !== -1) dataGajiSheet.getRange(rowNum, totPotIdx + 1).setValue(curTotalPot);
+
+              const curGrandTotal = grandTotalIdx !== -1 ? (Number(dgData[r][grandTotalIdx]) || newBasic) : newBasic;
+              const curTHP = Math.max(0, curGrandTotal - curTotalPot);
+              if (thpIdx !== -1) dataGajiSheet.getRange(rowNum, thpIdx + 1).setValue(curTHP);
+
+              // Perbarui Detail Potongan JSON
+              let curDetail = {};
+              if (detailPotIdx !== -1 && dgData[r][detailPotIdx]) {
+                try { curDetail = JSON.parse(dgData[r][detailPotIdx]); } catch (e) { curDetail = {}; }
+              }
+              curDetail.bpjsKesSetting = kesSet;
+              curDetail.bpjsKesNominal = newPotKes;
+              curDetail.bpjsTKSetting = tkSet;
+              curDetail.bpjsTKNominal = newPotTk;
+              curDetail.pph21Nominal = newPotPph;
+              if (detailPotIdx !== -1) dataGajiSheet.getRange(rowNum, detailPotIdx + 1).setValue(JSON.stringify(curDetail));
+            }
+          }
+        }
+      } catch (errDg) {
+        console.warn('Sync to DataGaji failed in saveKaryawan:', errDg);
+      }
     }
 
     lock.releaseLock();

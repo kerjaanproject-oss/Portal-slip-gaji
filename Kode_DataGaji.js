@@ -239,12 +239,16 @@ function syncEmployeesToDataGajiForPeriod(ss, sheet, periodId) {
 
   const currentData = sheet.getDataRange().getValues();
   const existingIds = new Set();
+  const existingRowMap = {}; // uIdLower -> 1-based row number
 
   for (let i = 1; i < currentData.length; i++) {
     const rowPeriod = String(currentData[i][0] || '').trim();
     if (rowPeriod === periodId) {
       const id = String(currentData[i][1] || '').trim().toLowerCase();
-      if (id) existingIds.add(id);
+      if (id) {
+        existingIds.add(id);
+        existingRowMap[id] = i + 1;
+      }
     }
   }
 
@@ -256,8 +260,6 @@ function syncEmployeesToDataGajiForPeriod(ss, sheet, periodId) {
     const uName = String(userData[u][1] || '').trim();
     if (!uId && !uName) continue;
 
-    if (existingIds.has(uId.toLowerCase())) continue;
-
     const uJabatan = String(userData[u][2] || '').trim();
     const uDept = String(userData[u][3] || '').trim();
     const uBasic = cleanSalaryNum(userData[u][11]);
@@ -265,7 +267,9 @@ function syncEmployeesToDataGajiForPeriod(ss, sheet, periodId) {
 
     const bpjsKesSet = String(userData[u][12] || 'Tidak Ikut').trim();
     let bpjsKesVal = cleanSalaryNum(userData[u][13]);
-    if (bpjsKesVal === 0) {
+    if (bpjsKesSet === 'Tidak Ikut') {
+      bpjsKesVal = 0;
+    } else if (bpjsKesVal === 0) {
       if (bpjsKesSet === 'Kelas 1') bpjsKesVal = 150000;
       else if (bpjsKesSet === 'Kelas 2') bpjsKesVal = 100000;
       else if (bpjsKesSet === 'Kelas 3') bpjsKesVal = 35000;
@@ -273,10 +277,54 @@ function syncEmployeesToDataGajiForPeriod(ss, sheet, periodId) {
     }
     const bpjsTKSet = String(userData[u][14] || 'Tidak Ikut').trim();
     let bpjsTKVal = cleanSalaryNum(userData[u][15]);
-    if (bpjsTKVal === 0 && bpjsTKSet.includes('3%')) {
+    if (bpjsTKSet === 'Tidak Ikut') {
+      bpjsTKVal = 0;
+    } else if (bpjsTKVal === 0 && bpjsTKSet.includes('3%')) {
       bpjsTKVal = Math.round(uBasic * 0.03);
     }
     const pph21Val = cleanSalaryNum(userData[u][16]);
+
+    const uIdLower = uId.toLowerCase();
+    if (existingIds.has(uIdLower)) {
+      // Sinkronisasi data master karyawan jika ada perubahan di sheet Users (Data Karyawan)
+      const rNum = existingRowMap[uIdLower];
+      if (rNum && currentData[rNum - 1]) {
+        const curRow = currentData[rNum - 1];
+        const curBasic = cleanSalaryNum(curRow[4]);
+        const curKes = cleanSalaryNum(curRow[16]);
+        const curTK = cleanSalaryNum(curRow[17]);
+        const curPph = cleanSalaryNum(curRow[18]);
+        const curDeptJab = String(curRow[3] || '').trim();
+
+        if (curKes !== bpjsKesVal || curTK !== bpjsTKVal || curPph !== pph21Val || curBasic !== uBasic || curDeptJab !== deptJabatan) {
+          const curKasbon = cleanSalaryNum(curRow[19]);
+          const curPotLain = cleanSalaryNum(curRow[21]);
+          const newTotPot = bpjsKesVal + bpjsTKVal + pph21Val + curKasbon + curPotLain;
+          const curGrandTotal = cleanSalaryNum(curRow[12]);
+          const newTHP = Math.max(0, curGrandTotal - newTotPot);
+
+          let curDetail = {};
+          if (curRow[25]) {
+            try { curDetail = JSON.parse(curRow[25]); } catch (e) { curDetail = {}; }
+          }
+          curDetail.bpjsKesSetting = bpjsKesSet;
+          curDetail.bpjsKesNominal = bpjsKesVal;
+          curDetail.bpjsTKSetting = bpjsTKSet;
+          curDetail.bpjsTKNominal = bpjsTKVal;
+          curDetail.pph21Nominal = pph21Val;
+
+          sheet.getRange(rNum, 4).setValue(deptJabatan);
+          sheet.getRange(rNum, 5).setValue(uBasic);
+          sheet.getRange(rNum, 17).setValue(bpjsKesVal);
+          sheet.getRange(rNum, 18).setValue(bpjsTKVal);
+          sheet.getRange(rNum, 19).setValue(pph21Val);
+          sheet.getRange(rNum, 24).setValue(newTotPot);
+          sheet.getRange(rNum, 25).setValue(newTHP);
+          sheet.getRange(rNum, 26).setValue(JSON.stringify(curDetail));
+        }
+      }
+      continue;
+    }
 
     const totalPotongan = bpjsKesVal + bpjsTKVal + pph21Val;
     const takeHomePay = Math.max(0, uBasic - totalPotongan);
@@ -763,6 +811,14 @@ function getDataGaji(token, filterDept, filterTanggal, filterPeriodeId) {
   }
 
   const sheet = getOrCreateDataGajiSheet(ss);
+  if (targetPeriodInfo && targetPeriodInfo.status === 'TERBUKA' && targetPeriodId) {
+    try {
+      syncEmployeesToDataGajiForPeriod(ss, sheet, targetPeriodId);
+      SpreadsheetApp.flush();
+    } catch (eSync) {
+      console.warn('Auto sync employees to DataGaji error:', eSync);
+    }
+  }
   const data = sheet.getDataRange().getValues();
 
   if (!data || data.length <= 1) {

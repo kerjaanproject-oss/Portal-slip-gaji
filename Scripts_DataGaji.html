@@ -333,9 +333,12 @@
           return matchLogToEmp({ empId: s.id, empName: s.name }, k);
         });
 
-        var potKes = empSummary ? (Number(empSummary.potonganBPJSKes) || 0) : (Number(k.bpjsKesNominal) || 0);
-        var potTk = empSummary ? (Number(empSummary.potonganBPJSTK) || 0) : (Number(k.bpjsTKNominal) || 0);
-        var potPph = empSummary ? (Number(empSummary.potonganPPh21) || 0) : (Number(k.pph21Nominal) || 0);
+        var isBpjsKesOff = (k.bpjsKesSetting === 'Tidak Ikut' || k.bpjsKesSetting === 'Non Aktif');
+        var isBpjsTKOff = (k.bpjsTKSetting === 'Tidak Ikut' || k.bpjsTKSetting === 'Non Aktif');
+
+        var potKes = isBpjsKesOff ? 0 : (empSummary ? (Number(empSummary.potonganBPJSKes) || 0) : (Number(k.bpjsKesNominal) || 0));
+        var potTk = isBpjsTKOff ? 0 : (empSummary ? (Number(empSummary.potonganBPJSTK) || 0) : (Number(k.bpjsTKNominal) || 0));
+        var potPph = (empSummary && empSummary.potonganPPh21 !== undefined) ? (Number(empSummary.potonganPPh21) || 0) : (Number(k.pph21Nominal) || 0);
         var potKasbon = empSummary ? (Number(empSummary.potonganKasbon) || 0) : 0;
         var catKasbon = empSummary ? (empSummary.catatanKasbon || '') : '';
         var potLain = empSummary ? (Number(empSummary.potonganLain) || 0) : 0;
@@ -344,6 +347,14 @@
           bpjsKesSetting: k.bpjsKesSetting || 'Tidak Ikut',
           bpjsTKSetting: k.bpjsTKSetting || 'Tidak Ikut'
         };
+        if (isBpjsKesOff) {
+          detailPot.bpjsKesSetting = 'Tidak Ikut';
+          detailPot.bpjsKesNominal = 0;
+        }
+        if (isBpjsTKOff) {
+          detailPot.bpjsTKSetting = 'Tidak Ikut';
+          detailPot.bpjsTKNominal = 0;
+        }
 
         var pkwtNom = empSummary ? (Number(empSummary.kompensasiPKWT) || 0) : ((detailPot && Number(detailPot.kompensasiPKWT)) || 0);
         var pkwtTgl = empSummary ? (empSummary.tanggalKompensasiPKWT || '') : ((detailPot && detailPot.tanggalKompensasiPKWT) || '');
@@ -1205,9 +1216,12 @@
         return matchLogToEmp({ empId: s.id, empName: s.name }, emp);
       });
 
-      var potKes = empSummary ? (Number(empSummary.potonganBPJSKes) || 0) : (Number(emp.bpjsKesNominal) || 0);
-      var potTk = empSummary ? (Number(empSummary.potonganBPJSTK) || 0) : (Number(emp.bpjsTKNominal) || 0);
-      var potPph = empSummary ? (Number(empSummary.potonganPPh21) || 0) : (Number(emp.pph21Nominal) || 0);
+      var isBpjsKesOff = (emp.bpjsKesSetting === 'Tidak Ikut' || emp.bpjsKesSetting === 'Non Aktif');
+      var isBpjsTKOff = (emp.bpjsTKSetting === 'Tidak Ikut' || emp.bpjsTKSetting === 'Non Aktif');
+
+      var potKes = isBpjsKesOff ? 0 : (empSummary ? (Number(empSummary.potonganBPJSKes) || 0) : (Number(emp.bpjsKesNominal) || 0));
+      var potTk = isBpjsTKOff ? 0 : (empSummary ? (Number(empSummary.potonganBPJSTK) || 0) : (Number(emp.bpjsTKNominal) || 0));
+      var potPph = (empSummary && empSummary.potonganPPh21 !== undefined) ? (Number(empSummary.potonganPPh21) || 0) : (Number(emp.pph21Nominal) || 0);
       var potKasbon = empSummary ? (Number(empSummary.potonganKasbon) || 0) : 0;
       var catKasbon = empSummary ? (empSummary.catatanKasbon || '') : '';
       var potLain = empSummary ? (Number(empSummary.potonganLain) || 0) : 0;
@@ -2212,9 +2226,11 @@
       }
 
       var pEmpSum = (cachedDataGajiEmployees || []).find(function (s) { return matchLogToEmp({ empId: s.id, empName: s.name }, emp); });
-      var pKes = pEmpSum ? (Number(pEmpSum.potonganBPJSKes) || 0) : (Number(emp.bpjsKesNominal) || 0);
-      var pTk = pEmpSum ? (Number(pEmpSum.potonganBPJSTK) || 0) : (Number(emp.bpjsTKNominal) || 0);
-      var pPph = pEmpSum ? (Number(pEmpSum.potonganPPh21) || 0) : (Number(emp.pph21Nominal) || 0);
+      var isBpjsKesOff = (emp.bpjsKesSetting === 'Tidak Ikut' || emp.bpjsKesSetting === 'Non Aktif');
+      var isBpjsTKOff = (emp.bpjsTKSetting === 'Tidak Ikut' || emp.bpjsTKSetting === 'Non Aktif');
+      var pKes = isBpjsKesOff ? 0 : (pEmpSum ? (Number(pEmpSum.potonganBPJSKes) || 0) : (Number(emp.bpjsKesNominal) || 0));
+      var pTk = isBpjsTKOff ? 0 : (pEmpSum ? (Number(pEmpSum.potonganBPJSTK) || 0) : (Number(emp.bpjsTKNominal) || 0));
+      var pPph = (pEmpSum && pEmpSum.potonganPPh21 !== undefined) ? (Number(pEmpSum.potonganPPh21) || 0) : (Number(emp.pph21Nominal) || 0);
       var pKas = pEmpSum ? (Number(pEmpSum.potonganKasbon) || 0) : 0;
       var pCatKas = pEmpSum ? (pEmpSum.catatanKasbon || '') : '';
       var pLain = pEmpSum ? (Number(pEmpSum.potonganLain) || 0) : 0;
@@ -2687,9 +2703,11 @@
 
       var totalHariKerja = (pEmpSum && pEmpSum.daysCount) ? pEmpSum.daysCount : (uniqueDates.size || sortedLogs.length);
 
-      var pKes = Number(pEmpSum && pEmpSum.potonganBPJSKes !== undefined ? pEmpSum.potonganBPJSKes : (emp.bpjsKesNominal || 0)) || 0;
-      var pTk = Number(pEmpSum && pEmpSum.potonganBPJSTK !== undefined ? pEmpSum.potonganBPJSTK : (emp.bpjsTKNominal || 0)) || 0;
-      var pPph = Number(pEmpSum && pEmpSum.potonganPPh21 !== undefined ? pEmpSum.potonganPPh21 : (emp.pph21Nominal || 0)) || 0;
+      var isBpjsKesOff = (emp.bpjsKesSetting === 'Tidak Ikut' || emp.bpjsKesSetting === 'Non Aktif');
+      var isBpjsTKOff = (emp.bpjsTKSetting === 'Tidak Ikut' || emp.bpjsTKSetting === 'Non Aktif');
+      var pKes = isBpjsKesOff ? 0 : (Number(pEmpSum && pEmpSum.potonganBPJSKes !== undefined ? pEmpSum.potonganBPJSKes : (emp.bpjsKesNominal || 0)) || 0);
+      var pTk = isBpjsTKOff ? 0 : (Number(pEmpSum && pEmpSum.potonganBPJSTK !== undefined ? pEmpSum.potonganBPJSTK : (emp.bpjsTKNominal || 0)) || 0);
+      var pPph = (pEmpSum && pEmpSum.potonganPPh21 !== undefined) ? (Number(pEmpSum.potonganPPh21) || 0) : (Number(emp.pph21Nominal) || 0);
       var pKas = Number(pEmpSum && pEmpSum.potonganKasbon !== undefined ? pEmpSum.potonganKasbon : (emp.potonganKasbon || 0)) || 0;
       var pCatKas = (pEmpSum && pEmpSum.catatanKasbon) || emp.catatanKasbon || '';
       var pLain = Number(pEmpSum && pEmpSum.potonganLain !== undefined ? pEmpSum.potonganLain : (emp.potonganLain || 0)) || 0;
@@ -2844,7 +2862,7 @@
         '</tr>' +
         '<tr>' +
         '<td><strong>5. Tunjangan Harian Lapangan</strong></td>' +
-        '<td style="text-align: center; color: #64748b;"Tunjangan harian"</td>' +
+        '<td style="text-align: center; color: #64748b;">Tunjangan Harian</td>' +
         '<td style="text-align: right; font-weight: 700;">' + formatRupiahVal(totalTunjangan) + '</td>' +
         '</tr>' +
         '<tr>' +
@@ -3400,9 +3418,16 @@
       });
 
       var basic = Number(k.gajiPokok || (empSummary ? empSummary.basic : 0)) || 0;
-      var potKes = empSummary ? (Number(empSummary.potonganBPJSKes) || 0) : (Number(k.bpjsKesNominal) || 0);
-      var potTk = empSummary ? (Number(empSummary.potonganBPJSTK) || 0) : (Number(k.bpjsTKNominal) || 0);
-      var potPph = empSummary ? (Number(empSummary.potonganPPh21) || 0) : (Number(k.pph21Nominal) || 0);
+      var detailPot = (empSummary && empSummary.detailPotongan) ? empSummary.detailPotongan : {};
+      var isKesMasterOff = (k.bpjsKesSetting === 'Tidak Ikut' || k.bpjsKesSetting === 'Non Aktif');
+      var isTKMasterOff = (k.bpjsTKSetting === 'Tidak Ikut' || k.bpjsTKSetting === 'Non Aktif');
+      var kesSet = isKesMasterOff ? 'Tidak Ikut' : (detailPot.bpjsKesSetting || k.bpjsKesSetting || 'Tidak Ikut');
+      var tkSet = isTKMasterOff ? 'Tidak Ikut' : (detailPot.bpjsTKSetting || k.bpjsTKSetting || 'Tidak Ikut');
+
+      var potKes = (kesSet === 'Tidak Ikut') ? 0 : (empSummary ? (Number(empSummary.potonganBPJSKes) || 0) : (Number(k.bpjsKesNominal) || 0));
+      var potTk = (tkSet === 'Tidak Ikut') ? 0 : (empSummary ? (Number(empSummary.potonganBPJSTK) || 0) : (Number(k.bpjsTKNominal) || 0));
+      var potPph = (empSummary && empSummary.potonganPPh21 !== undefined) ? (Number(empSummary.potonganPPh21) || 0) : (Number(k.pph21Nominal) || 0);
+
       var potKasbon = empSummary ? (Number(empSummary.potonganKasbon) || 0) : 0;
       var catKasbon = empSummary ? (empSummary.catatanKasbon || '') : '';
       var potLain = empSummary ? (Number(empSummary.potonganLain) || 0) : 0;
@@ -3411,10 +3436,6 @@
       var pkwtNom = empSummary ? (Number(empSummary.kompensasiPKWT) || 0) : ((detailPot && Number(detailPot.kompensasiPKWT)) || 0);
       var pkwtTgl = empSummary ? (empSummary.tanggalKompensasiPKWT || '') : ((detailPot && detailPot.tanggalKompensasiPKWT) || '');
       var pkwtCat = empSummary ? (empSummary.keteranganPKWT || '') : ((detailPot && detailPot.keteranganPKWT) || '');
-
-      var detailPot = (empSummary && empSummary.detailPotongan) ? empSummary.detailPotongan : {};
-      var kesSet = detailPot.bpjsKesSetting || k.bpjsKesSetting || 'Tidak Ikut';
-      var tkSet = detailPot.bpjsTKSetting || k.bpjsTKSetting || 'Tidak Ikut';
 
       currentSelectedPotonganEmp = {
         empId: k.id,

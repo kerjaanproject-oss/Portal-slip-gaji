@@ -420,6 +420,9 @@
               Auth.setUser(loggedInUser);
             }
             loadPageData('karyawan');
+            if (typeof loadDataGajiList === 'function') {
+              loadDataGajiList();
+            }
           } else {
             Swal.fire('Gagal', res.message || 'Gagal menyimpan.', 'error');
           }
