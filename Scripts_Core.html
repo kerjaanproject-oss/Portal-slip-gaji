@@ -881,6 +881,9 @@
 
               if (pageName === 'dashboard') {
                 renderDashboard();
+                if (typeof loadRiwayatSPL === 'function') {
+                  loadRiwayatSPL(true);
+                }
 
                 var u = Auth.getUser();
                 if (u && u.role !== 'Admin') {

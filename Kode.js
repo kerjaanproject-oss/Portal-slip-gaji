@@ -59,7 +59,10 @@ const ALLOWED_PROTECTED_ACTIONS = [
   'processApprovalSPL',
   'batalPengajuanSPL',
   'deletePengajuanSPL',
-  'updatePengajuanSPL'
+  'updatePengajuanSPL',
+  'getApprovedSPLForSalaryInput',
+  'syncApprovedSPLForPeriod',
+  'savePotonganGaji'
 ];
 
 function doGet(e) {

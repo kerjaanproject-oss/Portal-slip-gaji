@@ -9,6 +9,7 @@
 
 (function () {
   var cachedDataGajiLogs = [];
+  var cachedDataGajiEmployees = [];
   var cachedPeriodeList = [];
   var currentSelectedPeriodId = '';
   var currentActivePeriodInfo = null;
@@ -249,6 +250,7 @@
 
       if (res && res.success) {
         cachedDataGajiLogs = Array.isArray(res.list) ? res.list : [];
+        cachedDataGajiEmployees = Array.isArray(res.employees) ? res.employees : [];
         if (Array.isArray(res.periods)) cachedPeriodeList = res.periods;
         if (res.period) {
           currentActivePeriodInfo = res.period;
@@ -310,6 +312,8 @@
 
       var totalJamOt = 0;
       var totalNominalOt = 0;
+      var totalJamSPL = 0;
+      var totalNominalSPL = 0;
       var totalRitase = 0;
       var totalNominalRit = 0;
       var totalTunjangan = 0;
@@ -317,13 +321,37 @@
       kLogs.forEach(function (log) {
         totalJamOt += Number(log.jamOvertime || 0);
         totalNominalOt += Number(log.totalOvertime || 0);
+        totalJamSPL += Number(log.jamSPL || 0);
+        totalNominalSPL += Number(log.totalSPL || 0);
         totalRitase += Number(log.ritase || 0);
         totalNominalRit += Number(log.totalRitase || 0);
         totalTunjangan += Number(log.tunjanganHarian || 0);
       });
 
       var basic = Number(k.gajiPokok || 0);
-      var grandTotal = basic + totalNominalOt + totalNominalRit + totalTunjangan;
+      var empSummary = (cachedDataGajiEmployees || []).find(function (s) {
+        return matchLogToEmp({ empId: s.id, empName: s.name }, k);
+      });
+
+      var potKes = empSummary ? (Number(empSummary.potonganBPJSKes) || 0) : (Number(k.bpjsKesNominal) || 0);
+      var potTk = empSummary ? (Number(empSummary.potonganBPJSTK) || 0) : (Number(k.bpjsTKNominal) || 0);
+      var potPph = empSummary ? (Number(empSummary.potonganPPh21) || 0) : (Number(k.pph21Nominal) || 0);
+      var potKasbon = empSummary ? (Number(empSummary.potonganKasbon) || 0) : 0;
+      var catKasbon = empSummary ? (empSummary.catatanKasbon || '') : '';
+      var potLain = empSummary ? (Number(empSummary.potonganLain) || 0) : 0;
+      var catPotLain = empSummary ? (empSummary.catatanPotonganLain || '') : '';
+      var detailPot = (empSummary && empSummary.detailPotongan) ? empSummary.detailPotongan : {
+        bpjsKesSetting: k.bpjsKesSetting || 'Tidak Ikut',
+        bpjsTKSetting: k.bpjsTKSetting || 'Tidak Ikut'
+      };
+
+      var totalPotonganPokok = potKes + potTk + potPph;
+      var gajiPokokBersih = Math.max(0, basic - totalPotonganPokok);
+      var totalTambahan = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
+      var gajiSebelumKasbon = gajiPokokBersih + totalTambahan;
+      var totalPotongan = totalPotonganPokok + potKasbon + potLain;
+      var grandTotalBruto = basic + totalTambahan;
+      var takeHomePay = Math.max(0, grandTotalBruto - totalPotongan);
 
       return {
         id: k.id,
@@ -334,10 +362,25 @@
         daysCount: kLogs.length,
         totalJamOt: totalJamOt,
         totalNominalOt: totalNominalOt,
+        totalJamSPL: totalJamSPL,
+        totalNominalSPL: totalNominalSPL,
         totalRitase: totalRitase,
         totalNominalRit: totalNominalRit,
         totalTunjangan: totalTunjangan,
-        grandTotal: grandTotal,
+        grandTotal: grandTotalBruto,
+        potonganBPJSKes: potKes,
+        potonganBPJSTK: potTk,
+        potonganPPh21: potPph,
+        potonganKasbon: potKasbon,
+        catatanKasbon: catKasbon,
+        potonganLain: potLain,
+        catatanPotonganLain: catPotLain,
+        totalPotonganPokok: totalPotonganPokok,
+        gajiPokokBersih: gajiPokokBersih,
+        gajiSebelumKasbon: gajiSebelumKasbon,
+        totalPotongan: totalPotongan,
+        takeHomePay: takeHomePay,
+        detailPotongan: detailPot,
         logs: kLogs
       };
     });
@@ -362,15 +405,21 @@
 
     Object.keys(groupedUnmapped).forEach(function (kKey) {
       var g = groupedUnmapped[kKey];
-      var totalJamOt = 0, totalNominalOt = 0, totalRitase = 0, totalNominalRit = 0, totalTunjangan = 0;
+      var totalJamOt = 0, totalNominalOt = 0;
+      var totalJamSPL = 0, totalNominalSPL = 0;
+      var totalRitase = 0, totalNominalRit = 0;
+      var totalTunjangan = 0;
       g.logs.forEach(function (log) {
         totalJamOt += Number(log.jamOvertime || 0);
         totalNominalOt += Number(log.totalOvertime || 0);
+        totalJamSPL += Number(log.jamSPL || 0);
+        totalNominalSPL += Number(log.totalSPL || 0);
         totalRitase += Number(log.ritase || 0);
         totalNominalRit += Number(log.totalRitase || 0);
         totalTunjangan += Number(log.tunjanganHarian || 0);
       });
       var basic = Number(g.basic || 0);
+      var gBruto = basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
       empList.push({
         id: g.id,
         name: g.name,
@@ -380,10 +429,25 @@
         daysCount: g.logs.length,
         totalJamOt: totalJamOt,
         totalNominalOt: totalNominalOt,
+        totalJamSPL: totalJamSPL,
+        totalNominalSPL: totalNominalSPL,
         totalRitase: totalRitase,
         totalNominalRit: totalNominalRit,
         totalTunjangan: totalTunjangan,
-        grandTotal: basic + totalNominalOt + totalNominalRit + totalTunjangan,
+        grandTotal: gBruto,
+        potonganBPJSKes: 0,
+        potonganBPJSTK: 0,
+        potonganPPh21: 0,
+        potonganKasbon: 0,
+        catatanKasbon: '',
+        potonganLain: 0,
+        catatanPotonganLain: '',
+        totalPotonganPokok: 0,
+        gajiPokokBersih: basic,
+        gajiSebelumKasbon: gBruto,
+        totalPotongan: 0,
+        takeHomePay: gBruto,
+        detailPotongan: {},
         logs: g.logs
       });
     });
@@ -430,6 +494,10 @@
         ? '<div class="text-end"><span class="fw-semibold text-primary">' + formatRupiahVal(emp.totalNominalOt) + '</span><br><small class="text-muted extra-small">' + emp.totalJamOt + ' Jam</small></div>'
         : '<span class="text-muted extra-small">-</span>';
 
+      var splText = emp.totalJamSPL > 0 || emp.totalNominalSPL > 0
+        ? '<div class="text-end"><span class="fw-semibold text-success">' + formatRupiahVal(emp.totalNominalSPL) + '</span><br><small class="text-muted extra-small">' + emp.totalJamSPL + ' Jam</small></div>'
+        : '<span class="text-muted extra-small">-</span>';
+
       var ritText = emp.totalRitase > 0 || emp.totalNominalRit > 0
         ? '<div class="text-end"><span class="fw-semibold text-warning">' + formatRupiahVal(emp.totalNominalRit) + '</span><br><small class="text-muted extra-small">' + emp.totalRitase + ' Rit</small></div>'
         : '<span class="text-muted extra-small">-</span>';
@@ -449,13 +517,23 @@
         '<td><span class="badge bg-light text-dark border">' + escapeHTML(emp.dept) + '</span><br><small class="text-muted extra-small">' + escapeHTML(emp.jabatan) + '</small></td>' +
         '<td class="text-end fw-semibold text-dark">' + formatRupiahVal(emp.basic) + '</td>' +
         '<td class="text-end">' + otText + '</td>' +
+        '<td class="text-end">' + splText + '</td>' +
         '<td class="text-end">' + ritText + '</td>' +
         '<td class="text-end">' + tunjText + '</td>' +
-        '<td class="text-end"><span class="badge bg-success text-white px-2.5 py-1.5" style="font-size: 0.875rem; font-weight: 700; box-shadow: 0 1px 2px rgba(16,185,129,0.25);">' + formatRupiahVal(emp.grandTotal) + '</span></td>' +
+        '<td class="text-end">' +
+        (emp.totalPotongan > 0
+          ? '<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-bold" title="Pokok: ' + formatRupiahVal(emp.totalPotonganPokok) + ', Kasbon: ' + formatRupiahVal(emp.potonganKasbon) + '">- ' + formatRupiahVal(emp.totalPotongan) + '</span>'
+          : '<span class="text-muted extra-small">Rp 0</span>') +
+        '</td>' +
+        '<td class="text-end">' +
+        '  <div class="fw-bold text-success" style="font-size: 0.92rem;">' + formatRupiahVal(emp.takeHomePay) + '</div>' +
+        '  <small class="text-muted extra-small">Bruto: ' + formatRupiahVal(emp.grandTotal) + '</small>' +
+        '</td>' +
         '<td class="text-center"><span class="badge ' + (emp.daysCount > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-muted border') + ' fw-semibold">' + emp.daysCount + ' Hari</span></td>' +
         '<td class="text-center text-nowrap">' +
         '  <div class="action-group">' +
         actionBtnHtml +
+        '    <button class="btn btn-sm btn-outline-warning py-1 px-2.5 ms-1 text-dark" onclick="openModalPotonganGaji(\'' + escapeHTML(emp.id) + '\')" title="Atur Potongan (BPJS, PPh 21, Kasbon)"><i class="bi bi-scissors me-1"></i>Potongan</button>' +
         '    <button class="btn btn-sm btn-outline-info py-1 px-2.5 ms-1" onclick="openRincianEmp(\'' + escapeHTML(emp.id) + '\')" title="Lihat Rincian Riwayat Harian"><i class="bi bi-eye me-1"></i>Rincian</button>' +
         '    <button class="btn btn-sm btn-outline-danger py-1 px-2.5 ms-1" onclick="printRincianGajiEmp(\'' + escapeHTML(emp.id) + '\')" title="Cetak / Simpan PDF Laporan Rincian"><i class="bi bi-printer me-1"></i>PDF</button>' +
         '  </div>' +
@@ -505,8 +583,9 @@
     // Populate Department dropdown in Modal
     populateModalDeptSelect();
 
-    // Setup rupiah masks on money inputs
+    // Setup rupiah masks on money inputs (Overtime dan SPL terpisah)
     setupRupiahMask(document.getElementById('gajiTarifOvertime'));
+    setupRupiahMask(document.getElementById('gajiTarifSPL'));
     setupRupiahMask(document.getElementById('gajiTarifRitase'));
     setupRupiahMask(document.getElementById('gajiTunjanganHarian'));
 
@@ -535,12 +614,48 @@
 
       document.getElementById('gajiJamOvertime').value = item.jamOvertime || '';
       document.getElementById('gajiTarifOvertime').value = item.tarifOvertime ? formatRupiahVal(item.tarifOvertime).replace('Rp ', '') : '';
+      document.getElementById('gajiJamSPL').value = item.jamSPL || '';
+      document.getElementById('gajiTarifSPL').value = item.tarifSPL ? formatRupiahVal(item.tarifSPL).replace('Rp ', '') : '';
       document.getElementById('gajiRitase').value = item.ritase || '';
       document.getElementById('gajiTarifRitase').value = item.tarifRitase ? formatRupiahVal(item.tarifRitase).replace('Rp ', '') : '';
       document.getElementById('gajiTunjanganHarian').value = item.tunjanganHarian ? formatRupiahVal(item.tunjanganHarian).replace('Rp ', '') : '';
       document.getElementById('gajiCatatan').value = item.catatan || '';
+
+      var splTag = document.getElementById('splAutoTag');
+      var splBanner = document.getElementById('splAutoDetectBanner');
+      var splBannerText = document.getElementById('splAutoDetectText');
+      var splHidden = document.getElementById('gajiSplIdHidden');
+      if (item.splId || item.isFromSPL) {
+        if (splTag) splTag.classList.remove('d-none');
+        if (splBanner && splBannerText) {
+          splBannerText.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Data Lembur terkait SPL Disetujui: <strong>' + escapeHTML(item.splId || '-') + '</strong>';
+          splBanner.classList.remove('d-none');
+        }
+        if (splHidden) splHidden.value = item.splId || '';
+      } else {
+        if (splTag) splTag.classList.add('d-none');
+        if (splBanner) splBanner.classList.add('d-none');
+        if (splHidden) splHidden.value = '';
+      }
     } else {
       document.getElementById('gajiEditId').value = '';
+      document.getElementById('gajiJamOvertime').value = '';
+      document.getElementById('gajiTarifOvertime').value = '';
+      document.getElementById('gajiJamSPL').value = '';
+      document.getElementById('gajiTarifSPL').value = '';
+      document.getElementById('gajiRitase').value = '';
+      document.getElementById('gajiTarifRitase').value = '';
+      document.getElementById('gajiTunjanganHarian').value = '';
+      document.getElementById('gajiCatatan').value = '';
+
+      var splTag = document.getElementById('splAutoTag');
+      var splBanner = document.getElementById('splAutoDetectBanner');
+      var splHidden = document.getElementById('gajiSplIdHidden');
+      var splLoading = document.getElementById('splLoadingIndicator');
+      if (splTag) splTag.classList.add('d-none');
+      if (splBanner) splBanner.classList.add('d-none');
+      if (splLoading) splLoading.classList.add('d-none');
+      if (splHidden) splHidden.value = '';
 
       var today = new Date();
       var todayStr = today.toISOString().split('T')[0];
@@ -563,6 +678,9 @@
         var bVal = Number(preSelectedEmp.gajiPokok) || 0;
         document.getElementById('gajiBasicNumeric').value = bVal;
         document.getElementById('gajiBasicDisplay').value = formatRupiahVal(bVal);
+
+        // Periksa otomatis apakah ada SPL Disetujui untuk karyawan & tanggal ini
+        checkApprovedSPLForSelectedDate();
       } else {
         if (titleEl) titleEl.innerHTML = '<i class="bi bi-wallet-fill me-2"></i>Tambah Data Gaji';
         document.getElementById('gajiEmpIdHidden').value = '';
@@ -685,27 +803,155 @@
     }
 
     calculateTotalGajiLive();
+    checkApprovedSPLForSelectedDate();
   };
 
-  // --- LIVE CALCULATION IN MODAL ---
+  // Handler saat tanggal kerja di form input gaji harian diubah
+  window.onDataGajiDateChange = function () {
+    checkApprovedSPLForSelectedDate();
+  };
+
+  // Cek database SPL yang berstatus 'Disetujui' dan isi otomatis ke form
+  window.checkApprovedSPLForSelectedDate = function (forceManual) {
+    var tglInput = document.getElementById('gajiTanggal');
+    var empIdHidden = document.getElementById('gajiEmpIdHidden');
+    var empSelect = document.getElementById('gajiEmpSelect');
+    var empNameHidden = document.getElementById('gajiEmpNameHidden');
+
+    var tanggal = tglInput ? tglInput.value.trim() : '';
+    var empId = (empIdHidden && empIdHidden.value.trim()) || (empSelect && empSelect.value.trim()) || '';
+    var empName = (empNameHidden && empNameHidden.value.trim()) || '';
+
+    // Jika empName kosong, cari dari dropdown opsi karyawan yang sedang dipilih
+    if (!empName && empSelect && empSelect.selectedIndex >= 0) {
+      var optText = empSelect.options[empSelect.selectedIndex].text || '';
+      var cleanOpt = optText.split('(')[0].trim();
+      if (cleanOpt && !cleanOpt.startsWith('--')) empName = cleanOpt;
+    }
+
+    var banner = document.getElementById('splAutoDetectBanner');
+    var bannerText = document.getElementById('splAutoDetectText');
+    var autoTag = document.getElementById('splAutoTag');
+    var loadingEl = document.getElementById('splLoadingIndicator');
+    var jamSPLInput = document.getElementById('gajiJamSPL');
+    var splIdHidden = document.getElementById('gajiSplIdHidden');
+
+    if (!tanggal || !empId) {
+      if (banner) banner.classList.add('d-none');
+      if (autoTag) autoTag.classList.add('d-none');
+      if (loadingEl) loadingEl.classList.add('d-none');
+      if (splIdHidden) splIdHidden.value = '';
+      if (forceManual) {
+        Swal.fire('Perhatian', 'Pilih Tanggal Kerja dan Karyawan terlebih dahulu.', 'info');
+      }
+      return;
+    }
+
+    if (loadingEl) loadingEl.classList.remove('d-none');
+    if (banner) banner.classList.add('d-none');
+
+    gasRun('getApprovedSPLForSalaryInput', Auth.getToken(), empId, tanggal, empName).then(function (res) {
+      if (loadingEl) loadingEl.classList.add('d-none');
+      if (handleSessionExpired(res)) return;
+
+      if (!res || !res.success) {
+        if (autoTag) autoTag.classList.add('d-none');
+        if (banner) banner.classList.add('d-none');
+        if (splIdHidden) splIdHidden.value = '';
+        if (forceManual) {
+          Swal.fire('Pemberitahuan', (res && res.message) || 'Gagal memeriksa database SPL.', 'warning');
+        }
+        return;
+      }
+
+      if (res.hasSPL && res.totalJam > 0) {
+        // HANYA MENGISI JAM SPL, TIDAK MENGGANGGU OVERTIME
+        if (jamSPLInput) jamSPLInput.value = res.totalJam;
+        if (splIdHidden) splIdHidden.value = (res.splIds || []).join(', ');
+        if (autoTag) autoTag.classList.remove('d-none');
+
+        if (banner && bannerText) {
+          var detailsText = (res.splIds || []).join(', ');
+          if (res.shifts) detailsText += ' • ' + res.shifts;
+          bannerText.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Terisi otomatis ke SPL: <strong>' + res.totalJam + ' Jam</strong> dari SPL Disetujui (' + escapeHTML(detailsText) + ')';
+          banner.classList.remove('d-none');
+        }
+
+        // Jika catatan masih kosong, bantu beri rincian nomor SPL
+        var catInput = document.getElementById('gajiCatatan');
+        if (catInput && !catInput.value.trim()) {
+          var uraianStr = '';
+          if (res.details && res.details.length > 0 && res.details[0].uraian && res.details[0].uraian !== '-') {
+            uraianStr = ' - ' + res.details[0].uraian;
+          }
+          catInput.value = 'SPL: ' + (res.splIds || []).join(', ') + uraianStr;
+        }
+
+        calculateTotalGajiLive();
+
+        if (forceManual) {
+          Swal.fire({
+            icon: 'success',
+            title: 'SPL Disetujui Terdeteksi',
+            html: 'Ditemukan data SPL resmi <strong>' + res.totalJam + ' Jam</strong> (' + escapeHTML((res.splIds || []).join(', ')) + '). Jam SPL otomatis terisi ke form SPL.',
+            timer: 2500,
+            showConfirmButton: false
+          });
+        }
+      } else {
+        if (autoTag) autoTag.classList.add('d-none');
+        if (banner) banner.classList.add('d-none');
+        if (splIdHidden) splIdHidden.value = '';
+
+        if (forceManual) {
+          var displayName = empName || empId;
+          Swal.fire({
+            icon: 'info',
+            title: 'Tidak Ada SPL Disetujui',
+            text: 'Tidak ada data SPL dengan status "Disetujui" untuk karyawan ' + displayName + ' pada tanggal ' + (safeFormatDateDMY(tanggal) || tanggal) + '.',
+            confirmButtonColor: '#2563eb'
+          });
+        }
+      }
+    }).catch(function (err) {
+      if (loadingEl) loadingEl.classList.add('d-none');
+      console.warn('Gagal cek SPL:', err);
+      if (forceManual) {
+        Swal.fire('Error', 'Gagal memproses pengecekan SPL: ' + (err.message || err), 'error');
+      }
+    });
+  };
+
+  // --- LIVE CALCULATION IN MODAL (OVERTIME & SPL TERPISAH) ---
   window.calculateTotalGajiLive = function () {
     var basic = Number(document.getElementById('gajiBasicNumeric').value) || 0;
 
+    // Overtime (Lembur biasa)
     var jamOt = parseFloat(document.getElementById('gajiJamOvertime').value) || 0;
     var tarifOt = parseRupiahVal(document.getElementById('gajiTarifOvertime').value);
     var subtotalOt = Math.round(jamOt * tarifOt);
 
+    // SPL (Surat Perintah Lembur)
+    var jamSPL = parseFloat(document.getElementById('gajiJamSPL').value) || 0;
+    var tarifSPL = parseRupiahVal(document.getElementById('gajiTarifSPL').value);
+    var subtotalSPL = Math.round(jamSPL * tarifSPL);
+
+    // Ritase
     var ritase = parseFloat(document.getElementById('gajiRitase').value) || 0;
     var tarifRit = parseRupiahVal(document.getElementById('gajiTarifRitase').value);
     var subtotalRit = Math.round(ritase * tarifRit);
 
+    // Tunjangan
     var tunjangan = parseRupiahVal(document.getElementById('gajiTunjanganHarian').value);
 
-    // Total Gaji Live Preview = Basic + Overtime + Ritase + Tunjangan
-    var grandTotalGaji = basic + subtotalOt + subtotalRit + tunjangan;
+    // Grand Total Live = Basic + Overtime + SPL + Ritase + Tunjangan
+    var grandTotalGaji = basic + subtotalOt + subtotalSPL + subtotalRit + tunjangan;
 
     var pillOt = document.getElementById('previewSubtotalOvertime');
     if (pillOt) pillOt.innerText = formatRupiahVal(subtotalOt);
+
+    var pillSPL = document.getElementById('previewSubtotalSPL');
+    if (pillSPL) pillSPL.innerText = formatRupiahVal(subtotalSPL);
 
     var pillRit = document.getElementById('previewSubtotalRitase');
     if (pillRit) pillRit.innerText = formatRupiahVal(subtotalRit);
@@ -715,6 +961,9 @@
 
     var sumOt = document.getElementById('liveSumOvertime');
     if (sumOt) sumOt.innerText = formatRupiahVal(subtotalOt);
+
+    var sumSPL = document.getElementById('liveSumSPL');
+    if (sumSPL) sumSPL.innerText = formatRupiahVal(subtotalSPL);
 
     var sumRit = document.getElementById('liveSumRitase');
     if (sumRit) sumRit.innerText = formatRupiahVal(subtotalRit);
@@ -761,14 +1010,22 @@
 
     var jamOt = parseFloat(document.getElementById('gajiJamOvertime').value) || 0;
     var tarifOt = parseRupiahVal(document.getElementById('gajiTarifOvertime').value);
+    var subtotalOt = jamOt * tarifOt;
+
+    var jamSPL = parseFloat(document.getElementById('gajiJamSPL').value) || 0;
+    var tarifSPL = parseRupiahVal(document.getElementById('gajiTarifSPL').value);
+    var subtotalSPL = jamSPL * tarifSPL;
+
     var ritase = parseFloat(document.getElementById('gajiRitase').value) || 0;
     var tarifRit = parseRupiahVal(document.getElementById('gajiTarifRitase').value);
+    var subtotalRit = ritase * tarifRit;
+
     var tunjangan = parseRupiahVal(document.getElementById('gajiTunjanganHarian').value);
     var catatan = document.getElementById('gajiCatatan').value.trim();
 
-    var subtotalOt = jamOt * tarifOt;
-    var subtotalRit = ritase * tarifRit;
-    var totalHariIni = subtotalOt + subtotalRit + tunjangan;
+    var totalHariIni = subtotalOt + subtotalSPL + subtotalRit + tunjangan;
+
+    var splIdVal = document.getElementById('gajiSplIdHidden') ? document.getElementById('gajiSplIdHidden').value.trim() : '';
 
     var payload = {
       id: editId,
@@ -781,11 +1038,16 @@
       basic: basic,
       jamOvertime: jamOt,
       tarifOvertime: tarifOt,
+      jamSPL: jamSPL,
+      tarifSPL: tarifSPL,
+      splId: splIdVal,
       ritase: ritase,
       tarifRitase: tarifRit,
       tunjanganHarian: tunjangan,
       catatan: catatan
     };
+
+    var splNoteInConfirm = splIdVal ? ' <span class="badge bg-success-subtle text-success border border-success-subtle extra-small ms-1">Auto SPL ' + escapeHTML(splIdVal) + '</span>' : '';
 
     var confirmHtml =
       '<div class="text-start extra-small p-2.5 rounded bg-light border mb-2">' +
@@ -794,6 +1056,7 @@
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Gaji Pokok (Basic):</span><strong>' + formatRupiahVal(basic) + '</strong></div>' +
       '<hr class="my-1">' +
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Overtime Hari Ini:</span><span>' + jamOt + ' Jam @ ' + formatRupiahVal(tarifOt) + ' = <strong>' + formatRupiahVal(subtotalOt) + '</strong></span></div>' +
+      '<div class="d-flex justify-content-between mb-1"><span class="text-muted">SPL Hari Ini:</span><span>' + jamSPL + ' Jam @ ' + formatRupiahVal(tarifSPL) + ' = <strong>' + formatRupiahVal(subtotalSPL) + '</strong>' + splNoteInConfirm + '</span></div>' +
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Ritase Hari Ini:</span><span>' + ritase + ' Rit @ ' + formatRupiahVal(tarifRit) + ' = <strong>' + formatRupiahVal(subtotalRit) + '</strong></span></div>' +
       '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Tunjangan Hari Ini:</span><strong>' + formatRupiahVal(tunjangan) + '</strong></div>' +
       '<hr class="my-1">' +
@@ -911,6 +1174,8 @@
 
     var totalJamOt = 0;
     var totalNominalOt = 0;
+    var totalJamSPL = 0;
+    var totalNominalSPL = 0;
     var totalRitase = 0;
     var totalNominalRit = 0;
     var totalTunjangan = 0;
@@ -918,21 +1183,51 @@
     kLogs.forEach(function (log) {
       totalJamOt += Number(log.jamOvertime || 0);
       totalNominalOt += Number(log.totalOvertime || 0);
+      totalJamSPL += Number(log.jamSPL || 0);
+      totalNominalSPL += Number(log.totalSPL || 0);
       totalRitase += Number(log.ritase || 0);
       totalNominalRit += Number(log.totalRitase || 0);
       totalTunjangan += Number(log.tunjanganHarian || 0);
     });
 
-    var grandTotal = basicVal + totalNominalOt + totalNominalRit + totalTunjangan;
+    var empSummary = (cachedDataGajiEmployees || []).find(function (s) {
+      return matchLogToEmp({ empId: s.id, empName: s.name }, emp);
+    });
 
-    var otEl = document.getElementById('rincianEmpOvertime');
-    if (otEl) otEl.innerText = totalJamOt + ' Jam / ' + formatRupiahVal(totalNominalOt);
+    var potKes = empSummary ? (Number(empSummary.potonganBPJSKes) || 0) : (Number(emp.bpjsKesNominal) || 0);
+    var potTk = empSummary ? (Number(empSummary.potonganBPJSTK) || 0) : (Number(emp.bpjsTKNominal) || 0);
+    var potPph = empSummary ? (Number(empSummary.potonganPPh21) || 0) : (Number(emp.pph21Nominal) || 0);
+    var potKasbon = empSummary ? (Number(empSummary.potonganKasbon) || 0) : 0;
+    var catKasbon = empSummary ? (empSummary.catatanKasbon || '') : '';
+    var potLain = empSummary ? (Number(empSummary.potonganLain) || 0) : 0;
+    var catPotLain = empSummary ? (empSummary.catatanPotonganLain || '') : '';
 
-    var ritEl = document.getElementById('rincianEmpRitase');
-    if (ritEl) ritEl.innerText = totalRitase + ' Rit / ' + formatRupiahVal(totalNominalRit);
+    var totalPotPokok = potKes + potTk + potPph;
+    var gajiPokokBersih = Math.max(0, basicVal - totalPotPokok);
+    var totalTambahan = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
+    var gajiSebelumKasbon = gajiPokokBersih + totalTambahan;
+    var totalPotongan = totalPotPokok + potKasbon + potLain;
+    var grandTotalBruto = basicVal + totalTambahan;
+    var takeHomePay = Math.max(0, grandTotalBruto - totalPotongan);
 
+    var elPotPokok = document.getElementById('rincianEmpPotPokok');
+    if (elPotPokok) elPotPokok.innerText = 'Potongan Pokok: -' + formatRupiahVal(totalPotPokok);
+    var elPokokBersih = document.getElementById('rincianEmpPokokBersih');
+    if (elPokokBersih) elPokokBersih.innerText = formatRupiahVal(gajiPokokBersih);
+    var elHariKerja = document.getElementById('rincianEmpHariKerja');
+    if (elHariKerja) elHariKerja.innerText = kLogs.length + ' Hari Kerja';
+    var elTambahan = document.getElementById('rincianEmpTambahan');
+    if (elTambahan) elTambahan.innerText = formatRupiahVal(totalTambahan);
+    var elSblmKasbon = document.getElementById('rincianEmpSblmKasbon');
+    if (elSblmKasbon) elSblmKasbon.innerText = formatRupiahVal(gajiSebelumKasbon);
+    var elKasbon = document.getElementById('rincianEmpKasbon');
+    if (elKasbon) elKasbon.innerText = '- ' + formatRupiahVal(potKasbon);
+    var elCatKasbon = document.getElementById('rincianEmpCatKasbon');
+    if (elCatKasbon) elCatKasbon.innerText = catKasbon || '-';
+    var elTotPot = document.getElementById('rincianEmpTotalPotongan');
+    if (elTotPot) elTotPot.innerText = '- ' + formatRupiahVal(totalPotongan);
     var grandTotalEl = document.getElementById('rincianEmpGrandTotal');
-    if (grandTotalEl) grandTotalEl.innerText = formatRupiahVal(grandTotal);
+    if (grandTotalEl) grandTotalEl.innerText = formatRupiahVal(takeHomePay);
 
     var countBadge = document.getElementById('rincianLogCount');
     if (countBadge) countBadge.innerText = kLogs.length + ' Hari Kerja';
@@ -949,23 +1244,32 @@
     tbody.innerHTML = '';
 
     if (kLogs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada catatan log kerja harian untuk karyawan ini. ' +
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Belum ada catatan log kerja harian untuk karyawan ini. ' +
         (isCurrentPeriodClosed ? '<span class="text-danger fw-semibold">(Periode Ditutup Buku)</span>' : 'Klik tombol "+ Input Harian Baru" untuk menambahkan.') + '</td></tr>';
       return;
     }
 
     kLogs.forEach(function (log, idx) {
-      var subOt = Number(log.totalOvertime || 0);
-      var subRit = Number(log.totalRitase || 0);
+      var jOt = Number(log.jamOvertime || 0);
+      var subOt = Number(log.totalOvertime || (jOt * Number(log.tarifOvertime || 0)));
+      var jSPL = Number(log.jamSPL || 0);
+      var subSPL = Number(log.totalSPL || (jSPL * Number(log.tarifSPL || 0)));
+      var rit = Number(log.ritase || 0);
+      var subRit = Number(log.totalRitase || (rit * Number(log.tarifRitase || 0)));
       var tunj = Number(log.tunjanganHarian || 0);
-      var totalHariItu = subOt + subRit + tunj;
+      var totalHariItu = subOt + subSPL + subRit + tunj;
 
-      var otStr = log.jamOvertime > 0
-        ? '<span class="fw-semibold text-primary">' + formatRupiahVal(subOt) + '</span><br><small class="text-muted extra-small">' + log.jamOvertime + ' Jam</small>'
+      var otStr = jOt > 0
+        ? '<span class="fw-semibold text-primary">' + formatRupiahVal(subOt) + '</span><br><small class="text-muted extra-small">' + jOt + ' Jam</small>'
         : '<span class="text-muted extra-small">-</span>';
 
-      var ritStr = log.ritase > 0
-        ? '<span class="fw-semibold text-warning">' + formatRupiahVal(subRit) + '</span><br><small class="text-muted extra-small">' + log.ritase + ' Rit</small>'
+      var splBadge = log.splId ? ' <span class="badge bg-success-subtle text-success border border-success-subtle extra-small" style="font-size: 0.65rem;" title="ID SPL: ' + escapeHTML(log.splId) + '">SPL</span>' : '';
+      var splStr = jSPL > 0
+        ? '<span class="fw-semibold text-success">' + formatRupiahVal(subSPL) + '</span>' + splBadge + '<br><small class="text-muted extra-small">' + jSPL + ' Jam</small>'
+        : '<span class="text-muted extra-small">-</span>';
+
+      var ritStr = rit > 0
+        ? '<span class="fw-semibold text-warning">' + formatRupiahVal(subRit) + '</span><br><small class="text-muted extra-small">' + rit + ' Rit</small>'
         : '<span class="text-muted extra-small">-</span>';
 
       var actionRowHtml = isCurrentPeriodClosed
@@ -980,6 +1284,7 @@
         '<td class="text-center text-muted extra-small text-nowrap">' + (idx + 1) + '</td>' +
         '<td class="fw-bold text-nowrap"><i class="bi bi-calendar-event me-1 text-primary"></i>' + escapeHTML(formatDateWithDay(log.tanggal)) + '</td>' +
         '<td class="text-end text-nowrap">' + otStr + '</td>' +
+        '<td class="text-end text-nowrap">' + splStr + '</td>' +
         '<td class="text-end text-nowrap">' + ritStr + '</td>' +
         '<td class="text-end fw-semibold text-nowrap">' + (tunj > 0 ? formatRupiahVal(tunj) : '<span class="text-muted extra-small">-</span>') + '</td>' +
         '<td class="text-end text-nowrap"><span class="badge bg-success text-white px-2.5 py-1.5" style="font-size: 0.85rem; font-weight: 700; box-shadow: 0 1px 2px rgba(16,185,129,0.25);">' + formatRupiahVal(totalHariItu) + '</span></td>' +
@@ -1359,10 +1664,15 @@
         return match;
       });
 
-      var totalJamOt = 0, totalNominalOt = 0, totalRitase = 0, totalNominalRit = 0, totalTunjangan = 0;
+      var totalJamOt = 0, totalNominalOt = 0;
+      var totalJamSPL = 0, totalNominalSPL = 0;
+      var totalRitase = 0, totalNominalRit = 0;
+      var totalTunjangan = 0;
       kLogs.forEach(function (log) {
         totalJamOt += Number(log.jamOvertime || 0);
         totalNominalOt += Number(log.totalOvertime || 0);
+        totalJamSPL += Number(log.jamSPL || 0);
+        totalNominalSPL += Number(log.totalSPL || 0);
         totalRitase += Number(log.ritase || 0);
         totalNominalRit += Number(log.totalRitase || 0);
         totalTunjangan += Number(log.tunjanganHarian || 0);
@@ -1378,10 +1688,12 @@
         daysCount: kLogs.length,
         totalJamOt: totalJamOt,
         totalNominalOt: totalNominalOt,
+        totalJamSPL: totalJamSPL,
+        totalNominalSPL: totalNominalSPL,
         totalRitase: totalRitase,
         totalNominalRit: totalNominalRit,
         totalTunjangan: totalTunjangan,
-        grandTotal: basic + totalNominalOt + totalNominalRit + totalTunjangan,
+        grandTotal: basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan,
         logs: kLogs
       };
     });
@@ -1406,10 +1718,15 @@
 
     Object.keys(groupedUnmapped).forEach(function (kKey) {
       var g = groupedUnmapped[kKey];
-      var totalJamOt = 0, totalNominalOt = 0, totalRitase = 0, totalNominalRit = 0, totalTunjangan = 0;
+      var totalJamOt = 0, totalNominalOt = 0;
+      var totalJamSPL = 0, totalNominalSPL = 0;
+      var totalRitase = 0, totalNominalRit = 0;
+      var totalTunjangan = 0;
       g.logs.forEach(function (log) {
         totalJamOt += Number(log.jamOvertime || 0);
         totalNominalOt += Number(log.totalOvertime || 0);
+        totalJamSPL += Number(log.jamSPL || 0);
+        totalNominalSPL += Number(log.totalSPL || 0);
         totalRitase += Number(log.ritase || 0);
         totalNominalRit += Number(log.totalRitase || 0);
         totalTunjangan += Number(log.tunjanganHarian || 0);
@@ -1424,10 +1741,12 @@
         daysCount: g.logs.length,
         totalJamOt: totalJamOt,
         totalNominalOt: totalNominalOt,
+        totalJamSPL: totalJamSPL,
+        totalNominalSPL: totalNominalSPL,
         totalRitase: totalRitase,
         totalNominalRit: totalNominalRit,
         totalTunjangan: totalTunjangan,
-        grandTotal: basic + totalNominalOt + totalNominalRit + totalTunjangan,
+        grandTotal: basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan,
         logs: g.logs
       });
     });
@@ -1452,27 +1771,52 @@
       'Departemen',
       'Jabatan',
       'Gaji Pokok',
-      'Total Jam Lembur',
-      'Nominal Lembur',
+      'Jam Overtime',
+      'Nominal Overtime',
+      'Jam SPL',
+      'Nominal SPL',
       'Total Ritase',
       'Nominal Ritase',
       'Total Tunjangan',
-      'Total Gaji (Take Home Pay)',
+      'Total Gaji Bruto',
+      'Potongan BPJS Kes',
+      'Potongan BPJS TK',
+      'Potongan PPh 21',
+      'Gaji Pokok Bersih',
+      'Pinjaman / Kasbon',
+      'Catatan Kasbon',
+      'Potongan Lain',
+      'Total Potongan',
+      'TAKE HOME PAY (THP)',
       'Hari Kerja'
     ];
     s1Data.push(s1Headers);
 
-    var sumBasic = 0, sumJamOt = 0, sumNomOt = 0, sumRit = 0, sumNomRit = 0, sumTunj = 0, sumGrandTotal = 0, sumDays = 0;
+    var sumBasic = 0, sumJamOt = 0, sumNomOt = 0, sumJamSPL = 0, sumNomSPL = 0, sumRit = 0, sumNomRit = 0, sumTunj = 0, sumGrandTotal = 0, sumDays = 0;
 
     empList.forEach(function (emp, idx) {
       sumBasic += emp.basic;
       sumJamOt += emp.totalJamOt;
       sumNomOt += emp.totalNominalOt;
+      sumJamSPL += (emp.totalJamSPL || 0);
+      sumNomSPL += (emp.totalNominalSPL || 0);
       sumRit += emp.totalRitase;
       sumNomRit += emp.totalNominalRit;
       sumTunj += emp.totalTunjangan;
       sumGrandTotal += emp.grandTotal;
       sumDays += emp.daysCount;
+
+      var sEmpSum = (cachedDataGajiEmployees || []).find(function (s) { return matchLogToEmp({ empId: s.id, empName: s.name }, emp); });
+      var eKes = sEmpSum ? (Number(sEmpSum.potonganBPJSKes) || 0) : (Number(emp.bpjsKesNominal) || 0);
+      var eTk = sEmpSum ? (Number(sEmpSum.potonganBPJSTK) || 0) : (Number(emp.bpjsTKNominal) || 0);
+      var ePph = sEmpSum ? (Number(sEmpSum.potonganPPh21) || 0) : (Number(emp.pph21Nominal) || 0);
+      var eKas = sEmpSum ? (Number(sEmpSum.potonganKasbon) || 0) : 0;
+      var eCatKas = sEmpSum ? (sEmpSum.catatanKasbon || '') : '';
+      var eLain = sEmpSum ? (Number(sEmpSum.potonganLain) || 0) : 0;
+      var ePotPokok = eKes + eTk + ePph;
+      var ePokokBersih = Math.max(0, emp.basic - ePotPokok);
+      var eTotPot = ePotPokok + eKas + eLain;
+      var eTHP = Math.max(0, emp.grandTotal - eTotPot);
 
       s1Data.push([
         idx + 1,
@@ -1483,10 +1827,21 @@
         emp.basic,
         emp.totalJamOt,
         emp.totalNominalOt,
+        emp.totalJamSPL || 0,
+        emp.totalNominalSPL || 0,
         emp.totalRitase,
         emp.totalNominalRit,
         emp.totalTunjangan,
         emp.grandTotal,
+        eKes,
+        eTk,
+        ePph,
+        ePokokBersih,
+        eKas,
+        eCatKas,
+        eLain,
+        eTotPot,
+        eTHP,
         emp.daysCount
       ]);
     });
@@ -1500,6 +1855,8 @@
       sumBasic,
       sumJamOt,
       sumNomOt,
+      sumJamSPL,
+      sumNomSPL,
       sumRit,
       sumNomRit,
       sumTunj,
@@ -1515,6 +1872,8 @@
       { wch: 20 },
       { wch: 22 },
       { wch: 16 },
+      { wch: 16 },
+      { wch: 18 },
       { wch: 16 },
       { wch: 18 },
       { wch: 14 },
@@ -1539,9 +1898,13 @@
       'Departemen',
       'Jabatan',
       'Tanggal Kerja',
-      'Jam Lembur',
-      'Tarif Lembur',
-      'Subtotal Lembur',
+      'Jam Overtime',
+      'Tarif Overtime',
+      'Subtotal Overtime',
+      'Jam SPL',
+      'Tarif SPL',
+      'Subtotal SPL',
+      'No SPL',
       'Ritase',
       'Tarif Ritase',
       'Subtotal Ritase',
@@ -1557,21 +1920,26 @@
       return String(a.tanggal || '').localeCompare(String(b.tanggal || ''));
     });
 
-    var sumSubOt = 0, sumSubRit = 0, sumLogTunj = 0, sumLogGrand = 0;
+    var sumSubOt = 0, sumSubSPL = 0, sumSubRit = 0, sumLogTunj = 0, sumLogGrand = 0;
 
     allLogsSorted.forEach(function (log, idx) {
       var jOt = Number(log.jamOvertime || 0);
       var tOt = Number(log.tarifOvertime || 0);
       var subOt = Number(log.totalOvertime || (jOt * tOt));
 
+      var jSPL = Number(log.jamSPL || 0);
+      var tSPL = Number(log.tarifSPL || 0);
+      var subSPL = Number(log.totalSPL || (jSPL * tSPL));
+
       var rit = Number(log.ritase || 0);
       var tRit = Number(log.tarifRitase || 0);
       var subRit = Number(log.totalRitase || (rit * tRit));
 
       var tunj = Number(log.tunjanganHarian || 0);
-      var totalHariItu = Number(log.totalGaji || (subOt + subRit + tunj));
+      var totalHariItu = Number(log.totalGaji || (subOt + subSPL + subRit + tunj));
 
       sumSubOt += subOt;
+      sumSubSPL += subSPL;
       sumSubRit += subRit;
       sumLogTunj += tunj;
       sumLogGrand += totalHariItu;
@@ -1586,6 +1954,10 @@
         jOt,
         tOt,
         subOt,
+        jSPL,
+        tSPL,
+        subSPL,
+        log.splId || '-',
         rit,
         tRit,
         subRit,
@@ -1607,6 +1979,10 @@
       sumSubOt,
       '',
       '',
+      sumSubSPL,
+      '',
+      '',
+      '',
       sumSubRit,
       sumLogTunj,
       sumLogGrand,
@@ -1623,6 +1999,10 @@
       { wch: 14 },
       { wch: 12 },
       { wch: 14 },
+      { wch: 16 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 16 },
       { wch: 16 },
       { wch: 10 },
       { wch: 14 },
@@ -1727,6 +2107,8 @@
     var basicVal = Number(emp.gajiPokok) || 0;
     var totalJamOt = 0;
     var totalNominalOt = 0;
+    var totalJamSPL = 0;
+    var totalNominalSPL = 0;
     var totalRitase = 0;
     var totalNominalRit = 0;
     var totalTunjangan = 0;
@@ -1734,18 +2116,22 @@
 
     var rowsHtml = '';
     if (sortedLogs.length === 0) {
-      rowsHtml = '<tr><td colspan="7" style="text-align: center; padding: 18px 8px; color: #64748b; font-style: italic;">Belum ada catatan lembur, ritase, atau tunjangan harian yang tercatat pada periode ini.</td></tr>';
+      rowsHtml = '<tr><td colspan="8" style="text-align: center; padding: 18px 8px; color: #64748b; font-style: italic;">Belum ada catatan lembur, SPL, ritase, atau tunjangan harian yang tercatat pada periode ini.</td></tr>';
     } else {
       sortedLogs.forEach(function (log, idx) {
         var jOt = Number(log.jamOvertime || 0);
         var subOt = Number(log.totalOvertime || (jOt * Number(log.tarifOvertime || 0)));
+        var jSPL = Number(log.jamSPL || 0);
+        var subSPL = Number(log.totalSPL || (jSPL * Number(log.tarifSPL || 0)));
         var rit = Number(log.ritase || 0);
         var subRit = Number(log.totalRitase || (rit * Number(log.tarifRitase || 0)));
         var tunj = Number(log.tunjanganHarian || 0);
-        var totalHariItu = subOt + subRit + tunj;
+        var totalHariItu = subOt + subSPL + subRit + tunj;
 
         totalJamOt += jOt;
         totalNominalOt += subOt;
+        totalJamSPL += jSPL;
+        totalNominalSPL += subSPL;
         totalRitase += rit;
         totalNominalRit += subRit;
         totalTunjangan += tunj;
@@ -1753,6 +2139,11 @@
 
         var otCell = jOt > 0
           ? jOt + ' Jam<br><span style="color: #1d4ed8; font-weight: 700;">' + formatRupiahVal(subOt) + '</span>'
+          : '<span style="color: #94a3b8;">-</span>';
+
+        var splBadgePdf = log.splId ? ' <span style="font-size: 6pt; color: #15803d; font-weight: 700;">(' + escapeHTML(log.splId) + ')</span>' : '';
+        var splCell = jSPL > 0
+          ? jSPL + ' Jam' + splBadgePdf + '<br><span style="color: #15803d; font-weight: 700;">' + formatRupiahVal(subSPL) + '</span>'
           : '<span style="color: #94a3b8;">-</span>';
 
         var ritCell = rit > 0
@@ -1768,6 +2159,7 @@
           '<td style="text-align: center; color: #64748b;">' + (idx + 1) + '</td>' +
           '<td style="font-weight: 700; white-space: nowrap;">' + escapeHTML(formatDateWithDay(log.tanggal)) + '</td>' +
           '<td style="text-align: right; white-space: nowrap;">' + otCell + '</td>' +
+          '<td style="text-align: right; white-space: nowrap;">' + splCell + '</td>' +
           '<td style="text-align: right; white-space: nowrap;">' + ritCell + '</td>' +
           '<td style="text-align: right; white-space: nowrap;">' + tunjCell + '</td>' +
           '<td style="text-align: right; font-weight: 800; color: #15803d; white-space: nowrap;">' + formatRupiahVal(totalHariItu) + '</td>' +
@@ -1776,9 +2168,23 @@
       });
     }
 
-    var totalPenghasilanHarian = totalNominalOt + totalNominalRit + totalTunjangan;
+    var totalPenghasilanHarian = totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
     var grandTotal = basicVal + totalPenghasilanHarian;
     var totalHariKerja = uniqueDates.size || sortedLogs.length;
+
+    var pEmpSum = (cachedDataGajiEmployees || []).find(function (s) { return matchLogToEmp({ empId: s.id, empName: s.name }, emp); });
+    var pKes = pEmpSum ? (Number(pEmpSum.potonganBPJSKes) || 0) : (Number(emp.bpjsKesNominal) || 0);
+    var pTk = pEmpSum ? (Number(pEmpSum.potonganBPJSTK) || 0) : (Number(emp.bpjsTKNominal) || 0);
+    var pPph = pEmpSum ? (Number(pEmpSum.potonganPPh21) || 0) : (Number(emp.pph21Nominal) || 0);
+    var pKas = pEmpSum ? (Number(pEmpSum.potonganKasbon) || 0) : 0;
+    var pCatKas = pEmpSum ? (pEmpSum.catatanKasbon || '') : '';
+    var pLain = pEmpSum ? (Number(pEmpSum.potonganLain) || 0) : 0;
+    var pCatLain = pEmpSum ? (pEmpSum.catatanPotonganLain || '') : '';
+
+    var pTotalPotPokok = pKes + pTk + pPph;
+    var pPokokBersih = Math.max(0, basicVal - pTotalPotPokok);
+    var pTotalPotongan = pTotalPotPokok + pKas + pLain;
+    var takeHomePay = Math.max(0, grandTotal - pTotalPotongan);
 
     var authorName = (window.Auth && typeof window.Auth.getUser === 'function' && window.Auth.getUser() && window.Auth.getUser().name) || 'Admin Payroll / HRD';
     var nomorDokumen = 'LAP-GJ/' + String(emp.id || 'EMP').toUpperCase().replace(/[^A-Z0-9]/g, '') + '/' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0');
@@ -1806,7 +2212,7 @@
       '.info-table .col { width: 2%; text-align: center; font-weight: bold; }' +
       '.info-table .val { color: #0f172a; font-weight: 700; width: 31%; }' +
       '.summary-cards-table { width: 100%; border-collapse: separate; border-spacing: 6px 0; margin-bottom: 10px; }' +
-      '.summary-card-td { width: 25%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; text-align: center; background: #ffffff; }' +
+      '.summary-card-td { width: 20%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; text-align: center; background: #ffffff; }' +
       '.summary-card-title { font-size: 6.5pt; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 2px; }' +
       '.summary-card-val { font-size: 9.5pt; font-weight: 800; color: #0f172a; }' +
       '.summary-card-sub { font-size: 6.5pt; color: #64748b; margin-top: 1px; }' +
@@ -1871,7 +2277,7 @@
       '</tr>' +
       '</table>' +
 
-      // RINGKASAN AKUMULASI KARTU
+      // RINGKASAN AKUMULASI KARTU (5 KARTU: BASIC, OVERTIME, SPL, RITASE, TUNJANGAN)
       '<table class="summary-cards-table">' +
       '<tr>' +
       '<td class="summary-card-td">' +
@@ -1880,9 +2286,14 @@
       '<div class="summary-card-sub">Gaji Pokok Tetap</div>' +
       '</td>' +
       '<td class="summary-card-td">' +
-      '<div class="summary-card-title">Total Overtime (Lembur)</div>' +
+      '<div class="summary-card-title">Total Overtime</div>' +
       '<div class="summary-card-val" style="color: #1d4ed8;">' + formatRupiahVal(totalNominalOt) + '</div>' +
-      '<div class="summary-card-sub">' + totalJamOt + ' Jam Lembur</div>' +
+      '<div class="summary-card-sub">' + totalJamOt + ' Jam Overtime</div>' +
+      '</td>' +
+      '<td class="summary-card-td">' +
+      '<div class="summary-card-title">Total SPL</div>' +
+      '<div class="summary-card-val" style="color: #15803d;">' + formatRupiahVal(totalNominalSPL) + '</div>' +
+      '<div class="summary-card-sub">' + totalJamSPL + ' Jam SPL</div>' +
       '</td>' +
       '<td class="summary-card-td">' +
       '<div class="summary-card-title">Total Ritase</div>' +
@@ -1897,26 +2308,55 @@
       '</tr>' +
       '</table>' +
 
+      // TABEL KOMPONEN DUA TIER: PENGHASILAN VS POTONGAN
+      '<div style="display: flex; gap: 8px; margin-bottom: 10px;">' +
+      '<table style="width: 50%; border: 1px solid #cbd5e1; border-collapse: collapse; font-size: 7.5pt;">' +
+      '<thead><tr style="background: #1e293b; color: #ffffff;"><th colspan="2" style="padding: 4px 6px; text-align: left; text-transform: uppercase;">A. Komponen Penghasilan</th></tr></thead>' +
+      '<tbody>' +
+      '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">Gaji Pokok (Basic)</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700;">' + formatRupiahVal(basicVal) + '</td></tr>' +
+      '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">Overtime (' + totalJamOt + ' Jam)</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #1d4ed8;">' + formatRupiahVal(totalNominalOt) + '</td></tr>' +
+      '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">SPL (' + totalJamSPL + ' Jam)</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #15803d;">' + formatRupiahVal(totalNominalSPL) + '</td></tr>' +
+      '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">Ritase (' + totalRitase + ' Rit)</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #b45309;">' + formatRupiahVal(totalNominalRit) + '</td></tr>' +
+      '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">Tunjangan Harian</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700;">' + formatRupiahVal(totalTunjangan) + '</td></tr>' +
+      '</tbody>' +
+      '<tfoot><tr style="background: #f1f5f9; font-weight: 800;"><td style="padding: 4px 6px; border-top: 1.5px solid #0f172a;">TOTAL GAJI KOTOR (BRUTO)</td><td style="padding: 4px 6px; border-top: 1.5px solid #0f172a; text-align: right; color: #0f172a;">' + formatRupiahVal(grandTotal) + '</td></tr></tfoot>' +
+      '</table>' +
+
+      '<table style="width: 50%; border: 1px solid #cbd5e1; border-collapse: collapse; font-size: 7.5pt;">' +
+      '<thead><tr style="background: #991b1b; color: #ffffff;"><th colspan="2" style="padding: 4px 6px; text-align: left; text-transform: uppercase;">B. Komponen Potongan</th></tr></thead>' +
+      '<tbody>' +
+      '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">BPJS Kesehatan</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #b91c1c;">- ' + formatRupiahVal(pKes) + '</td></tr>' +
+      '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">BPJS Ketenagakerjaan</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #b91c1c;">- ' + formatRupiahVal(pTk) + '</td></tr>' +
+      '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">PPh 21 (Pajak)</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #b91c1c;">- ' + formatRupiahVal(pPph) + '</td></tr>' +
+      '<tr style="background: #fef2f2;"><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #1e40af;">Gaji Pokok Bersih (Tier 1)</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #1e40af;">' + formatRupiahVal(pPokokBersih) + '</td></tr>' +
+      '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">Kasbon / Pinjaman' + (pCatKas ? ' <span style="font-size: 6pt; color: #64748b;">(' + escapeHTML(pCatKas) + ')</span>' : '') + '</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #b91c1c;">- ' + formatRupiahVal(pKas) + '</td></tr>' +
+      '<tr><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0;">Potongan Lain' + (pCatLain ? ' <span style="font-size: 6pt; color: #64748b;">(' + escapeHTML(pCatLain) + ')</span>' : '') + '</td><td style="padding: 3px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #b91c1c;">- ' + formatRupiahVal(pLain) + '</td></tr>' +
+      '</tbody>' +
+      '<tfoot><tr style="background: #fef2f2; font-weight: 800;"><td style="padding: 4px 6px; border-top: 1.5px solid #991b1b; color: #991b1b;">TOTAL POTONGAN</td><td style="padding: 4px 6px; border-top: 1.5px solid #991b1b; text-align: right; color: #991b1b;">- ' + formatRupiahVal(pTotalPotongan) + '</td></tr></tfoot>' +
+      '</table>' +
+      '</div>' +
+
       // BANNER TAKE HOME PAY
       '<div class="take-home-pay-banner">' +
       '<div>' +
-      '<div class="take-home-pay-label">Total Penghasilan / Gaji Berjalan Saat Ini</div>' +
-      '<div style="font-size: 7pt; color: #15803d; margin-top: 1px;">Kalkulasi: Basic + Overtime + Ritase + Tunjangan Harian</div>' +
+      '<div class="take-home-pay-label">TAKE HOME PAY (GAJI BERSIH DITERIMA)</div>' +
+      '<div style="font-size: 7pt; color: #15803d; margin-top: 1px;">Kalkulasi: Bruto (' + formatRupiahVal(grandTotal) + ') - Total Potongan (' + formatRupiahVal(pTotalPotongan) + ')</div>' +
       '</div>' +
-      '<div class="take-home-pay-value">' + formatRupiahVal(grandTotal) + '</div>' +
+      '<div class="take-home-pay-value">' + formatRupiahVal(takeHomePay) + '</div>' +
       '</div>' +
 
-      // TABEL RINCIAN LOG HARIAN
+      // TABEL RINCIAN LOG HARIAN (OVERTIME & SPL TERPISAH)
       '<div style="font-size: 8pt; font-weight: 700; color: #0f172a; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;">Rincian Log Kerja Harian:</div>' +
       '<table class="data-table">' +
       '<thead>' +
       '<tr>' +
       '<th style="width: 25px;">No</th>' +
-      '<th style="width: 110px;">Tanggal Kerja</th>' +
-      '<th style="width: 85px;">Overtime</th>' +
-      '<th style="width: 75px;">Ritase</th>' +
-      '<th style="width: 80px;">Tunjangan</th>' +
-      '<th style="width: 95px;">Total Hari Itu</th>' +
+      '<th style="width: 105px;">Tanggal Kerja</th>' +
+      '<th style="width: 80px;">Overtime</th>' +
+      '<th style="width: 80px;">SPL</th>' +
+      '<th style="width: 70px;">Ritase</th>' +
+      '<th style="width: 75px;">Tunjangan</th>' +
+      '<th style="width: 90px;">Total Hari Itu</th>' +
       '<th>Catatan / Keterangan</th>' +
       '</tr>' +
       '</thead>' +
@@ -1927,13 +2367,14 @@
       '<tr>' +
       '<td colspan="2" style="text-align: right; text-transform: uppercase;">Total Penghasilan Harian:</td>' +
       '<td style="text-align: right; color: #1d4ed8;">' + formatRupiahVal(totalNominalOt) + '</td>' +
+      '<td style="text-align: right; color: #15803d;">' + formatRupiahVal(totalNominalSPL) + '</td>' +
       '<td style="text-align: right; color: #b45309;">' + formatRupiahVal(totalNominalRit) + '</td>' +
       '<td style="text-align: right;">' + formatRupiahVal(totalTunjangan) + '</td>' +
       '<td style="text-align: right; color: #15803d; font-size: 8.5pt;">' + formatRupiahVal(totalPenghasilanHarian) + '</td>' +
       '<td style="font-weight: normal; font-size: 7pt; color: #64748b;">(' + totalHariKerja + ' Hari Terinput)</td>' +
       '</tr>' +
       '<tr style="background: #e2e8f0 !important; font-size: 8.5pt;">' +
-      '<td colspan="5" style="text-align: right; text-transform: uppercase; font-weight: 800;">GRAND TOTAL PENGHASILAN (BASIC + HARIAN):</td>' +
+      '<td colspan="6" style="text-align: right; text-transform: uppercase; font-weight: 800;">GRAND TOTAL PENGHASILAN (BASIC + HARIAN):</td>' +
       '<td style="text-align: right; color: #15803d; font-weight: 800; font-size: 9.5pt;">' + formatRupiahVal(grandTotal) + '</td>' +
       '<td></td>' +
       '</tr>' +
@@ -2093,6 +2534,8 @@
     var totalRitase = empSummary ? (Number(empSummary.totalRitase) || 0) : 0;
     var totalNominalRit = empSummary ? (Number(empSummary.totalNominalRit) || 0) : 0;
     var totalTunjangan = empSummary ? (Number(empSummary.totalTunjangan) || 0) : 0;
+    var gTotPot = empSummary ? (Number(empSummary.totalPotongan) || 0) : 0;
+    var gTHP = empSummary ? (Number(empSummary.takeHomePay) || Math.max(0, (basic + totalNominalOt + totalNominalRit + totalTunjangan) - gTotPot)) : Math.max(0, basic + totalNominalOt + totalNominalRit + totalTunjangan);
     var grandTotal = empSummary ? (Number(empSummary.grandTotal) || (basic + totalNominalOt + totalNominalRit + totalTunjangan)) : 0;
     var daysCount = empSummary ? (Number(empSummary.daysCount) || logs.length) : logs.length;
 
@@ -2131,7 +2574,7 @@
     if (elTotRit) elTotRit.textContent = formatRupiahVal(totalNominalRit);
     if (elJmlRit) elJmlRit.textContent = totalRitase + ' Ritase';
     if (elTotTunj) elTotTunj.textContent = formatRupiahVal(totalTunjangan);
-    if (elGrandTotal) elGrandTotal.textContent = formatRupiahVal(grandTotal);
+    if (elGrandTotal) elGrandTotal.textContent = formatRupiahVal(gTHP || grandTotal);
     if (elHariKerja) elHariKerja.textContent = daysCount + ' Hari Kerja';
     if (elBadgeCount) elBadgeCount.textContent = logs.length + ' Catatan';
 
@@ -2209,6 +2652,454 @@
     }
 
     generateAndPrintSalaryReport(emp, logs);
+  };
+
+
+  // --- SINKRONISASI SEMUA SPL DISETUJUI DALAM PERIODE AKTIF (1-KLIK) ---
+  window.syncSPLToSalaryPeriod = function () {
+    if (isCurrentPeriodClosed) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Periode Ditutup Buku',
+        text: 'Periode payroll ini sudah dalam status DITUTUP. Tidak dapat melakukan sinkronisasi lembur.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
+    var activeP = cachedPeriodeList.find(function (p) { return p.id === currentSelectedPeriodId; }) || currentActivePeriodInfo;
+    var pName = activeP ? activeP.nama : 'Periode Aktif';
+    var pRange = (activeP && activeP.startDate && activeP.endDate)
+      ? (safeFormatDateDMY(activeP.startDate) + ' s/d ' + safeFormatDateDMY(activeP.endDate))
+      : '-';
+
+    Swal.fire({
+      title: 'Tarik Data SPL Disetujui?',
+      html:
+        '<div class="text-start small">' +
+        '<p class="mb-2">Sistem akan memindai database dan menarik seluruh <strong>Surat Perintah Lembur (SPL)</strong> yang berstatus <span class="badge bg-success-subtle text-success border border-success-subtle">Disetujui</span> dalam rentang cut-off periode ini:</p>' +
+        '<div class="p-2.5 rounded bg-light border mb-3">' +
+        '<div class="d-flex justify-content-between mb-1"><span class="text-muted">Nama Periode:</span><strong class="text-dark">' + escapeHTML(pName) + '</strong></div>' +
+        '<div class="d-flex justify-content-between"><span class="text-muted">Rentang Cut-Off:</span><strong class="text-dark">' + escapeHTML(pRange) + '</strong></div>' +
+        '</div>' +
+        '<label class="form-label fw-bold extra-small text-dark mb-1">Tarif SPL per Jam Standar (Rp):</label>' +
+        '<div class="input-group input-group-sm mb-2">' +
+        '<span class="input-group-text bg-white">Rp</span>' +
+        '<input type="number" id="swalTarifSPL" class="form-control" value="20000" min="0" step="1000">' +
+        '</div>' +
+        '<small class="text-muted extra-small">Jam SPL tiap karyawan akan langsung otomatis masuk ke kolom SPL harian (terpisah dari Overtime biasa), mengakumulasi total SPL, dan menambahkan total gaji berjalan karyawan.</small>' +
+        '</div>',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-arrow-repeat me-1"></i>Mulai Sinkronisasi',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#2563eb',
+      preConfirm: function () {
+        var tVal = document.getElementById('swalTarifSPL').value;
+        var num = parseFloat(tVal);
+        if (isNaN(num) || num < 0) {
+          Swal.showValidationMessage('Tarif per jam SPL tidak valid');
+          return false;
+        }
+        return num;
+      }
+    }).then(function (res) {
+      if (!res.isConfirmed) return;
+      var tarifInput = res.value || 20000;
+
+      showFullPageLoading('Menyinkronkan data SPL Disetujui ke data gaji periode ini...');
+
+      gasRun('syncApprovedSPLForPeriod', Auth.getToken(), {
+        periodId: currentSelectedPeriodId,
+        defaultTarifSPL: tarifInput
+      }).then(function (resp) {
+        hideFullPageLoading();
+        if (handleSessionExpired(resp)) return;
+
+        if (resp && resp.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Sinkronisasi Berhasil',
+            text: resp.message || 'Data lembur SPL berhasil disinkronkan.',
+            confirmButtonColor: '#2563eb'
+          });
+          loadDataGajiList();
+        } else {
+          Swal.fire('Gagal Sinkronisasi', (resp && resp.message) || 'Terjadi kesalahan saat memproses sinkronisasi SPL.', 'error');
+        }
+      }).catch(function (err) {
+        hideFullPageLoading();
+        Swal.fire('Error', 'Gagal memproses sinkronisasi: ' + (err.message || err), 'error');
+      });
+    });
+  };
+  // =========================================================================
+  // MODAL POTONGAN GAJI KARYAWAN (SKEMA 2-TIER: BPJS, PPH21, KASBON SESUAI TANGGAL)
+  // =========================================================================
+  var currentSelectedPotonganEmp = null;
+  var bsModalPotonganGaji = null;
+
+  window.addKasbonRow = function (tgl, nominal, catatan) {
+    var tbody = document.getElementById('tbodyKasbonList');
+    if (!tbody) return;
+
+    var defaultDate = tgl || (currentActivePeriodInfo && currentActivePeriodInfo.startDate ? currentActivePeriodInfo.startDate : '') || new Date().toISOString().split('T')[0];
+    var defaultNom = Number(nominal) || 0;
+    var defaultCat = catatan || '';
+
+    var tr = document.createElement('tr');
+    tr.className = 'kasbon-item-row';
+    tr.innerHTML =
+      '<td>' +
+      '  <input type="date" class="form-control form-control-sm kasbon-item-date" value="' + escapeHTML(defaultDate) + '" onchange="calculatePotonganLive()">' +
+      '</td>' +
+      '<td>' +
+      '  <div class="input-group input-group-sm">' +
+      '    <span class="input-group-text bg-light text-muted" style="font-size: 0.75rem;">Rp</span>' +
+      '    <input type="text" class="form-control form-control-sm text-end fw-bold text-danger kasbon-item-nominal" placeholder="0" value="' + (defaultNom > 0 ? formatRupiahVal(defaultNom) : 'Rp 0') + '" oninput="setupRupiahMask(this); calculatePotonganLive();">' +
+      '  </div>' +
+      '</td>' +
+      '<td>' +
+      '  <input type="text" class="form-control form-control-sm kasbon-item-note" placeholder="Contoh: Pinjaman darurat / cicilan ke-1" value="' + escapeHTML(defaultCat) + '" oninput="calculatePotonganLive()">' +
+      '</td>' +
+      '<td class="text-center">' +
+      '  <button type="button" class="btn btn-sm btn-outline-danger py-0.5 px-1.5" onclick="removeKasbonRow(this)" title="Hapus Pinjaman Ini">' +
+      '    <i class="bi bi-trash"></i>' +
+      '  </button>' +
+      '</td>';
+
+    tbody.appendChild(tr);
+
+    var nomInput = tr.querySelector('.kasbon-item-nominal');
+    if (nomInput) setupRupiahMask(nomInput);
+
+    calculatePotonganLive();
+  };
+
+  window.removeKasbonRow = function (btn) {
+    var tr = btn ? btn.closest('tr') : null;
+    if (tr) {
+      tr.remove();
+      var tbody = document.getElementById('tbodyKasbonList');
+      if (tbody && tbody.children.length === 0) {
+        addKasbonRow();
+      }
+      calculatePotonganLive();
+    }
+  };
+
+  window.openModalPotonganGaji = function (empId) {
+    if (isCurrentPeriodClosed) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Periode Ditutup Buku',
+        text: 'Periode payroll ini sudah dalam status DITUTUP. Potongan gaji tidak dapat diubah.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
+    var modalEl = document.getElementById('modalPotonganGaji');
+    if (!modalEl) {
+      console.error('modalPotonganGaji element not found');
+      return;
+    }
+    if (!bsModalPotonganGaji) {
+      bsModalPotonganGaji = new bootstrap.Modal(modalEl);
+    }
+
+    var k = (dbKaryawan || []).find(function (item) { return matchLogToEmp({ empId: empId, empName: empId }, item); }) || { id: empId, name: empId };
+    var empSummary = (cachedDataGajiEmployees || []).find(function (s) {
+      return matchLogToEmp({ empId: s.id, empName: s.name }, k);
+    });
+
+    // Hitung akumulasi tambahan berjalan
+    var kLogs = cachedDataGajiLogs.filter(function (l) { return matchLogToEmp(l, k); });
+    var totalTambahan = 0;
+    kLogs.forEach(function (l) {
+      totalTambahan += (Number(l.totalOvertime) || 0) + (Number(l.totalSPL) || 0) + (Number(l.totalRitase) || 0) + (Number(l.tunjanganHarian) || 0);
+    });
+
+    var basic = Number(k.gajiPokok || (empSummary ? empSummary.basic : 0)) || 0;
+    var potKes = empSummary ? (Number(empSummary.potonganBPJSKes) || 0) : (Number(k.bpjsKesNominal) || 0);
+    var potTk = empSummary ? (Number(empSummary.potonganBPJSTK) || 0) : (Number(k.bpjsTKNominal) || 0);
+    var potPph = empSummary ? (Number(empSummary.potonganPPh21) || 0) : (Number(k.pph21Nominal) || 0);
+    var potKasbon = empSummary ? (Number(empSummary.potonganKasbon) || 0) : 0;
+    var catKasbon = empSummary ? (empSummary.catatanKasbon || '') : '';
+    var potLain = empSummary ? (Number(empSummary.potonganLain) || 0) : 0;
+    var catPotLain = empSummary ? (empSummary.catatanPotonganLain || '') : '';
+
+    var detailPot = (empSummary && empSummary.detailPotongan) ? empSummary.detailPotongan : {};
+    var kesSet = detailPot.bpjsKesSetting || k.bpjsKesSetting || 'Tidak Ikut';
+    var tkSet = detailPot.bpjsTKSetting || k.bpjsTKSetting || 'Tidak Ikut';
+
+    currentSelectedPotonganEmp = {
+      empId: k.id,
+      empName: k.name,
+      dept: k.dept || (empSummary ? empSummary.dept : '-'),
+      basic: basic,
+      totalTambahan: totalTambahan,
+      periodId: currentSelectedPeriodId
+    };
+
+    document.getElementById('potonganEmpId').value = k.id;
+    document.getElementById('potonganPeriodId').value = currentSelectedPeriodId;
+    document.getElementById('potonganEmpName').innerText = k.name;
+    document.getElementById('potonganEmpDept').innerText = currentSelectedPotonganEmp.dept;
+    document.getElementById('potonganEmpIdMeta').innerText = 'ID: ' + k.id;
+    document.getElementById('potonganEmpBasicDisplay').innerText = formatRupiahVal(basic);
+
+    // Set setting selects & inputs
+    var elKesSet = document.getElementById('potonganBpjsKesSetting');
+    if (elKesSet) elKesSet.value = kesSet;
+    var elKesNom = document.getElementById('potonganBpjsKesNominal');
+    if (elKesNom) { elKesNom.value = potKes > 0 ? formatRupiahVal(potKes) : 'Rp 0'; setupRupiahMask(elKesNom); }
+
+    var elTkSet = document.getElementById('potonganBpjsTKSetting');
+    if (elTkSet) elTkSet.value = tkSet;
+    var elTkNom = document.getElementById('potonganBpjsTKNominal');
+    if (elTkNom) { elTkNom.value = potTk > 0 ? formatRupiahVal(potTk) : 'Rp 0'; setupRupiahMask(elTkNom); }
+
+    var elPphNom = document.getElementById('potonganPph21Nominal');
+    if (elPphNom) { elPphNom.value = potPph > 0 ? formatRupiahVal(potPph) : 'Rp 0'; setupRupiahMask(elPphNom); }
+
+    // RENDER BARIS PINJAMAN KASBON SESUAI TANGGAL
+    var tbodyKasbon = document.getElementById('tbodyKasbonList');
+    if (tbodyKasbon) {
+      tbodyKasbon.innerHTML = '';
+      var listKasbon = (detailPot && Array.isArray(detailPot.listKasbon) && detailPot.listKasbon.length > 0)
+        ? detailPot.listKasbon
+        : [];
+
+      if (listKasbon.length > 0) {
+        listKasbon.forEach(function (kb) {
+          addKasbonRow(kb.tanggal, kb.nominal, kb.catatan);
+        });
+      } else if (potKasbon > 0) {
+        addKasbonRow('', potKasbon, catKasbon);
+      } else {
+        addKasbonRow('', 0, '');
+      }
+    }
+
+    // Set Potongan Lain
+    var elLainTgl = document.getElementById('potonganLainTanggal');
+    if (elLainTgl) elLainTgl.value = (detailPot && detailPot.potonganLainTanggal) ? detailPot.potonganLainTanggal : '';
+    var elLainNom = document.getElementById('potonganLainNominal');
+    if (elLainNom) { elLainNom.value = potLain > 0 ? formatRupiahVal(potLain) : 'Rp 0'; setupRupiahMask(elLainNom); }
+    var elLainCat = document.getElementById('potonganLainCatatan');
+    if (elLainCat) elLainCat.value = catPotLain;
+
+    calculatePotonganLive();
+    bsModalPotonganGaji.show();
+  };
+
+  window.onPotonganModalKesSettingChange = function () {
+    if (!currentSelectedPotonganEmp) return;
+    var setVal = document.getElementById('potonganBpjsKesSetting').value;
+    var nomEl = document.getElementById('potonganBpjsKesNominal');
+    var basic = currentSelectedPotonganEmp.basic;
+    if (setVal === 'Kelas 1') {
+      nomEl.value = formatRupiahVal(150000);
+    } else if (setVal === 'Kelas 2') {
+      nomEl.value = formatRupiahVal(100000);
+    } else if (setVal === 'Kelas 3') {
+      nomEl.value = formatRupiahVal(35000);
+    } else if (setVal === 'PPU 1%') {
+      nomEl.value = formatRupiahVal(Math.round(basic * 0.01));
+    } else if (setVal === 'Tidak Ikut') {
+      nomEl.value = 'Rp 0';
+    }
+    calculatePotonganLive();
+  };
+
+  window.quickCalcBpjsKesModal = function () {
+    window.onPotonganModalKesSettingChange();
+  };
+
+  window.onPotonganModalTKSettingChange = function () {
+    if (!currentSelectedPotonganEmp) return;
+    var setVal = document.getElementById('potonganBpjsTKSetting').value;
+    var nomEl = document.getElementById('potonganBpjsTKNominal');
+    var basic = currentSelectedPotonganEmp.basic;
+    if (setVal === 'Standar 3%') {
+      nomEl.value = formatRupiahVal(Math.round(basic * 0.03));
+    } else if (setVal === 'Tidak Ikut') {
+      nomEl.value = 'Rp 0';
+    }
+    calculatePotonganLive();
+  };
+
+  window.quickCalcBpjsTKModal = function () {
+    window.onPotonganModalTKSettingChange();
+  };
+
+  window.calculatePotonganLive = function () {
+    if (!currentSelectedPotonganEmp) return;
+    var basic = Number(currentSelectedPotonganEmp.basic) || 0;
+    var potKes = parseRupiahVal(document.getElementById('potonganBpjsKesNominal') ? document.getElementById('potonganBpjsKesNominal').value : 0);
+    var potTk = parseRupiahVal(document.getElementById('potonganBpjsTKNominal') ? document.getElementById('potonganBpjsTKNominal').value : 0);
+    var potPph = parseRupiahVal(document.getElementById('potonganPph21Nominal') ? document.getElementById('potonganPph21Nominal').value : 0);
+
+    // Hitung seluruh item pinjaman kasbon dari tabel
+    var kasbonRows = document.querySelectorAll('#tbodyKasbonList tr.kasbon-item-row');
+    var totalKasbon = 0;
+    var countKasbon = 0;
+    kasbonRows.forEach(function (row) {
+      var nomInput = row.querySelector('.kasbon-item-nominal');
+      var nom = parseRupiahVal(nomInput ? nomInput.value : 0);
+      if (nom > 0) {
+        totalKasbon += nom;
+        countKasbon++;
+      }
+    });
+
+    var potLain = parseRupiahVal(document.getElementById('potonganLainNominal') ? document.getElementById('potonganLainNominal').value : 0);
+
+    var subtotalPotPokok = potKes + potTk + potPph;
+    var gajiPokokBersih = Math.max(0, basic - subtotalPotPokok);
+    var tambahan = Number(currentSelectedPotonganEmp.totalTambahan) || 0;
+    var gajiSebelumKasbon = gajiPokokBersih + tambahan;
+    var subtotalKasbonLain = totalKasbon + potLain;
+    var takeHomePay = Math.max(0, gajiSebelumKasbon - subtotalKasbonLain);
+
+    // Update text di tabel kasbon
+    var elTotalKasbon = document.getElementById('textTotalKasbonModal');
+    if (elTotalKasbon) elTotalKasbon.innerText = formatRupiahVal(totalKasbon);
+    var elCountKasbon = document.getElementById('textKasbonCount');
+    if (elCountKasbon) elCountKasbon.innerText = countKasbon + ' Transaksi Pinjaman (' + formatRupiahVal(totalKasbon) + ')';
+
+    var elPreviewPokokBersih = document.getElementById('previewGajiPokokBersih');
+    if (elPreviewPokokBersih) elPreviewPokokBersih.innerText = formatRupiahVal(gajiPokokBersih);
+    var elPreviewSubPotPokok = document.getElementById('previewSubtotalPotPokok');
+    if (elPreviewSubPotPokok) elPreviewSubPotPokok.innerText = 'Potongan: -' + formatRupiahVal(subtotalPotPokok);
+
+    var elPrevBasic = document.getElementById('prevBasicVal');
+    if (elPrevBasic) elPrevBasic.innerText = formatRupiahVal(basic);
+    var elPrevPotPokok = document.getElementById('prevPotPokokVal');
+    if (elPrevPotPokok) elPrevPotPokok.innerText = '- ' + formatRupiahVal(subtotalPotPokok);
+    var elPrevPokokBersih = document.getElementById('prevPokokBersihVal');
+    if (elPrevPokokBersih) elPrevPokokBersih.innerText = formatRupiahVal(gajiPokokBersih);
+    var elPrevTambahan = document.getElementById('prevTambahanVal');
+    if (elPrevTambahan) elPrevTambahan.innerText = '+ ' + formatRupiahVal(tambahan);
+    var elPrevSblmKasbon = document.getElementById('prevSblmKasbonVal');
+    if (elPrevSblmKasbon) elPrevSblmKasbon.innerText = formatRupiahVal(gajiSebelumKasbon);
+    var elPrevKasbonLain = document.getElementById('prevKasbonLainVal');
+    if (elPrevKasbonLain) elPrevKasbonLain.innerText = '- ' + formatRupiahVal(subtotalKasbonLain);
+    var elPrevTHP = document.getElementById('prevTakeHomePayVal');
+    if (elPrevTHP) elPrevTHP.innerText = formatRupiahVal(takeHomePay);
+  };
+
+  window.submitPotonganGaji = function (e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!currentSelectedPotonganEmp) return;
+
+    var empId = document.getElementById('potonganEmpId').value;
+    var periodId = document.getElementById('potonganPeriodId').value;
+    var potKes = parseRupiahVal(document.getElementById('potonganBpjsKesNominal') ? document.getElementById('potonganBpjsKesNominal').value : 0);
+    var potTk = parseRupiahVal(document.getElementById('potonganBpjsTKNominal') ? document.getElementById('potonganBpjsTKNominal').value : 0);
+    var potPph = parseRupiahVal(document.getElementById('potonganPph21Nominal') ? document.getElementById('potonganPph21Nominal').value : 0);
+
+    // Ambil list transaksi pinjaman kasbon
+    var listKasbon = [];
+    var kasbonNotes = [];
+    var kasbonRows = document.querySelectorAll('#tbodyKasbonList tr.kasbon-item-row');
+    var totalKasbon = 0;
+
+    kasbonRows.forEach(function (row) {
+      var dateInput = row.querySelector('.kasbon-item-date');
+      var nomInput = row.querySelector('.kasbon-item-nominal');
+      var noteInput = row.querySelector('.kasbon-item-note');
+
+      var tgl = dateInput ? dateInput.value : '';
+      var nom = parseRupiahVal(nomInput ? nomInput.value : 0);
+      var note = noteInput ? noteInput.value.trim() : '';
+
+      if (nom > 0) {
+        totalKasbon += nom;
+        listKasbon.push({
+          tanggal: tgl,
+          nominal: nom,
+          catatan: note
+        });
+        var formattedTgl = tgl ? safeFormatDateDMY(tgl) : '-';
+        kasbonNotes.push(formattedTgl + ': ' + formatRupiahVal(nom) + (note ? ' (' + note + ')' : ''));
+      }
+    });
+
+    var catKasbonStr = kasbonNotes.join('; ');
+    var potLainTgl = document.getElementById('potonganLainTanggal') ? document.getElementById('potonganLainTanggal').value : '';
+    var potLain = parseRupiahVal(document.getElementById('potonganLainNominal') ? document.getElementById('potonganLainNominal').value : 0);
+    var catPotLain = document.getElementById('potonganLainCatatan') ? document.getElementById('potonganLainCatatan').value.trim() : '';
+    if (potLainTgl && catPotLain) {
+      catPotLain = safeFormatDateDMY(potLainTgl) + ': ' + catPotLain;
+    }
+
+    var kesSet = document.getElementById('potonganBpjsKesSetting') ? document.getElementById('potonganBpjsKesSetting').value : 'Tidak Ikut';
+    var tkSet = document.getElementById('potonganBpjsTKSetting') ? document.getElementById('potonganBpjsTKSetting').value : 'Tidak Ikut';
+
+    var payload = {
+      empId: empId,
+      empName: currentSelectedPotonganEmp.empName,
+      periodId: periodId,
+      potonganBPJSKes: potKes,
+      potonganBPJSTK: potTk,
+      potonganPPh21: potPph,
+      potonganKasbon: totalKasbon,
+      catatanKasbon: catKasbonStr,
+      potonganLain: potLain,
+      catatanPotonganLain: catPotLain,
+      detailPotongan: {
+        bpjsKesSetting: kesSet,
+        bpjsKesNominal: potKes,
+        bpjsTKSetting: tkSet,
+        bpjsTKNominal: potTk,
+        pph21Nominal: potPph,
+        listKasbon: listKasbon,
+        potonganLainTanggal: potLainTgl
+      }
+    };
+
+    var btnSubmit = document.getElementById('btnSavePotonganGaji');
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...';
+    }
+
+    gasRun('savePotonganGaji', Auth.getToken(), payload).then(function (res) {
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<i class="bi bi-check2-circle me-1.5"></i>Simpan Potongan Gaji';
+      }
+
+      if (handleSessionExpired(res)) return;
+
+      if (res && res.success) {
+        if (bsModalPotonganGaji) bsModalPotonganGaji.hide();
+        Swal.fire({
+          icon: 'success',
+          title: 'Potongan Tersimpan',
+          text: res.message || 'Potongan gaji karyawan berhasil diperbarui.',
+          timer: 1800,
+          showConfirmButton: false
+        });
+        loadDataGajiList();
+      } else {
+        Swal.fire('Gagal Menyimpan', res.message || 'Terjadi kesalahan saat menyimpan potongan.', 'error');
+      }
+    }).catch(function (err) {
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<i class="bi bi-check2-circle me-1.5"></i>Simpan Potongan Gaji';
+      }
+      Swal.fire('Error', err.toString(), 'error');
+    });
+  };
+
+  window.openPotonganFromRincian = function () {
+    if (currentRincianEmpId) {
+      openModalPotonganGaji(currentRincianEmpId);
+    }
   };
 
 })();

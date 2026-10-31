@@ -35,7 +35,12 @@ function getInitialData(token) {
         polaRoster: String(userData[i][8] || 'Non-Roster').trim() || 'Non-Roster',
         tglMulaiKerja: tglMulai,
         hasSlipPin: Boolean(String(userData[i][10] || '').trim()),
-        gajiPokok: Number(userData[i][11]) || 0
+        gajiPokok: Number(userData[i][11]) || 0,
+        bpjsKesSetting: String(userData[i][12] || 'Tidak Ikut').trim(),
+        bpjsKesNominal: Number(userData[i][13]) || 0,
+        bpjsTKSetting: String(userData[i][14] || 'Tidak Ikut').trim(),
+        bpjsTKNominal: Number(userData[i][15]) || 0,
+        pph21Nominal: Number(userData[i][16]) || 0
       });
     }
   }
@@ -337,7 +342,12 @@ function saveKaryawan(token, payload) {
         payload.polaRoster || 'Non-Roster',
         payload.tglMulaiKerja || '',
         '', // Col 11 PIN Slip
-        Number(payload.gajiPokok) || 0 // Col 12 Gaji Pokok
+        Number(payload.gajiPokok) || 0, // Col 12 Gaji Pokok
+        payload.bpjsKesSetting || 'Tidak Ikut', // Col 13 BPJS Kes Setting
+        Number(payload.bpjsKesNominal) || 0, // Col 14 BPJS Kes Nominal
+        payload.bpjsTKSetting || 'Tidak Ikut', // Col 15 BPJS TK Setting
+        Number(payload.bpjsTKNominal) || 0, // Col 16 BPJS TK Nominal
+        Number(payload.pph21Nominal) || 0 // Col 17 PPh 21 Nominal
       ]);
     } else {
       // Edit Karyawan (ID bisa diubah)
@@ -374,6 +384,11 @@ function saveKaryawan(token, payload) {
       userSheet.getRange(foundIndex, 9).setValue(payload.polaRoster || 'Non-Roster');
       userSheet.getRange(foundIndex, 10).setValue(payload.tglMulaiKerja || '');
       userSheet.getRange(foundIndex, 12).setValue(Number(payload.gajiPokok) || 0);
+      userSheet.getRange(foundIndex, 13).setValue(payload.bpjsKesSetting || 'Tidak Ikut');
+      userSheet.getRange(foundIndex, 14).setValue(Number(payload.bpjsKesNominal) || 0);
+      userSheet.getRange(foundIndex, 15).setValue(payload.bpjsTKSetting || 'Tidak Ikut');
+      userSheet.getRange(foundIndex, 16).setValue(Number(payload.bpjsTKNominal) || 0);
+      userSheet.getRange(foundIndex, 17).setValue(Number(payload.pph21Nominal) || 0);
 
       // Sync SlipGaji records (update ID & Nama Karyawan)
       const slipSheet = ss.getSheetByName('SlipGaji');

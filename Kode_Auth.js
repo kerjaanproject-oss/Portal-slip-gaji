@@ -20,6 +20,21 @@ function ensureUserSheetColumns(userSheet) {
   if (lastCol < 12) {
     userSheet.getRange(1, 12).setValue('Gaji Pokok').setFontWeight('bold').setBackground('#e2e8f0');
   }
+  if (lastCol < 13) {
+    userSheet.getRange(1, 13).setValue('BPJS Kesehatan Setting').setFontWeight('bold').setBackground('#e2e8f0');
+  }
+  if (lastCol < 14) {
+    userSheet.getRange(1, 14).setValue('BPJS Kesehatan Nominal').setFontWeight('bold').setBackground('#e2e8f0');
+  }
+  if (lastCol < 15) {
+    userSheet.getRange(1, 15).setValue('BPJS TK Setting').setFontWeight('bold').setBackground('#e2e8f0');
+  }
+  if (lastCol < 16) {
+    userSheet.getRange(1, 16).setValue('BPJS TK Nominal').setFontWeight('bold').setBackground('#e2e8f0');
+  }
+  if (lastCol < 17) {
+    userSheet.getRange(1, 17).setValue('PPh 21 Nominal').setFontWeight('bold').setBackground('#e2e8f0');
+  }
 }
 
 // --- INITIAL DATABASE SETUP ---

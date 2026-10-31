@@ -384,6 +384,15 @@
           badgeNav.classList.add('d-none');
         }
       }
+      var badgeDash = document.getElementById('badgeDashSPLApproval');
+      if (badgeDash) {
+        if (count > 0) {
+          badgeDash.innerText = count;
+          badgeDash.classList.remove('d-none');
+        } else {
+          badgeDash.classList.add('d-none');
+        }
+      }
     }
 
     function getSPLStatusBadgeHtml(status) {

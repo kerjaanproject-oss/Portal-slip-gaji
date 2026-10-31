@@ -256,6 +256,44 @@
         sel.value = selectedRoster || 'Non-Roster';
       }
 
+      
+      window.onEmpBpjsKesSettingChange = function () {
+        var setVal = document.getElementById('empBpjsKesSetting') ? document.getElementById('empBpjsKesSetting').value : 'Tidak Ikut';
+        var nomEl = document.getElementById('empBpjsKesNominal');
+        if (!nomEl) return;
+        var basic = parseRupiahVal(document.getElementById('empGajiPokok') ? document.getElementById('empGajiPokok').value : 0);
+        if (setVal === 'Kelas 1') {
+          nomEl.value = formatRupiahVal(150000);
+        } else if (setVal === 'Kelas 2') {
+          nomEl.value = formatRupiahVal(100000);
+        } else if (setVal === 'Kelas 3') {
+          nomEl.value = formatRupiahVal(35000);
+        } else if (setVal === 'PPU 1%') {
+          nomEl.value = formatRupiahVal(Math.round(basic * 0.01));
+        } else if (setVal === 'Tidak Ikut') {
+          nomEl.value = 'Rp 0';
+        }
+      };
+
+      window.onEmpBpjsTKSettingChange = function () {
+        var setVal = document.getElementById('empBpjsTKSetting') ? document.getElementById('empBpjsTKSetting').value : 'Tidak Ikut';
+        var nomEl = document.getElementById('empBpjsTKNominal');
+        if (!nomEl) return;
+        var basic = parseRupiahVal(document.getElementById('empGajiPokok') ? document.getElementById('empGajiPokok').value : 0);
+        if (setVal === 'Standar 3%') {
+          nomEl.value = formatRupiahVal(Math.round(basic * 0.03));
+        } else if (setVal === 'Tidak Ikut') {
+          nomEl.value = 'Rp 0';
+        }
+      };
+
+      window.onEmpBasicSalaryInput = function () {
+        var kesSet = document.getElementById('empBpjsKesSetting') ? document.getElementById('empBpjsKesSetting').value : '';
+        if (kesSet === 'PPU 1%') onEmpBpjsKesSettingChange();
+        var tkSet = document.getElementById('empBpjsTKSetting') ? document.getElementById('empBpjsTKSetting').value : '';
+        if (tkSet === 'Standar 3%') onEmpBpjsTKSettingChange();
+      };
+
       window.openModalKaryawan = function (empId) {
         if (!bsModalKaryawan) {
           bsModalKaryawan = new bootstrap.Modal(document.getElementById('modalKaryawan'));
@@ -274,6 +312,16 @@
           document.getElementById('empJabatan').value = item.jabatan;
           var gajiEl = document.getElementById('empGajiPokok');
           if (gajiEl) { gajiEl.value = item.gajiPokok ? formatRupiahVal(item.gajiPokok) : 'Rp 0'; setupRupiahMask(gajiEl); }
+          var kesSetEl = document.getElementById('empBpjsKesSetting');
+          if (kesSetEl) kesSetEl.value = item.bpjsKesSetting || 'Tidak Ikut';
+          var kesNomEl = document.getElementById('empBpjsKesNominal');
+          if (kesNomEl) { kesNomEl.value = item.bpjsKesNominal ? formatRupiahVal(item.bpjsKesNominal) : 'Rp 0'; setupRupiahMask(kesNomEl); }
+          var tkSetEl = document.getElementById('empBpjsTKSetting');
+          if (tkSetEl) tkSetEl.value = item.bpjsTKSetting || 'Tidak Ikut';
+          var tkNomEl = document.getElementById('empBpjsTKNominal');
+          if (tkNomEl) { tkNomEl.value = item.bpjsTKNominal ? formatRupiahVal(item.bpjsTKNominal) : 'Rp 0'; setupRupiahMask(tkNomEl); }
+          var pphNomEl = document.getElementById('empPph21Nominal');
+          if (pphNomEl) { pphNomEl.value = item.pph21Nominal ? formatRupiahVal(item.pph21Nominal) : 'Rp 0'; setupRupiahMask(pphNomEl); }
           document.getElementById('empEmail').value = item.email || '';
           populateEmpDeptSelect(item.dept);
           populateModalRosterSelect(item.polaRoster);
@@ -290,6 +338,16 @@
           document.getElementById('empEmail').value = '';
           var newGajiEl = document.getElementById('empGajiPokok');
           if (newGajiEl) { newGajiEl.value = 'Rp 0'; setupRupiahMask(newGajiEl); }
+          var newKesSetEl = document.getElementById('empBpjsKesSetting');
+          if (newKesSetEl) newKesSetEl.value = 'Tidak Ikut';
+          var newKesNomEl = document.getElementById('empBpjsKesNominal');
+          if (newKesNomEl) { newKesNomEl.value = 'Rp 0'; setupRupiahMask(newKesNomEl); }
+          var newTkSetEl = document.getElementById('empBpjsTKSetting');
+          if (newTkSetEl) newTkSetEl.value = 'Tidak Ikut';
+          var newTkNomEl = document.getElementById('empBpjsTKNominal');
+          if (newTkNomEl) { newTkNomEl.value = 'Rp 0'; setupRupiahMask(newTkNomEl); }
+          var newPphNomEl = document.getElementById('empPph21Nominal');
+          if (newPphNomEl) { newPphNomEl.value = 'Rp 0'; setupRupiahMask(newPphNomEl); }
           populateEmpDeptSelect();
           populateModalRosterSelect('Non-Roster');
           document.getElementById('empTglMulaiKerja').value = '';
@@ -315,7 +373,12 @@
           role: document.getElementById('empRole').value,
           polaRoster: document.getElementById('empPolaRoster').value || 'Non-Roster',
           tglMulaiKerja: document.getElementById('empTglMulaiKerja').value || '',
-          gajiPokok: parseRupiahVal(document.getElementById('empGajiPokok') ? document.getElementById('empGajiPokok').value : 0)
+          gajiPokok: parseRupiahVal(document.getElementById('empGajiPokok') ? document.getElementById('empGajiPokok').value : 0),
+          bpjsKesSetting: document.getElementById('empBpjsKesSetting') ? document.getElementById('empBpjsKesSetting').value : 'Tidak Ikut',
+          bpjsKesNominal: parseRupiahVal(document.getElementById('empBpjsKesNominal') ? document.getElementById('empBpjsKesNominal').value : 0),
+          bpjsTKSetting: document.getElementById('empBpjsTKSetting') ? document.getElementById('empBpjsTKSetting').value : 'Tidak Ikut',
+          bpjsTKNominal: parseRupiahVal(document.getElementById('empBpjsTKNominal') ? document.getElementById('empBpjsTKNominal').value : 0),
+          pph21Nominal: parseRupiahVal(document.getElementById('empPph21Nominal') ? document.getElementById('empPph21Nominal').value : 0)
         };
 
         if (!payload.id) {
