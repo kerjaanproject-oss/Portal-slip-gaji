@@ -4374,7 +4374,7 @@
 
         // Tanda Tangan: HANYA DIBUAT OLEH (Sesuai Permintaan User)
         var signNama = document.getElementById('rekapSignNamaPembuat');
-        if (signNama) signNama.textContent = res.pembuat || 'Staff Payroll / HRD';
+        if (signNama) signNama.textContent = res.pembuat || 'HRD';
 
         var signTanggal = document.getElementById('rekapSignTanggalDoc');
         if (signTanggal) signTanggal.textContent = (res.generatedAt || safeFormatDateDMY(new Date()));
@@ -4638,8 +4638,8 @@
         '    <td class="print-sig-col">' +
         '      <div style="font-size: 7.5pt; color: #475569; margin-bottom: 2px;">Dibuat Oleh,</div>' +
         '      <div class="print-sig-space"></div>' +
-        '      <div class="print-sig-name">' + escapeHTML(res.pembuat || 'Staff Payroll / HRD') + '</div>' +
-        '      <div class="print-sig-role">Staff Payroll &amp; HRD</div>' +
+        '      <div class="print-sig-name">' + escapeHTML(res.pembuat || 'HRD') + '</div>' +
+        '      <div class="print-sig-role">HRD</div>' +
         '      <div style="font-size: 6.5pt; color: #94a3b8; margin-top: 2px;">' + escapeHTML(tglCetak) + '</div>' +
         '    </td>' +
         '  </tr></table>' +
@@ -4721,8 +4721,8 @@
       aoaData.push(['GRAND TOTAL TRANSFER DANA', '', '', '', '', '', '', '', Number(res.grandTotalTHP) || 0]);
       aoaData.push([]);
       aoaData.push(['', '', '', '', '', '', 'Dibuat Oleh:', '', '']);
-      aoaData.push(['', '', '', '', '', '', res.pembuat || 'Staff Payroll / HRD', '', '']);
-      aoaData.push(['', '', '', '', '', '', 'Staff Payroll & HRD', '', '']);
+      aoaData.push(['', '', '', '', '', '', res.pembuat || 'HRD', '', '']);
+      aoaData.push(['', '', '', '', '', '', 'HRD', '', '']);
 
       var ws = XLSX.utils.aoa_to_sheet(aoaData);
 
