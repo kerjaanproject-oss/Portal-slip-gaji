@@ -209,10 +209,14 @@
           }
 
           var tr = document.createElement('tr');
+          var bankInfoHtml = (k.namaBank && k.noRekening)
+            ? '<br><small class="text-primary extra-small font-monospace"><i class="bi bi-bank me-1"></i>' + escapeHTML(k.namaBank) + ': ' + escapeHTML(k.noRekening) + '</small>'
+            : '<br><small class="text-muted extra-small fst-italic">Rek: -</small>';
+
           tr.innerHTML = '<td class="fw-bold text-dark">' + escapeHTML(k.id) + '</td>' +
             '<td class="fw-bold">' + escapeHTML(k.name) + (k.email ? '<br><small class="text-muted fw-normal"><i class="bi bi-envelope me-1"></i>' + escapeHTML(k.email) + '</small>' : '') + '</td>' +
             '<td>' + escapeHTML(k.jabatan) + (k.gajiPokok ? '<br><small class="text-success fw-semibold"><i class="bi bi-wallet2 me-1"></i>' + formatRupiahVal(k.gajiPokok) + '</small>' : '<br><small class="text-muted extra-small">Basic: -</small>') + '</td>' +
-            '<td>' + escapeHTML(k.dept) + '</td>' +
+            '<td>' + escapeHTML(k.dept) + bankInfoHtml + '</td>' +
             '<td><span class="badge ' + (k.role === 'Admin' ? 'bg-danger' : 'bg-info') + '">' + escapeHTML(k.role) + '</span></td>' +
             '<td>' + rosterBadge + '</td>' +
             '<td class="text-center text-nowrap"><div class="action-group">' +
@@ -322,6 +326,12 @@
           if (tkNomEl) { tkNomEl.value = item.bpjsTKNominal ? formatRupiahVal(item.bpjsTKNominal) : 'Rp 0'; setupRupiahMask(tkNomEl); }
           var pphNomEl = document.getElementById('empPph21Nominal');
           if (pphNomEl) { pphNomEl.value = item.pph21Nominal ? formatRupiahVal(item.pph21Nominal) : 'Rp 0'; setupRupiahMask(pphNomEl); }
+          var bankEl = document.getElementById('empNamaBank');
+          if (bankEl) bankEl.value = item.namaBank || '';
+          var rekEl = document.getElementById('empNoRekening');
+          if (rekEl) rekEl.value = item.noRekening || '';
+          var anEl = document.getElementById('empAtasNamaRekening');
+          if (anEl) anEl.value = item.atasNamaRekening || '';
           document.getElementById('empEmail').value = item.email || '';
           populateEmpDeptSelect(item.dept);
           populateModalRosterSelect(item.polaRoster);
@@ -348,6 +358,12 @@
           if (newTkNomEl) { newTkNomEl.value = 'Rp 0'; setupRupiahMask(newTkNomEl); }
           var newPphNomEl = document.getElementById('empPph21Nominal');
           if (newPphNomEl) { newPphNomEl.value = 'Rp 0'; setupRupiahMask(newPphNomEl); }
+          var newBankEl = document.getElementById('empNamaBank');
+          if (newBankEl) newBankEl.value = '';
+          var newRekEl = document.getElementById('empNoRekening');
+          if (newRekEl) newRekEl.value = '';
+          var newAnEl = document.getElementById('empAtasNamaRekening');
+          if (newAnEl) newAnEl.value = '';
           populateEmpDeptSelect();
           populateModalRosterSelect('Non-Roster');
           document.getElementById('empTglMulaiKerja').value = '';
@@ -378,7 +394,10 @@
           bpjsKesNominal: parseRupiahVal(document.getElementById('empBpjsKesNominal') ? document.getElementById('empBpjsKesNominal').value : 0),
           bpjsTKSetting: document.getElementById('empBpjsTKSetting') ? document.getElementById('empBpjsTKSetting').value : 'Tidak Ikut',
           bpjsTKNominal: parseRupiahVal(document.getElementById('empBpjsTKNominal') ? document.getElementById('empBpjsTKNominal').value : 0),
-          pph21Nominal: parseRupiahVal(document.getElementById('empPph21Nominal') ? document.getElementById('empPph21Nominal').value : 0)
+          pph21Nominal: parseRupiahVal(document.getElementById('empPph21Nominal') ? document.getElementById('empPph21Nominal').value : 0),
+          namaBank: (document.getElementById('empNamaBank') ? document.getElementById('empNamaBank').value.trim() : ''),
+          noRekening: (document.getElementById('empNoRekening') ? document.getElementById('empNoRekening').value.trim() : ''),
+          atasNamaRekening: (document.getElementById('empAtasNamaRekening') ? document.getElementById('empAtasNamaRekening').value.trim() : '')
         };
 
         if (!payload.id) {

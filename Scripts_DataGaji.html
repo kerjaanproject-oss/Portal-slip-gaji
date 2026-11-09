@@ -3212,12 +3212,19 @@
     // HALAMAN RINCIAN GAJI SAYA (KHUSUS KARYAWAN - AKSES HANYA LIHAT / CETAK PDF)
     // =========================================================================
     var cachedGajiSayaData = null;
+    var currentPageGajiSaya = 1;
+    var pageSizeGajiSaya = 10;
 
     window.initGajiSayaPage = function () {
       var tbody = document.getElementById('tableBodyGajiSaya');
       if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2 text-primary" role="status"></span>Mengambil rincian gaji harian Anda...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2 text-primary" role="status"></span>Mengambil rincian gaji harian Anda...</td></tr>';
       }
+
+      var infoEl = document.getElementById('gajiSayaPaginationInfo');
+      var listEl = document.getElementById('gajiSayaPaginationList');
+      if (infoEl) infoEl.textContent = 'Memuat rincian kerja...';
+      if (listEl) listEl.innerHTML = '';
 
       var token = (typeof Auth !== 'undefined' && Auth.getToken) ? Auth.getToken() : null;
       if (!token) return;
@@ -3234,16 +3241,21 @@
             if (!currentSelectedPeriodId) currentSelectedPeriodId = res.period.id;
           }
           populatePeriodeDropdowns(res.periods, res.period);
+          currentPageGajiSaya = 1;
           renderGajiSayaPage(res);
         } else {
           if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">' + escapeHTML(res.message || 'Gagal memuat rincian gaji.') + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">' + escapeHTML(res.message || 'Gagal memuat rincian gaji.') + '</td></tr>';
           }
+          if (infoEl) infoEl.textContent = 'Gagal memuat data';
+          if (listEl) listEl.innerHTML = '';
         }
       }).catch(function (err) {
         if (tbody) {
-          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Gagal memproses data: ' + escapeHTML(err.toString()) + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Gagal memproses data: ' + escapeHTML(err.toString()) + '</td></tr>';
         }
+        if (infoEl) infoEl.textContent = 'Gagal memuat data';
+        if (listEl) listEl.innerHTML = '';
       });
     };
 
@@ -3253,16 +3265,18 @@
       var logs = Array.isArray(res.list) ? res.list : [];
       var empSummary = (Array.isArray(res.employees) && res.employees.length > 0) ? res.employees[0] : null;
 
-      // Hitung total akumulasi
+      // Hitung total akumulasi (Termasuk Lembur SPL)
       var basic = empSummary ? (Number(empSummary.basic) || 0) : 0;
       var totalJamOt = empSummary ? (Number(empSummary.totalJamOt) || 0) : 0;
       var totalNominalOt = empSummary ? (Number(empSummary.totalNominalOt) || 0) : 0;
+      var totalJamSPL = empSummary ? (Number(empSummary.totalJamSPL) || 0) : 0;
+      var totalNominalSPL = empSummary ? (Number(empSummary.totalNominalSPL) || 0) : 0;
       var totalRitase = empSummary ? (Number(empSummary.totalRitase) || 0) : 0;
       var totalNominalRit = empSummary ? (Number(empSummary.totalNominalRit) || 0) : 0;
       var totalTunjangan = empSummary ? (Number(empSummary.totalTunjangan) || 0) : 0;
       var gTotPot = empSummary ? (Number(empSummary.totalPotongan) || 0) : 0;
-      var gTHP = empSummary ? (Number(empSummary.takeHomePay) || Math.max(0, (basic + totalNominalOt + totalNominalRit + totalTunjangan) - gTotPot)) : Math.max(0, basic + totalNominalOt + totalNominalRit + totalTunjangan);
-      var grandTotal = empSummary ? (Number(empSummary.grandTotal) || (basic + totalNominalOt + totalNominalRit + totalTunjangan)) : 0;
+      var gTHP = empSummary ? (Number(empSummary.takeHomePay) || Math.max(0, (basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan) - gTotPot)) : Math.max(0, basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan);
+      var grandTotal = empSummary ? (Number(empSummary.grandTotal) || (basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan)) : 0;
       var daysCount = empSummary ? (Number(empSummary.daysCount) || logs.length) : logs.length;
 
       // Fallback jika empSummary belum diisi
@@ -3272,13 +3286,17 @@
         logs.forEach(function (l) {
           totalJamOt += Number(l.jamOvertime || 0);
           totalNominalOt += Number(l.totalOvertime || (l.jamOvertime * l.tarifOvertime) || 0);
+          var jSPL = Number(l.jamSPL || 0);
+          var subSPL = Number(l.totalSPL || (jSPL * Number(l.tarifSPL || 0)));
+          totalJamSPL += jSPL;
+          totalNominalSPL += subSPL;
           totalRitase += Number(l.ritase || 0);
           totalNominalRit += Number(l.totalRitase || (l.ritase * l.tarifRitase) || 0);
           totalTunjangan += Number(l.tunjanganHarian || 0);
           if (l.tanggal) uniqueDates.add(String(l.tanggal).trim());
         });
         daysCount = uniqueDates.size || logs.length;
-        grandTotal = basic + totalNominalOt + totalNominalRit + totalTunjangan;
+        grandTotal = basic + totalNominalOt + totalNominalSPL + totalNominalRit + totalTunjangan;
       }
 
       // Update elemen UI kartu ringkasan
@@ -3286,6 +3304,8 @@
       var elEmpInfo = document.getElementById('gajiSayaEmpInfo');
       var elTotOt = document.getElementById('gajiSayaTotOt');
       var elJamOt = document.getElementById('gajiSayaJamOt');
+      var elTotSPL = document.getElementById('gajiSayaTotSPL');
+      var elJamSPL = document.getElementById('gajiSayaJamSPL');
       var elTotRit = document.getElementById('gajiSayaTotRit');
       var elJmlRit = document.getElementById('gajiSayaJmlRit');
       var elTotTunj = document.getElementById('gajiSayaTotTunj');
@@ -3296,7 +3316,9 @@
       if (elPokok) elPokok.textContent = formatRupiahVal(basic);
       if (elEmpInfo) elEmpInfo.textContent = (empSummary ? (empSummary.deptJabatan || empSummary.dept || '') : (user.dept || '')) || 'Gaji Pokok';
       if (elTotOt) elTotOt.textContent = formatRupiahVal(totalNominalOt);
-      if (elJamOt) elJamOt.textContent = totalJamOt + ' Jam Overtime';
+      if (elJamOt) elJamOt.textContent = totalJamOt + ' Jam Lembur';
+      if (elTotSPL) elTotSPL.textContent = formatRupiahVal(totalNominalSPL);
+      if (elJamSPL) elJamSPL.textContent = totalJamSPL + ' Jam SPL';
       if (elTotRit) elTotRit.textContent = formatRupiahVal(totalNominalRit);
       if (elJmlRit) elJmlRit.textContent = totalRitase + ' Ritase';
       if (elTotTunj) elTotTunj.textContent = formatRupiahVal(totalTunjangan);
@@ -3304,26 +3326,58 @@
       if (elHariKerja) elHariKerja.textContent = daysCount + ' Hari Kerja';
       if (elBadgeCount) elBadgeCount.textContent = logs.length + ' Catatan';
 
-      // Render tabel rincian harian
+      // Render tabel rincian harian dengan pagination
+      renderGajiSayaTablePage();
+    };
+
+    // Render Tabel Rincian Gaji Saya dengan Pagination
+    function renderGajiSayaTablePage() {
+      var res = cachedGajiSayaData || { list: [] };
+      var logs = Array.isArray(res.list) ? res.list : [];
+      var totalItems = logs.length;
+
       var tbody = document.getElementById('tableBodyGajiSaya');
       if (!tbody) return;
 
-      if (logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5"><i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>Belum ada catatan rincian kerja/gaji harian untuk periode ini.</td></tr>';
+      var infoEl = document.getElementById('gajiSayaPaginationInfo');
+      var listEl = document.getElementById('gajiSayaPaginationList');
+
+      if (totalItems === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-5"><i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>Belum ada catatan rincian kerja/gaji harian untuk periode ini.</td></tr>';
+        if (infoEl) infoEl.textContent = 'Menampilkan 0 dari 0 Catatan';
+        if (listEl) listEl.innerHTML = '';
         return;
       }
 
+      var effPageSize = (pageSizeGajiSaya === 'ALL') ? totalItems : parseInt(pageSizeGajiSaya, 10);
+      var totalPages = Math.ceil(totalItems / effPageSize) || 1;
+
+      if (currentPageGajiSaya > totalPages) currentPageGajiSaya = totalPages;
+      if (currentPageGajiSaya < 1) currentPageGajiSaya = 1;
+
+      var startIndex = (currentPageGajiSaya - 1) * effPageSize;
+      var endIndex = (pageSizeGajiSaya === 'ALL') ? totalItems : Math.min(startIndex + effPageSize, totalItems);
+      var pageLogs = logs.slice(startIndex, endIndex);
+
       tbody.innerHTML = '';
-      logs.forEach(function (log, idx) {
+      pageLogs.forEach(function (log, idx) {
+        var rowNumber = startIndex + idx + 1;
         var jamOt = Number(log.jamOvertime) || 0;
         var totOt = Number(log.totalOvertime) || 0;
+        var jamSPL = Number(log.jamSPL) || 0;
+        var totSPL = Number(log.totalSPL) || (jamSPL * Number(log.tarifSPL || 0));
         var rit = Number(log.ritase) || 0;
         var totRit = Number(log.totalRitase) || 0;
         var tunj = Number(log.tunjanganHarian) || 0;
-        var totalHariItu = Number(log.totalGaji) || (totOt + totRit + tunj);
+        var totalHariItu = Number(log.totalGaji) || (totOt + totSPL + totRit + tunj);
 
         var otStr = jamOt > 0
           ? '<div class="fw-bold text-dark">' + jamOt + ' Jam</div><small class="text-muted extra-small">' + formatRupiahVal(totOt) + '</small>'
+          : '<span class="text-muted extra-small">-</span>';
+
+        var splBadge = log.splId ? ' <span class="badge bg-warning-subtle text-dark border border-warning-subtle extra-small ms-1">' + escapeHTML(log.splId) + '</span>' : '';
+        var splStr = jamSPL > 0
+          ? '<div class="fw-bold text-warning">' + jamSPL + ' Jam' + splBadge + '</div><small class="text-muted extra-small">' + formatRupiahVal(totSPL) + '</small>'
           : '<span class="text-muted extra-small">-</span>';
 
         var ritStr = rit > 0
@@ -3336,9 +3390,10 @@
 
         var tr = document.createElement('tr');
         tr.innerHTML =
-          '<td class="text-center text-muted extra-small text-nowrap">' + (idx + 1) + '</td>' +
+          '<td class="text-center text-muted extra-small text-nowrap">' + rowNumber + '</td>' +
           '<td class="fw-bold text-nowrap"><i class="bi bi-calendar-event me-1.5 text-primary"></i>' + escapeHTML(formatDateWithDay(log.tanggal)) + '</td>' +
           '<td class="text-end text-nowrap">' + otStr + '</td>' +
+          '<td class="text-end text-nowrap">' + splStr + '</td>' +
           '<td class="text-end text-nowrap">' + ritStr + '</td>' +
           '<td class="text-end text-nowrap">' + tunjStr + '</td>' +
           '<td class="text-end text-nowrap"><span class="badge bg-success text-white px-2.5 py-1.5" style="font-size: 0.85rem; font-weight: 700; box-shadow: 0 1px 2px rgba(16,185,129,0.25);">' + formatRupiahVal(totalHariItu) + '</span></td>' +
@@ -3346,6 +3401,78 @@
 
         tbody.appendChild(tr);
       });
+
+      // Update Label Info Pagination
+      if (infoEl) {
+        infoEl.textContent = 'Menampilkan ' + (startIndex + 1) + ' - ' + endIndex + ' dari ' + totalItems + ' Catatan';
+      }
+
+      // Render Tombol Pagination
+      if (listEl) {
+        if (pageSizeGajiSaya === 'ALL' || totalPages <= 1) {
+          listEl.innerHTML = '';
+          return;
+        }
+
+        var navHtml = '';
+
+        // Tombol Sebelumnya
+        if (currentPageGajiSaya === 1) {
+          navHtml += '<li class="page-item disabled"><span class="page-link py-1 px-2 extra-small"><i class="bi bi-chevron-left"></i></span></li>';
+        } else {
+          navHtml += '<li class="page-item"><a class="page-link py-1 px-2 extra-small" href="javascript:void(0)" onclick="setGajiSayaPage(' + (currentPageGajiSaya - 1) + ')"><i class="bi bi-chevron-left"></i></a></li>';
+        }
+
+        // Angka Halaman
+        var maxButtons = 5;
+        var startPage = Math.max(1, currentPageGajiSaya - 2);
+        var endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        if (endPage - startPage < maxButtons - 1) {
+          startPage = Math.max(1, endPage - maxButtons + 1);
+        }
+
+        if (startPage > 1) {
+          navHtml += '<li class="page-item"><a class="page-link py-1 px-2.5 extra-small" href="javascript:void(0)" onclick="setGajiSayaPage(1)">1</a></li>';
+          if (startPage > 2) {
+            navHtml += '<li class="page-item disabled"><span class="page-link py-1 px-1 extra-small">...</span></li>';
+          }
+        }
+
+        for (var p = startPage; p <= endPage; p++) {
+          if (p === currentPageGajiSaya) {
+            navHtml += '<li class="page-item active"><span class="page-link py-1 px-2.5 extra-small fw-bold">' + p + '</span></li>';
+          } else {
+            navHtml += '<li class="page-item"><a class="page-link py-1 px-2.5 extra-small" href="javascript:void(0)" onclick="setGajiSayaPage(' + p + ')">' + p + '</a></li>';
+          }
+        }
+
+        if (endPage < totalPages) {
+          if (endPage < totalPages - 1) {
+            navHtml += '<li class="page-item disabled"><span class="page-link py-1 px-1 extra-small">...</span></li>';
+          }
+          navHtml += '<li class="page-item"><a class="page-link py-1 px-2.5 extra-small" href="javascript:void(0)" onclick="setGajiSayaPage(' + totalPages + ')">' + totalPages + '</a></li>';
+        }
+
+        // Tombol Selanjutnya
+        if (currentPageGajiSaya === totalPages) {
+          navHtml += '<li class="page-item disabled"><span class="page-link py-1 px-2 extra-small"><i class="bi bi-chevron-right"></i></span></li>';
+        } else {
+          navHtml += '<li class="page-item"><a class="page-link py-1 px-2 extra-small" href="javascript:void(0)" onclick="setGajiSayaPage(' + (currentPageGajiSaya + 1) + ')"><i class="bi bi-chevron-right"></i></a></li>';
+        }
+
+        listEl.innerHTML = navHtml;
+      }
+    }
+
+    window.setGajiSayaPage = function (page) {
+      currentPageGajiSaya = page;
+      renderGajiSayaTablePage();
+    };
+
+    window.changePageSizeGajiSaya = function (size) {
+      pageSizeGajiSaya = (size === 'ALL') ? 'ALL' : parseInt(size, 10);
+      currentPageGajiSaya = 1;
+      renderGajiSayaTablePage();
     };
 
     window.printRincianGajiSayaDoc = function () {
@@ -4094,6 +4221,540 @@
       if (currentRincianEmpId) {
         openModalPotonganGaji(currentRincianEmpId);
       }
+    };
+
+    // ==========================================================================
+    // LAPORAN REKAPITULASI DATA TRANSFER GAJI BERSIH (THP) UNTUK ATASAN / BANK
+    // ==========================================================================
+    var bsModalLaporanRekapPayroll = null;
+    var cachedRekapPayrollData = null;
+    var currentPageRekapPayroll = 1;
+    var pageSizeRekapPayroll = 10;
+
+    window.openModalLaporanRekapPayroll = function () {
+      var modalEl = document.getElementById('modalLaporanRekapPayroll');
+      if (!modalEl) return;
+
+      if (!bsModalLaporanRekapPayroll) {
+        bsModalLaporanRekapPayroll = new bootstrap.Modal(modalEl);
+      }
+
+      // Populate pilihan periode
+      var selPeriode = document.getElementById('selectRekapPayrollPeriode');
+      if (selPeriode) {
+        selPeriode.innerHTML = '';
+        var pList = cachedPeriodeList || [];
+        if (pList.length === 0 && currentActivePeriodInfo) {
+          pList = [currentActivePeriodInfo];
+        }
+
+        if (pList.length === 0) {
+          var opt = document.createElement('option');
+          opt.value = 'AKTIF';
+          opt.textContent = 'Periode Aktif';
+          selPeriode.appendChild(opt);
+        } else {
+          pList.forEach(function (p) {
+            var opt = document.createElement('option');
+            opt.value = p.id;
+            var label = (p.nama || p.name || p.id);
+            if (p.isActive) label += ' (Aktif)';
+            opt.textContent = label;
+            if (p.id === currentSelectedPeriodId || (p.isActive && !currentSelectedPeriodId)) {
+              opt.selected = true;
+            }
+            selPeriode.appendChild(opt);
+          });
+        }
+      }
+
+      // Populate pilihan departemen
+      var selDept = document.getElementById('selectRekapPayrollDept');
+      if (selDept) {
+        var currentFilterVal = document.getElementById('filterDataGajiDept') ? document.getElementById('filterDataGajiDept').value : 'SEMUA';
+        selDept.innerHTML = '<option value="SEMUA">-- Semua Departemen --</option>';
+
+        var depts = [];
+        if (Array.isArray(dbDepartemen)) {
+          dbDepartemen.forEach(function (d) {
+            if (d.name && !depts.includes(d.name)) depts.push(d.name);
+          });
+        }
+        if (Array.isArray(dbKaryawan)) {
+          dbKaryawan.forEach(function (k) {
+            var kd = k.dept || k.departemen;
+            if (kd && !depts.includes(kd)) depts.push(kd);
+          });
+        }
+        depts.sort();
+
+        depts.forEach(function (dName) {
+          var opt = document.createElement('option');
+          opt.value = dName;
+          opt.textContent = dName;
+          if (dName === currentFilterVal) opt.selected = true;
+          selDept.appendChild(opt);
+        });
+      }
+
+      bsModalLaporanRekapPayroll.show();
+      loadDataLaporanRekapPayroll();
+    };
+
+    window.loadDataLaporanRekapPayroll = function () {
+      var selPeriode = document.getElementById('selectRekapPayrollPeriode');
+      var selDept = document.getElementById('selectRekapPayrollDept');
+      var idPeriode = selPeriode ? selPeriode.value : 'AKTIF';
+      var dept = selDept ? selDept.value : 'SEMUA';
+
+      var tbody = document.getElementById('tableBodyRekapPayroll');
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat rekapitulasi data transfer gaji...</td></tr>';
+      }
+
+      var infoEl = document.getElementById('rekapPaginationInfo');
+      var listEl = document.getElementById('rekapPaginationList');
+      if (infoEl) infoEl.textContent = 'Memuat data...';
+      if (listEl) listEl.innerHTML = '';
+
+      gasRun('getLaporanRekapPayroll', Auth.getToken(), idPeriode, dept).then(function (res) {
+        if (handleSessionExpired(res)) return;
+
+        if (!res || !res.success) {
+          if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-1.5"></i>' + escapeHTML(res ? res.message : 'Gagal memuat rekapitulasi gaji.') + '</td></tr>';
+          }
+          if (infoEl) infoEl.textContent = 'Gagal memuat data';
+          if (listEl) listEl.innerHTML = '';
+          return;
+        }
+
+        cachedRekapPayrollData = res;
+        currentPageRekapPayroll = 1;
+
+        // Metadata Header Dokumen
+        var metaTgl = document.getElementById('rekapPrintMetaTanggal');
+        if (metaTgl) metaTgl.textContent = res.generatedAt || safeFormatDateDMY(new Date());
+
+        var metaPeriode = document.getElementById('rekapPrintMetaPeriode');
+        if (metaPeriode) {
+          var pNama = res.periode ? (res.periode.nama || res.periode.name || res.periode.id) : '-';
+          if (res.periode && res.periode.startDate && res.periode.endDate) {
+            pNama += ' (' + safeFormatDateDMY(res.periode.startDate) + ' s/d ' + safeFormatDateDMY(res.periode.endDate) + ')';
+          }
+          metaPeriode.textContent = pNama;
+        }
+
+        var metaDept = document.getElementById('rekapPrintMetaDept');
+        if (metaDept) {
+          metaDept.textContent = (res.dept === 'SEMUA' || !res.dept) ? 'Semua Departemen' : res.dept;
+        }
+
+        var metaStatus = document.getElementById('rekapPrintMetaStatus');
+        if (metaStatus) {
+          var pStatus = res.periode ? (res.periode.status || (res.periode.isActive ? 'Aktif (Berjalan)' : 'Tutup Buku')) : '-';
+          metaStatus.textContent = pStatus;
+        }
+
+        var mobileStatus = document.getElementById('rekapKpiMobileStatus');
+        if (mobileStatus) {
+          var pStatusMob = res.periode ? (res.periode.status || (res.periode.isActive ? 'Aktif' : 'Tutup Buku')) : '-';
+          mobileStatus.textContent = pStatusMob;
+        }
+
+        // Mini KPI Summary
+        var kpiTotal = document.getElementById('rekapKpiTotalKaryawan');
+        if (kpiTotal) kpiTotal.textContent = (res.totalKaryawan || (res.items ? res.items.length : 0)) + ' Orang';
+
+        var kpiGrand = document.getElementById('rekapKpiGrandTotal');
+        if (kpiGrand) kpiGrand.textContent = formatRupiahVal(res.grandTotalTHP || 0);
+
+        var footGrand = document.getElementById('rekapTableFooterGrandTotal');
+        if (footGrand) footGrand.textContent = formatRupiahVal(res.grandTotalTHP || 0);
+
+        // Tanda Tangan: HANYA DIBUAT OLEH (Sesuai Permintaan User)
+        var signNama = document.getElementById('rekapSignNamaPembuat');
+        if (signNama) signNama.textContent = res.pembuat || 'Staff Payroll / HRD';
+
+        var signTanggal = document.getElementById('rekapSignTanggalDoc');
+        if (signTanggal) signTanggal.textContent = (res.generatedAt || safeFormatDateDMY(new Date()));
+
+        // Render Halaman Pertama Tabel Rekapitulasi
+        renderRekapPayrollTablePage();
+
+      }).catch(function (err) {
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-1.5"></i>Error: ' + escapeHTML(err.toString()) + '</td></tr>';
+        }
+        if (infoEl) infoEl.textContent = 'Gagal memuat data';
+        if (listEl) listEl.innerHTML = '';
+      });
+    };
+
+    // Render Tabel Rekapitulasi Berdasarkan Pagination
+    function renderRekapPayrollTablePage() {
+      var tbody = document.getElementById('tableBodyRekapPayroll');
+      if (!tbody) return;
+
+      var items = (cachedRekapPayrollData && cachedRekapPayrollData.items) ? cachedRekapPayrollData.items : [];
+      var totalItems = items.length;
+
+      var infoEl = document.getElementById('rekapPaginationInfo');
+      var listEl = document.getElementById('rekapPaginationList');
+
+      if (totalItems === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-inbox me-1.5"></i>Tidak ada data gaji karyawan untuk periode dan filter departemen ini.</td></tr>';
+        if (infoEl) infoEl.textContent = 'Menampilkan 0 dari 0 Karyawan';
+        if (listEl) listEl.innerHTML = '';
+        return;
+      }
+
+      var effPageSize = (pageSizeRekapPayroll === 'ALL') ? totalItems : parseInt(pageSizeRekapPayroll, 10);
+      var totalPages = Math.ceil(totalItems / effPageSize) || 1;
+
+      if (currentPageRekapPayroll > totalPages) currentPageRekapPayroll = totalPages;
+      if (currentPageRekapPayroll < 1) currentPageRekapPayroll = 1;
+
+      var startIndex = (currentPageRekapPayroll - 1) * effPageSize;
+      var endIndex = (pageSizeRekapPayroll === 'ALL') ? totalItems : Math.min(startIndex + effPageSize, totalItems);
+      var pageItems = items.slice(startIndex, endIndex);
+
+      var htmlRows = '';
+      pageItems.forEach(function (item, idx) {
+        var rowNumber = startIndex + idx + 1;
+        var bankDisplay = item.namaBank && item.namaBank !== '-' ? escapeHTML(item.namaBank) : '<span class="text-muted">-</span>';
+        var rekDisplay = item.noRekening && item.noRekening !== '-' ? escapeHTML(item.noRekening) : '<span class="text-muted">-</span>';
+        var anDisplay = item.atasNamaRekening && item.atasNamaRekening !== '-' ? escapeHTML(item.atasNamaRekening) : escapeHTML(item.name || '-');
+
+        htmlRows += '<tr>' +
+          '<td class="text-center text-muted">' + rowNumber + '</td>' +
+          '<td class="text-center fw-semibold text-secondary font-monospace">' + escapeHTML(item.id || '-') + '</td>' +
+          '<td class="fw-bold text-dark">' + escapeHTML(item.name || '-') + '</td>' +
+          '<td><span class="badge bg-light text-dark border">' + escapeHTML(item.dept || '-') + '</span></td>' +
+          '<td class="text-muted">' + escapeHTML(item.jabatan || '-') + '</td>' +
+          '<td class="text-center fw-bold text-dark">' + bankDisplay + '</td>' +
+          '<td class="text-center font-monospace fw-bold text-primary">' + rekDisplay + '</td>' +
+          '<td>' + anDisplay + '</td>' +
+          '<td class="text-end fw-bold text-dark font-monospace" style="font-size: 0.85rem;">' + formatRupiahVal(item.thp || 0) + '</td>' +
+          '</tr>';
+      });
+      tbody.innerHTML = htmlRows;
+
+      // Update Label Info Pagination
+      if (infoEl) {
+        infoEl.textContent = 'Menampilkan ' + (startIndex + 1) + ' - ' + endIndex + ' dari ' + totalItems + ' Karyawan';
+      }
+
+      // Render Tombol Pagination
+      if (listEl) {
+        if (pageSizeRekapPayroll === 'ALL' || totalPages <= 1) {
+          listEl.innerHTML = '';
+          return;
+        }
+
+        var navHtml = '';
+
+        // Tombol Sebelumnya
+        if (currentPageRekapPayroll === 1) {
+          navHtml += '<li class="page-item disabled"><span class="page-link py-1 px-2 extra-small"><i class="bi bi-chevron-left"></i></span></li>';
+        } else {
+          navHtml += '<li class="page-item"><a class="page-link py-1 px-2 extra-small" href="javascript:void(0)" onclick="setRekapPayrollPage(' + (currentPageRekapPayroll - 1) + ')"><i class="bi bi-chevron-left"></i></a></li>';
+        }
+
+        // Angka Halaman (Sliding Window)
+        var maxButtons = 5;
+        var startPage = Math.max(1, currentPageRekapPayroll - 2);
+        var endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        if (endPage - startPage < maxButtons - 1) {
+          startPage = Math.max(1, endPage - maxButtons + 1);
+        }
+
+        if (startPage > 1) {
+          navHtml += '<li class="page-item"><a class="page-link py-1 px-2.5 extra-small" href="javascript:void(0)" onclick="setRekapPayrollPage(1)">1</a></li>';
+          if (startPage > 2) {
+            navHtml += '<li class="page-item disabled"><span class="page-link py-1 px-1 extra-small">...</span></li>';
+          }
+        }
+
+        for (var p = startPage; p <= endPage; p++) {
+          if (p === currentPageRekapPayroll) {
+            navHtml += '<li class="page-item active"><span class="page-link py-1 px-2.5 extra-small fw-bold">' + p + '</span></li>';
+          } else {
+            navHtml += '<li class="page-item"><a class="page-link py-1 px-2.5 extra-small" href="javascript:void(0)" onclick="setRekapPayrollPage(' + p + ')">' + p + '</a></li>';
+          }
+        }
+
+        if (endPage < totalPages) {
+          if (endPage < totalPages - 1) {
+            navHtml += '<li class="page-item disabled"><span class="page-link py-1 px-1 extra-small">...</span></li>';
+          }
+          navHtml += '<li class="page-item"><a class="page-link py-1 px-2.5 extra-small" href="javascript:void(0)" onclick="setRekapPayrollPage(' + totalPages + ')">' + totalPages + '</a></li>';
+        }
+
+        // Tombol Selanjutnya
+        if (currentPageRekapPayroll === totalPages) {
+          navHtml += '<li class="page-item disabled"><span class="page-link py-1 px-2 extra-small"><i class="bi bi-chevron-right"></i></span></li>';
+        } else {
+          navHtml += '<li class="page-item"><a class="page-link py-1 px-2 extra-small" href="javascript:void(0)" onclick="setRekapPayrollPage(' + (currentPageRekapPayroll + 1) + ')"><i class="bi bi-chevron-right"></i></a></li>';
+        }
+
+        listEl.innerHTML = navHtml;
+      }
+    }
+
+    window.setRekapPayrollPage = function (page) {
+      currentPageRekapPayroll = page;
+      renderRekapPayrollTablePage();
+    };
+
+    window.changePageSizeRekapPayroll = function (size) {
+      pageSizeRekapPayroll = (size === 'ALL') ? 'ALL' : parseInt(size, 10);
+      currentPageRekapPayroll = 1;
+      renderRekapPayrollTablePage();
+    };
+
+
+    // Cetak Dokumen Rekapitulasi Gaji (A4 Lanskap)
+    window.printRekapPayrollDocument = function () {
+      if (!cachedRekapPayrollData || !cachedRekapPayrollData.items || cachedRekapPayrollData.items.length === 0) {
+        Swal.fire('Peringatan', 'Tidak ada data rekap gaji yang dapat dicetak.', 'warning');
+        return;
+      }
+
+      var res = cachedRekapPayrollData;
+      var pNama = res.periode ? (res.periode.nama || res.periode.name || res.periode.id) : '-';
+      if (res.periode && res.periode.startDate && res.periode.endDate) {
+        pNama += ' (' + safeFormatDateDMY(res.periode.startDate) + ' s/d ' + safeFormatDateDMY(res.periode.endDate) + ')';
+      }
+      var deptName = (res.dept === 'SEMUA' || !res.dept) ? 'Semua Departemen' : res.dept;
+      var tglCetak = res.generatedAt || safeFormatDateDMY(new Date());
+
+      var cssPrint = '@page { size: A4 landscape; margin: 10mm 12mm; }' +
+        'body { font-family: "Plus Jakarta Sans", Arial, sans-serif; font-size: 8pt; color: #0f172a; margin: 0; padding: 0; background: #fff; }' +
+        '.print-container { width: 100%; max-width: 100%; }' +
+        '.print-kop { width: 100%; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px; }' +
+        '.print-kop table { width: 100%; border-collapse: collapse; }' +
+        '.print-kop-title { font-size: 13pt; font-weight: 800; color: #0f172a; letter-spacing: 0.5px; }' +
+        '.print-kop-sub { font-size: 8pt; color: #475569; text-transform: uppercase; font-weight: 600; }' +
+        '.print-doc-badge { background: #0f172a; color: #fff; padding: 3px 8px; font-size: 7.5pt; font-weight: 700; border-radius: 3px; display: inline-block; text-transform: uppercase; }' +
+        '.print-title-box { text-align: center; margin-bottom: 12px; }' +
+        '.print-title-box h3 { font-size: 11pt; font-weight: 800; text-transform: uppercase; margin: 0 0 4px 0; letter-spacing: 0.5px; }' +
+        '.print-meta-line { font-size: 7.5pt; color: #475569; }' +
+        '.print-meta-line strong { color: #0f172a; }' +
+        '.print-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 7.5pt; }' +
+        '.print-table th { background: #f1f5f9; border: 1px solid #94a3b8; padding: 5px 6px; font-weight: 700; text-align: left; }' +
+        '.print-table td { border: 1px solid #cbd5e1; padding: 4.5px 6px; vertical-align: middle; }' +
+        '.print-table tfoot td { background: #f8fafc; font-weight: 800; border-top: 2px solid #0f172a; padding: 6px; }' +
+        '.print-sig-container { width: 100%; margin-top: 15px; page-break-inside: avoid; }' +
+        '.print-sig-table { width: 100%; border-collapse: collapse; }' +
+        '.print-sig-col { text-align: center; width: 30%; }' +
+        '.print-sig-space { height: 50px; }' +
+        '.print-sig-name { font-weight: 800; text-decoration: underline; font-size: 8pt; }' +
+        '.print-sig-role { font-size: 7pt; color: #64748b; }';
+
+      var rowsHtml = '';
+      res.items.forEach(function (item, idx) {
+        rowsHtml += '<tr>' +
+          '<td style="text-align: center;">' + (idx + 1) + '</td>' +
+          '<td style="text-align: center; font-family: monospace;">' + escapeHTML(item.id || '-') + '</td>' +
+          '<td><strong>' + escapeHTML(item.name || '-') + '</strong></td>' +
+          '<td>' + escapeHTML(item.dept || '-') + '</td>' +
+          '<td>' + escapeHTML(item.jabatan || '-') + '</td>' +
+          '<td style="text-align: center;">' + escapeHTML(item.namaBank || '-') + '</td>' +
+          '<td style="text-align: center; font-family: monospace; font-weight: bold;">' + escapeHTML(item.noRekening || '-') + '</td>' +
+          '<td>' + escapeHTML(item.atasNamaRekening || item.name || '-') + '</td>' +
+          '<td style="text-align: right; font-weight: bold; font-family: monospace;">' + formatRupiahVal(item.thp || 0) + '</td>' +
+          '</tr>';
+      });
+
+      var printDocHtml = '<div class="print-container">' +
+        // KOP
+        '<div class="print-kop">' +
+        '  <table><tr>' +
+        '    <td>' +
+        '      <div class="print-kop-title">BERKAH SMART</div>' +
+        '      <div class="print-kop-sub">Portal Kepegawaian &amp; Penggajian Karyawan</div>' +
+        '    </td>' +
+        '    <td style="text-align: right;">' +
+        '      <span class="print-doc-badge">DOKUMEN REKAPITULASI TRANSFER GAJI</span>' +
+        '      <div style="font-size: 7pt; color: #64748b; margin-top: 3px;">Dicetak: ' + escapeHTML(tglCetak) + '</div>' +
+        '    </td>' +
+        '  </tr></table>' +
+        '</div>' +
+
+        // JUDUL
+        '<div class="print-title-box">' +
+        '  <h3>DAFTAR NOMINATIF TRANSFER GAJI BERSIH (PAYROLL THP)</h3>' +
+        '  <div class="print-meta-line">' +
+        '    Periode: <strong>' + escapeHTML(pNama) + '</strong> &nbsp;|&nbsp; ' +
+        '    Departemen: <strong>' + escapeHTML(deptName) + '</strong> &nbsp;|&nbsp; ' +
+        '    Status: <strong>' + escapeHTML(res.periode ? (res.periode.status || (res.periode.isActive ? 'Aktif' : 'Tutup Buku')) : '-') + '</strong>' +
+        '  </div>' +
+        '</div>' +
+
+        // RINGKASAN
+        '<table style="width: 100%; margin-bottom: 10px; border-collapse: collapse;"><tr>' +
+        '  <td style="width: 48%; border: 1px solid #cbd5e1; padding: 6px 12px; text-align: center; background: #f8fafc;">' +
+        '    <span style="font-size: 7pt; color: #64748b; text-transform: uppercase; font-weight: bold; display: block;">Total Karyawan</span>' +
+        '    <strong style="font-size: 10pt; color: #0f172a;">' + (res.totalKaryawan || res.items.length) + ' Orang</strong>' +
+        '  </td>' +
+        '  <td style="width: 4%;"></td>' +
+        '  <td style="width: 48%; border: 1px solid #2563eb; padding: 6px 12px; text-align: center; background: #eff6ff;">' +
+        '    <span style="font-size: 7pt; color: #1e40af; text-transform: uppercase; font-weight: bold; display: block;">Total Dana Transfer Bersih (THP)</span>' +
+        '    <strong style="font-size: 10pt; color: #1e40af;">' + formatRupiahVal(res.grandTotalTHP || 0) + '</strong>' +
+        '  </td>' +
+        '</tr></table>' +
+
+        // TABEL
+        '<table class="print-table">' +
+        '  <thead>' +
+        '    <tr>' +
+        '      <th style="width: 25px; text-align: center;">No</th>' +
+        '      <th style="width: 75px; text-align: center;">NIK / ID</th>' +
+        '      <th>Nama Karyawan</th>' +
+        '      <th style="width: 110px;">Departemen</th>' +
+        '      <th style="width: 100px;">Jabatan</th>' +
+        '      <th style="width: 75px; text-align: center;">Bank</th>' +
+        '      <th style="width: 120px; text-align: center;">Nomor Rekening</th>' +
+        '      <th style="width: 130px;">Atas Nama Rekening</th>' +
+        '      <th style="width: 125px; text-align: right;">Nominal THP (Rp)</th>' +
+        '    </tr>' +
+        '  </thead>' +
+        '  <tbody>' +
+        rowsHtml +
+        '  </tbody>' +
+        '  <tfoot>' +
+        '    <tr>' +
+        '      <td colspan="8" style="text-align: right; text-transform: uppercase; font-size: 8pt;">GRAND TOTAL TRANSFER DANA:</td>' +
+        '      <td style="text-align: right; font-size: 8.5pt; font-family: monospace;">' + formatRupiahVal(res.grandTotalTHP || 0) + '</td>' +
+        '    </tr>' +
+        '  </tfoot>' +
+        '</table>' +
+
+        // TANDA TANGAN (HANYA DIBUAT OLEH)
+        '<div class="print-sig-container">' +
+        '  <table class="print-sig-table"><tr>' +
+        '    <td style="width: 65%;"></td>' +
+        '    <td class="print-sig-col">' +
+        '      <div style="font-size: 7.5pt; color: #475569; margin-bottom: 2px;">Dibuat Oleh,</div>' +
+        '      <div class="print-sig-space"></div>' +
+        '      <div class="print-sig-name">' + escapeHTML(res.pembuat || 'Staff Payroll / HRD') + '</div>' +
+        '      <div class="print-sig-role">Staff Payroll &amp; HRD</div>' +
+        '      <div style="font-size: 6.5pt; color: #94a3b8; margin-top: 2px;">' + escapeHTML(tglCetak) + '</div>' +
+        '    </td>' +
+        '  </tr></table>' +
+        '</div>' +
+        '</div>';
+
+      var iframeId = 'print-rekap-payroll-iframe';
+      var iframe = document.getElementById(iframeId);
+      if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = iframeId;
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+      }
+
+      var doc = iframe.contentWindow || iframe.contentDocument;
+      if (doc.document) doc = doc.document;
+
+      doc.open();
+      doc.write('<!DOCTYPE html><html><head><title>Rekap_Transfer_Payroll_' + escapeHTML(deptName) + '<\/title><style>' + cssPrint + '<\/style><\/head><body>' + printDocHtml + '<\/body><\/html>');
+      doc.close();
+
+      setTimeout(function () {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (e) {
+          console.warn('Iframe print failed:', e);
+          window.print();
+        }
+      }, 250);
+    };
+
+    // Export Rekap Transfer ke Excel (.xlsx)
+    window.exportRekapPayrollToExcel = function () {
+      if (typeof XLSX === 'undefined') {
+        Swal.fire('Error', 'Library SheetJS (XLSX) belum siap dimuat.', 'error');
+        return;
+      }
+
+      if (!cachedRekapPayrollData || !cachedRekapPayrollData.items || cachedRekapPayrollData.items.length === 0) {
+        Swal.fire('Peringatan', 'Tidak ada data rekap gaji yang dapat diexport.', 'warning');
+        return;
+      }
+
+      var res = cachedRekapPayrollData;
+      var pNama = res.periode ? (res.periode.nama || res.periode.name || res.periode.id) : '-';
+      var deptName = (res.dept === 'SEMUA' || !res.dept) ? 'Semua Departemen' : res.dept;
+
+      var aoaData = [
+        ['DAFTAR NOMINATIF TRANSFER GAJI BERSIH (PAYROLL THP)'],
+        ['PT. BERKAH BATU BARA / BERKAH SMART'],
+        ['Periode:', pNama, '', 'Departemen:', deptName, '', 'Tanggal Export:', res.generatedAt || safeFormatDateDMY(new Date())],
+        [],
+        ['No', 'NIK / ID', 'Nama Karyawan', 'Departemen', 'Jabatan', 'Bank', 'Nomor Rekening', 'Atas Nama Rekening', 'Nominal Transfer THP (Rp)']
+      ];
+
+      res.items.forEach(function (item, idx) {
+        aoaData.push([
+          idx + 1,
+          item.id || '',
+          item.name || '',
+          item.dept || '',
+          item.jabatan || '',
+          item.namaBank || '',
+          item.noRekening || '',
+          item.atasNamaRekening || item.name || '',
+          Number(item.thp) || 0
+        ]);
+      });
+
+      // Total Row
+      aoaData.push([]);
+      aoaData.push(['GRAND TOTAL TRANSFER DANA', '', '', '', '', '', '', '', Number(res.grandTotalTHP) || 0]);
+      aoaData.push([]);
+      aoaData.push(['', '', '', '', '', '', 'Dibuat Oleh:', '', '']);
+      aoaData.push(['', '', '', '', '', '', res.pembuat || 'Staff Payroll / HRD', '', '']);
+      aoaData.push(['', '', '', '', '', '', 'Staff Payroll & HRD', '', '']);
+
+      var ws = XLSX.utils.aoa_to_sheet(aoaData);
+
+      // Setting lebar kolom
+      ws['!cols'] = [
+        { wch: 6 },  // No
+        { wch: 14 }, // NIK
+        { wch: 25 }, // Nama
+        { wch: 18 }, // Dept
+        { wch: 18 }, // Jabatan
+        { wch: 12 }, // Bank
+        { wch: 20 }, // No Rekening
+        { wch: 25 }, // Atas Nama
+        { wch: 20 }  // THP
+      ];
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Rekap Transfer THP');
+
+      var cleanDept = String(deptName).replace(/[^a-zA-Z0-9]/g, '_');
+      var cleanPeriode = String(pNama).replace(/[^a-zA-Z0-9]/g, '_');
+      var filename = 'Rekap_Transfer_Payroll_' + cleanDept + '_' + cleanPeriode + '.xlsx';
+
+      XLSX.writeFile(wb, filename);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil Diexport',
+        text: 'File ' + filename + ' berhasil diunduh.',
+        timer: 1800,
+        showConfirmButton: false
+      });
     };
 
   })();

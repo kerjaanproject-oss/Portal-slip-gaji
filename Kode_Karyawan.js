@@ -40,7 +40,10 @@ function getInitialData(token) {
         bpjsKesNominal: Number(userData[i][13]) || 0,
         bpjsTKSetting: String(userData[i][14] || 'Tidak Ikut').trim(),
         bpjsTKNominal: Number(userData[i][15]) || 0,
-        pph21Nominal: Number(userData[i][16]) || 0
+        pph21Nominal: Number(userData[i][16]) || 0,
+        namaBank: String(userData[i][17] || '').trim(),
+        noRekening: String(userData[i][18] || '').trim(),
+        atasNamaRekening: String(userData[i][19] || '').trim()
       });
     }
   }
@@ -347,7 +350,10 @@ function saveKaryawan(token, payload) {
         Number(payload.bpjsKesNominal) || 0, // Col 14 BPJS Kes Nominal
         payload.bpjsTKSetting || 'Tidak Ikut', // Col 15 BPJS TK Setting
         Number(payload.bpjsTKNominal) || 0, // Col 16 BPJS TK Nominal
-        Number(payload.pph21Nominal) || 0 // Col 17 PPh 21 Nominal
+        Number(payload.pph21Nominal) || 0, // Col 17 PPh 21 Nominal
+        String(payload.namaBank || '').trim(), // Col 18 Nama Bank
+        String(payload.noRekening || '').trim(), // Col 19 Nomor Rekening
+        String(payload.atasNamaRekening || '').trim() // Col 20 Atas Nama Rekening
       ]);
     } else {
       // Edit Karyawan (ID bisa diubah)
@@ -389,6 +395,9 @@ function saveKaryawan(token, payload) {
       userSheet.getRange(foundIndex, 15).setValue(payload.bpjsTKSetting || 'Tidak Ikut');
       userSheet.getRange(foundIndex, 16).setValue(Number(payload.bpjsTKNominal) || 0);
       userSheet.getRange(foundIndex, 17).setValue(Number(payload.pph21Nominal) || 0);
+      userSheet.getRange(foundIndex, 18).setValue(String(payload.namaBank || '').trim());
+      userSheet.getRange(foundIndex, 19).setValue(String(payload.noRekening || '').trim());
+      userSheet.getRange(foundIndex, 20).setValue(String(payload.atasNamaRekening || '').trim());
 
       // Sync SlipGaji records (update ID & Nama Karyawan)
       const slipSheet = ss.getSheetByName('SlipGaji');
@@ -571,6 +580,9 @@ function importKaryawanBatch(token, karyawanList) {
       const role = (roleStr === 'admin' || roleStr === 'hrd') ? 'Admin' : 'Karyawan';
       const rawGaji = k.gajiPokok || k['Gaji Pokok'] || k['Basic'] || k['Gaji'] || 0;
       const gajiPokok = Number(String(rawGaji).replace(/[^\d]/g, '')) || 0;
+      const namaBank = String(k.namaBank || k.bank || k['Nama Bank'] || k['Bank'] || '').trim();
+      const noRekening = String(k.noRekening || k.rekening || k['Nomor Rekening'] || k['No Rekening'] || k['No. Rekening'] || '').trim();
+      const atasNamaRekening = String(k.atasNamaRekening || k.atasNama || k['Atas Nama Rekening'] || k['Atas Nama'] || '').trim();
 
       const existingRow = existingMap[empId];
 
@@ -583,8 +595,11 @@ function importKaryawanBatch(token, karyawanList) {
         }
         userSheet.getRange(existingRow, 6).setValue(role);
         userSheet.getRange(existingRow, 12).setValue(gajiPokok);
+        if (namaBank) userSheet.getRange(existingRow, 18).setValue(namaBank);
+        if (noRekening) userSheet.getRange(existingRow, 19).setValue(noRekening);
+        if (atasNamaRekening) userSheet.getRange(existingRow, 20).setValue(atasNamaRekening);
       } else {
-        userSheet.appendRow([empId, empName, jabatan, dept, hashedPass, role, '', new Date(), 'Non-Roster', '', '', gajiPokok]);
+        userSheet.appendRow([empId, empName, jabatan, dept, hashedPass, role, '', new Date(), 'Non-Roster', '', '', gajiPokok, 'Tidak Ikut', 0, 'Tidak Ikut', 0, 0, namaBank, noRekening, atasNamaRekening]);
         existingMap[empId] = userSheet.getLastRow();
       }
       successCount++;

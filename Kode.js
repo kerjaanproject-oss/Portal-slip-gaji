@@ -62,7 +62,8 @@ const ALLOWED_PROTECTED_ACTIONS = [
   'updatePengajuanSPL',
   'getApprovedSPLForSalaryInput',
   'syncApprovedSPLForPeriod',
-  'savePotonganGaji'
+  'savePotonganGaji',
+  'getLaporanRekapPayroll'
 ];
 
 function doGet(e) {

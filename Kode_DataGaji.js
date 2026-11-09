@@ -2380,3 +2380,103 @@ function savePotonganGaji(token, payload) {
     }
   };
 }
+
+/**
+ * READ API: Laporan Rekapitulasi Payroll (Hanya THP / Nominal Bersih Transfer Bank)
+ * Filter berdasarkan Periode Payroll dan Departemen.
+ */
+function getLaporanRekapPayroll(token, idPeriode, dept) {
+  const session = validateSession(token);
+  if (!session.valid) return { success: false, message: session.message, sessionExpired: true };
+
+  const userRole = String(session.user.role || '').trim().toLowerCase();
+  const isHRD = (userRole === 'admin' || userRole === 'hrd');
+  if (!isHRD) {
+    return { success: false, message: 'Akses ditolak: Hanya Admin / HRD yang berwenang mengakses laporan rekapitulasi gaji.' };
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Ambil mapping rekening karyawan dari sheet Users
+  const userSheet = ss.getSheetByName('Users');
+  const uData = userSheet ? userSheet.getDataRange().getValues() : [];
+  const userMap = {};
+  for (let u = 1; u < uData.length; u++) {
+    const uId = String(uData[u][0] || '').trim().toLowerCase();
+    if (uId) {
+      userMap[uId] = {
+        namaBank: String(uData[u][17] || '').trim(),
+        noRekening: String(uData[u][18] || '').trim(),
+        atasNamaRekening: String(uData[u][19] || '').trim()
+      };
+    }
+  }
+
+  // Ambil info periode
+  const pRes = getPeriodePayrollList(token);
+  const periods = pRes.success ? pRes.list : [];
+  let targetPeriod = null;
+  if (idPeriode && idPeriode !== 'SEMUA' && idPeriode !== 'AKTIF') {
+    targetPeriod = periods.find(function (p) { return p.id === String(idPeriode).trim(); });
+  } else {
+    targetPeriod = pRes.activePeriod || (periods.length > 0 ? periods[0] : null);
+  }
+
+  if (!targetPeriod) {
+    return { success: false, message: 'Periode payroll tidak ditemukan.' };
+  }
+
+  const dgRes = getDataGaji(token, dept, 'SEMUA', targetPeriod.id);
+  if (!dgRes.success) return dgRes;
+
+  const rawEmployees = dgRes.employees || [];
+  const selectedDept = String(dept || 'SEMUA').trim();
+
+  const reportItems = [];
+  let grandTotalTHP = 0;
+
+  for (let i = 0; i < rawEmployees.length; i++) {
+    const emp = rawEmployees[i];
+    if (selectedDept !== 'SEMUA') {
+      const empDept = String(emp.dept || '').trim().toLowerCase();
+      if (empDept !== selectedDept.toLowerCase()) continue;
+    }
+
+    const uInfo = userMap[String(emp.id || '').trim().toLowerCase()] || {};
+    const bankName = uInfo.namaBank || '-';
+    const noRek = uInfo.noRekening || '-';
+    const atasNama = uInfo.atasNamaRekening || emp.name;
+    const thp = Number(emp.takeHomePay) || 0;
+
+    grandTotalTHP += thp;
+
+    reportItems.push({
+      id: emp.id,
+      name: emp.name,
+      dept: emp.dept || '-',
+      jabatan: emp.jabatan || '-',
+      namaBank: bankName,
+      noRekening: noRek,
+      atasNamaRekening: atasNama,
+      thp: thp
+    });
+  }
+
+  // Urutkan berdasarkan Departemen lalu Nama Karyawan
+  reportItems.sort(function (a, b) {
+    const cmpDept = String(a.dept || '').localeCompare(String(b.dept || ''));
+    if (cmpDept !== 0) return cmpDept;
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
+
+  return {
+    success: true,
+    periode: targetPeriod,
+    dept: selectedDept,
+    items: reportItems,
+    totalKaryawan: reportItems.length,
+    grandTotalTHP: grandTotalTHP,
+    generatedAt: Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd MMMM yyyy HH:mm'),
+    pembuat: String(session.user.fullname || session.user.username || 'Staff Payroll / HRD')
+  };
+}

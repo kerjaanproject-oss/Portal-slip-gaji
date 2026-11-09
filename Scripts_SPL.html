@@ -9,6 +9,8 @@
     var currentApprovalTab = 'pending';
     var currentPageRiwayatSPL = 1;
     var pageSizeRiwayatSPL = 10;
+    var currentPagePersetujuanSPL = 1;
+    var pageSizePersetujuanSPL = 10;
     var bsModalDetailSPL = null;
     var bsModalApprovalSPL = null;
     var bsModalCetakSuratSPL = null;
@@ -759,43 +761,70 @@
 
     // --- HAPUS / BATAL SPL ---
 
-    window.confirmHapusSPL = function (splId) {
+    window.confirmHapusSPL = function (splId, isFromPersetujuan) {
       var item = dbSPLList.find(function (s) { return s.id === splId; });
-      if (item && item.status === 'Disetujui') {
-        Swal.fire('Peringatan', 'SPL ' + splId + ' yang sudah disetujui penuh tidak dapat dihapus.', 'warning');
+      var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : {};
+      var userRole = String(user.role || '').toLowerCase();
+      var currentUsername = String(user.username || '').toLowerCase();
+      var isAdminOrHRD = (userRole === 'admin' || userRole === 'hrd' || currentUsername === 'admin');
+      var isSupervisor = (userRole === 'supervisor' || userRole === 'atasan');
+      var canDeleteApproved = (isAdminOrHRD || isSupervisor);
+
+      if (item && item.status === 'Disetujui' && !canDeleteApproved) {
+        Swal.fire('Peringatan', 'SPL ' + splId + ' yang sudah disetujui penuh hanya dapat dihapus oleh Atasan atau HRD.', 'warning');
         return;
       }
 
+      var confirmTitle = (item && (item.status === 'Disetujui' || item.status === 'Ditolak'))
+        ? 'Hapus Data Persetujuan SPL?'
+        : 'Hapus Pengajuan SPL?';
+
+      var confirmHtml = (item && item.status === 'Disetujui')
+        ? 'Pengajuan SPL <strong class="text-danger font-monospace">' + escapeHTML(splId) + '</strong> yang telah disetujui akan dihapus permanen dari sistem.<br><small class="text-muted">Tindakan ini tidak dapat dibatalkan.</small>'
+        : 'Pengajuan SPL <strong class="text-danger font-monospace">' + escapeHTML(splId) + '</strong> akan dihapus dari sistem.<br><small class="text-muted">Tindakan ini tidak dapat dibatalkan.</small>';
+
       Swal.fire({
-        title: 'Hapus Pengajuan SPL?',
-        text: 'Pengajuan SPL ' + splId + ' akan dihapus dari sistem.',
+        title: confirmTitle,
+        html: confirmHtml,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Ya, Hapus',
+        confirmButtonText: '<i class="bi bi-trash3 me-1"></i>Ya, Hapus',
         cancelButtonText: 'Batal',
         confirmButtonColor: '#dc2626',
         cancelButtonColor: '#64748b'
       }).then(function (result) {
         if (result.isConfirmed) {
-          showFullPageLoading('Menghapus pengajuan SPL...');
+          showFullPageLoading('Menghapus data SPL...');
           gasRun('deletePengajuanSPL', Auth.getToken(), splId).then(function (res) {
             hideFullPageLoading();
             if (handleSessionExpired(res)) return;
             if (res && res.success) {
-              Swal.fire('Berhasil', res.message, 'success');
-              loadRiwayatSPL();
-            } else {
-              // Jika hapus database ditolak hak akses, batalkan pengajuan sebagai fallback
-              gasRun('batalPengajuanSPL', Auth.getToken(), splId).then(function (fallbackRes) {
-                if (fallbackRes && fallbackRes.success) {
-                  Swal.fire('Berhasil', fallbackRes.message, 'success');
-                  loadRiwayatSPL();
-                } else {
-                  Swal.fire('Gagal', (res && res.message) || (fallbackRes && fallbackRes.message) || 'Gagal menghapus pengajuan.', 'error');
-                }
-              }).catch(function () {
-                Swal.fire('Gagal', (res && res.message) || 'Terjadi kesalahan.', 'error');
+              Swal.fire({
+                icon: 'success',
+                title: 'Berhasil Dihapus',
+                text: res.message || 'Data SPL berhasil dihapus.',
+                timer: 1800,
+                showConfirmButton: false
               });
+              loadPersetujuanSPL();
+              loadRiwayatSPL(true);
+            } else {
+              // Jika hapus database ditolak hak akses (misal karyawan biasa), coba fallback batalkan pengajuan (hanya jika belum Disetujui)
+              if (item && item.status !== 'Disetujui') {
+                gasRun('batalPengajuanSPL', Auth.getToken(), splId).then(function (fallbackRes) {
+                  if (fallbackRes && fallbackRes.success) {
+                    Swal.fire('Berhasil Dibatalkan', fallbackRes.message, 'success');
+                    loadPersetujuanSPL();
+                    loadRiwayatSPL(true);
+                  } else {
+                    Swal.fire('Gagal', (res && res.message) || (fallbackRes && fallbackRes.message) || 'Gagal menghapus pengajuan.', 'error');
+                  }
+                }).catch(function () {
+                  Swal.fire('Gagal', (res && res.message) || 'Terjadi kesalahan.', 'error');
+                });
+              } else {
+                Swal.fire('Gagal', (res && res.message) || 'Gagal menghapus data pengajuan SPL.', 'error');
+              }
             }
           }).catch(function (err) {
             hideFullPageLoading();
@@ -892,6 +921,35 @@
         }
       }
 
+      var btnHapusModal = document.getElementById('btnHapusFromDetailSPL');
+      if (btnHapusModal) {
+        var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : {};
+        var userRole = String(user.role || '').toLowerCase();
+        var currentUsername = String(user.username || '').toLowerCase();
+        var isAdminOrHRD = (userRole === 'admin' || userRole === 'hrd' || currentUsername === 'admin');
+        var isSupervisor = (userRole === 'supervisor' || userRole === 'atasan');
+        var isOwner = String(item.empId || '').toLowerCase() === currentUsername;
+
+        var canDeleteInDetail = false;
+        if (isAdminOrHRD || isSupervisor) {
+          canDeleteInDetail = true;
+        } else if (isOwner && item.status !== 'Disetujui') {
+          canDeleteInDetail = true;
+        }
+
+        if (canDeleteInDetail) {
+          btnHapusModal.classList.remove('d-none');
+          btnHapusModal.onclick = function () {
+            if (bsModalDetailSPL) bsModalDetailSPL.hide();
+            setTimeout(function () {
+              confirmHapusSPL(item.id, true);
+            }, 300);
+          };
+        } else {
+          btnHapusModal.classList.add('d-none');
+        }
+      }
+
       if (!bsModalDetailSPL) {
         bsModalDetailSPL = new bootstrap.Modal(document.getElementById('modalDetailSPL'));
       }
@@ -902,6 +960,7 @@
 
     window.setApprovalSPLTab = function (tabName, btnEl) {
       currentApprovalTab = tabName;
+      currentPagePersetujuanSPL = 1;
       document.querySelectorAll('.btn-tab-spl').forEach(function (b) {
         b.classList.remove('active', 'btn-primary');
         b.classList.add('btn-outline-secondary');
@@ -912,6 +971,70 @@
       }
       renderPersetujuanSPLTable();
     };
+
+    window.setPersetujuanSPLPage = function (pageNum) {
+      currentPagePersetujuanSPL = pageNum;
+      renderPersetujuanSPLTable();
+    };
+
+    window.handleFilterPersetujuanSPLChange = function () {
+      currentPagePersetujuanSPL = 1;
+      renderPersetujuanSPLTable();
+    };
+
+    window.resetFilterPersetujuanSPL = function () {
+      var searchNamaEl = document.getElementById('searchApprovalNama');
+      var filterTglEl = document.getElementById('filterApprovalTanggal');
+      if (searchNamaEl) searchNamaEl.value = '';
+      if (filterTglEl) filterTglEl.value = '';
+      currentPagePersetujuanSPL = 1;
+      renderPersetujuanSPLTable();
+    };
+
+    function renderPaginationPersetujuanSPL(totalItems, currentPage) {
+      var container = document.getElementById('paginationPersetujuanSPL');
+      if (!container) return;
+
+      var totalPages = Math.ceil(totalItems / pageSizePersetujuanSPL) || 1;
+      if (totalItems === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      var startItem = (currentPage - 1) * pageSizePersetujuanSPL + 1;
+      var endItem = Math.min(currentPage * pageSizePersetujuanSPL, totalItems);
+
+      var html = '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top bg-white">' +
+        '<div class="extra-small text-muted fw-semibold">' +
+        'Menampilkan ' + startItem + ' - ' + endItem + ' dari ' + totalItems + ' data SPL' +
+        '</div>' +
+        '<nav><ul class="pagination pagination-sm m-0">';
+
+      if (currentPage === 1) {
+        html += '<li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-left"></i></span></li>';
+      } else {
+        html += '<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="setPersetujuanSPLPage(' + (currentPage - 1) + ')"><i class="bi bi-chevron-left"></i></a></li>';
+      }
+
+      for (var p = 1; p <= totalPages; p++) {
+        if (p === currentPage) {
+          html += '<li class="page-item active"><span class="page-link">' + p + '</span></li>';
+        } else if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
+          html += '<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="setPersetujuanSPLPage(' + p + ')">' + p + '</a></li>';
+        } else if (p === 2 || p === totalPages - 1) {
+          html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        }
+      }
+
+      if (currentPage === totalPages || totalPages === 0) {
+        html += '<li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-right"></i></span></li>';
+      } else {
+        html += '<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="setPersetujuanSPLPage(' + (currentPage + 1) + ')"><i class="bi bi-chevron-right"></i></a></li>';
+      }
+
+      html += '</ul></nav></div>';
+      container.innerHTML = html;
+    }
 
     window.loadPersetujuanSPL = function () {
       var tbody = document.getElementById('tableBodyPersetujuanSPL');
@@ -927,9 +1050,13 @@
           renderPersetujuanSPLTable();
         } else {
           if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">' + escapeHTML(res.message || 'Gagal memuat data') + '</td></tr>';
+          var pag = document.getElementById('paginationPersetujuanSPL');
+          if (pag) pag.innerHTML = '';
         }
       }).catch(function (err) {
         if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Error: ' + escapeHTML(err.toString()) + '</td></tr>';
+        var pag = document.getElementById('paginationPersetujuanSPL');
+        if (pag) pag.innerHTML = '';
       });
     };
 
@@ -937,10 +1064,16 @@
       var tbody = document.getElementById('tableBodyPersetujuanSPL');
       if (!tbody) return;
 
-      var user = Auth.getUser();
+      var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : {};
       var currentUsername = String(user.username || '').toLowerCase();
       var userRole = String(user.role || '').toLowerCase();
-      var isAdminOrHRD = (userRole === 'admin' || userRole === 'hrd');
+      var isAdminOrHRD = (userRole === 'admin' || userRole === 'hrd' || currentUsername === 'admin');
+
+      var searchNamaEl = document.getElementById('searchApprovalNama');
+      var searchNama = (searchNamaEl ? searchNamaEl.value : '').toLowerCase().trim();
+
+      var filterTglEl = document.getElementById('filterApprovalTanggal');
+      var filterTgl = filterTglEl ? filterTglEl.value : '';
 
       // Filter daftar sesuai tab
       var filtered = dbSPLList.filter(function (item) {
@@ -958,17 +1091,61 @@
         return true; // semua
       });
 
+      // Filter pencarian nama karyawan / ID / No SPL / Dept / Jabatan
+      if (searchNama) {
+        filtered = filtered.filter(function (item) {
+          var nama = String(item.namaKaryawan || '').toLowerCase();
+          var empId = String(item.empId || '').toLowerCase();
+          var splId = String(item.id || '').toLowerCase();
+          var dept = String(item.dept || '').toLowerCase();
+          var jabatan = String(item.jabatan || '').toLowerCase();
+          var uraian = String(item.uraianPekerjaan || '').toLowerCase();
+          return nama.indexOf(searchNama) !== -1 ||
+            empId.indexOf(searchNama) !== -1 ||
+            splId.indexOf(searchNama) !== -1 ||
+            dept.indexOf(searchNama) !== -1 ||
+            jabatan.indexOf(searchNama) !== -1 ||
+            uraian.indexOf(searchNama) !== -1;
+        });
+      }
+
+      // Filter tanggal pelaksanaan lembur atau pengajuan
+      if (filterTgl) {
+        var filterTglDMY = formatDateDMY(filterTgl);
+        filtered = filtered.filter(function (item) {
+          var itemTglLembur = String(item.tanggalLembur || '').split('T')[0].split(' ')[0];
+          var itemTglLemburDMY = formatDateDMY(item.tanggalLembur);
+
+          var itemTglPengajuan = String(item.tanggalPengajuan || '').split('T')[0].split(' ')[0];
+          var itemTglPengajuanDMY = formatDateDMY(item.tanggalPengajuan);
+
+          return (itemTglLembur === filterTgl || itemTglLemburDMY === filterTglDMY || itemTglLemburDMY === filterTgl ||
+                  itemTglPengajuan === filterTgl || itemTglPengajuanDMY === filterTglDMY || itemTglPengajuanDMY === filterTgl);
+        });
+      }
+
       if (filtered.length === 0) {
+        var isFiltered = !!(searchNama || filterTgl);
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-5">' +
-          '<div class="mb-2"><i class="bi bi-check2-all fs-2 text-success"></i></div>' +
-          '<div class="fw-semibold">Tidak ada data persetujuan SPL pada tab ini</div>' +
-          '<small class="text-muted">Semua permohonan telah selesai diproses.</small>' +
+          '<div class="mb-2"><i class="bi ' + (isFiltered ? 'bi-funnel text-secondary' : 'bi-check2-all text-success') + ' fs-2"></i></div>' +
+          '<div class="fw-semibold">' + (isFiltered ? 'Tidak ada data SPL yang sesuai filter' : 'Tidak ada data persetujuan SPL pada tab ini') + '</div>' +
+          '<small class="text-muted">' + (isFiltered ? 'Coba ubah kata kunci nama atau tanggal pencarian, atau klik tombol Reset.' : 'Semua permohonan telah selesai diproses.') + '</small>' +
           '</td></tr>';
+        renderPaginationPersetujuanSPL(0, 1);
         return;
       }
 
+      var totalItems = filtered.length;
+      var totalPages = Math.ceil(totalItems / pageSizePersetujuanSPL) || 1;
+      if (currentPagePersetujuanSPL > totalPages) currentPagePersetujuanSPL = totalPages;
+      if (currentPagePersetujuanSPL < 1) currentPagePersetujuanSPL = 1;
+
+      var startIdx = (currentPagePersetujuanSPL - 1) * pageSizePersetujuanSPL;
+      var pageData = filtered.slice(startIdx, startIdx + pageSizePersetujuanSPL);
+
       var html = '';
-      filtered.forEach(function (item, idx) {
+      pageData.forEach(function (item, idx) {
+        var rowNum = startIdx + idx + 1;
         var isPendingForMe = false;
         if (isAdminOrHRD && (item.status === 'Menunggu Persetujuan HRD' || item.status === 'Menunggu Persetujuan Atasan')) {
           isPendingForMe = true;
@@ -977,9 +1154,10 @@
         }
 
         var statusBadge = getSPLStatusBadgeHtml(item.status);
+        var canDeleteThis = (item.status === 'Disetujui' || item.status === 'Ditolak');
 
         html += '<tr>' +
-          '<td class="text-center text-muted small">' + (idx + 1) + '</td>' +
+          '<td class="text-center text-muted small">' + rowNum + '</td>' +
           '<td><strong class="font-monospace text-primary">' + escapeHTML(item.id) + '</strong><br><small class="text-muted extra-small">' + escapeHTML(formatDateDMY(item.tanggalPengajuan)) + '</small></td>' +
           '<td><div class="fw-bold text-dark">' + escapeHTML(item.namaKaryawan) + '</div><small class="text-muted">' + escapeHTML(item.empId) + ' • ' + escapeHTML(item.dept) + ' (' + escapeHTML(item.jabatan) + ')</small></td>' +
           '<td><div class="fw-semibold text-dark">' + escapeHTML(formatDateDMY(item.tanggalLembur)) + '</div><small class="text-muted font-monospace">' + escapeHTML(formatRentangJamLembur(item.jamMulai, item.jamSelesai)) + '</small></td>' +
@@ -995,14 +1173,19 @@
             '    Detail' +
             '  </button>' +
           (item.status === 'Disetujui' ?
-            '  <button type="button" class="btn btn-sm btn-outline-danger btn-spl-action" onclick="openModalCetakSuratSPL(\'' + escapeHTML(item.id) + '\')" title="Export Dokumen SPL ke PDF">' +
+            '  <button type="button" class="btn btn-sm btn-outline-danger btn-spl-action me-1" onclick="openModalCetakSuratSPL(\'' + escapeHTML(item.id) + '\')" title="Export Dokumen SPL ke PDF">' +
             '    Export PDF' +
+            '  </button>' : '') +
+          (canDeleteThis ?
+            '  <button type="button" class="btn btn-sm btn-outline-danger btn-spl-action" onclick="confirmHapusSPL(\'' + escapeHTML(item.id) + '\', true)" title="Hapus Data Persetujuan SPL">' +
+            '    <i class="bi bi-trash3 me-1"></i>Hapus' +
             '  </button>' : '') +
           '</td>' +
           '</tr>';
       });
 
       tbody.innerHTML = html;
+      renderPaginationPersetujuanSPL(totalItems, currentPagePersetujuanSPL);
     }
 
     window.openModalApprovalSPL = function (splId) {

@@ -35,6 +35,15 @@ function ensureUserSheetColumns(userSheet) {
   if (lastCol < 17) {
     userSheet.getRange(1, 17).setValue('PPh 21 Nominal').setFontWeight('bold').setBackground('#e2e8f0');
   }
+  if (lastCol < 18) {
+    userSheet.getRange(1, 18).setValue('Nama Bank').setFontWeight('bold').setBackground('#e2e8f0');
+  }
+  if (lastCol < 19) {
+    userSheet.getRange(1, 19).setValue('Nomor Rekening').setFontWeight('bold').setBackground('#e2e8f0');
+  }
+  if (lastCol < 20) {
+    userSheet.getRange(1, 20).setValue('Atas Nama Rekening').setFontWeight('bold').setBackground('#e2e8f0');
+  }
 }
 
 // --- INITIAL DATABASE SETUP ---

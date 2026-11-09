@@ -23,7 +23,7 @@
 
   <!-- Google Apps Script Deployment API URL -->
   <script>
-    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbzpDxp9-TRAAJlw1nmQMA6UXcxwTyWejXVcHwDb-yM5YCz5drv-ltNL6pNW8f66_kui/exec";
+    window.GAS_API_URL = "https://script.google.com/macros/s/AKfycbxQMgNB0Gf8qZiI_nQqrPiObrQJ9-nFiqIIoSl8XyUiTDZ6Ef95VvIhERSfTmmuAU3C/exec";
   </script>
   <!-- Instant Theme Initializer (Anti-FOUC) -->
   <script>
@@ -1020,6 +1020,14 @@
                       <span>Export Excel</span>
                     </button>
                     <button type="button"
+                      class="btn btn-warning text-dark btn-sm fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1.5 flex-fill flex-xl-grow-0"
+                      onclick="openModalLaporanRekapPayroll()"
+                      title="Cetak Laporan Rekapitulasi Gaji Bersih (THP) / Daftar Transfer Bank untuk Atasan"
+                      style="height: 38px; padding: 0.35rem 0.85rem; border-radius: 0.5rem; white-space: nowrap;">
+                      <i class="bi bi-printer-fill"></i>
+                      <span>Cetak Rekap Transfer</span>
+                    </button>
+                    <button type="button"
                       class="btn btn-outline-danger btn-sm fw-semibold shadow-sm d-flex align-items-center justify-content-center gap-1.5 flex-fill flex-xl-grow-0"
                       id="btnTutupBukuPayroll" onclick="confirmTutupBukuDataGaji()"
                       title="Tutup buku periode yang sedang aktif"
@@ -1358,29 +1366,36 @@
           </div>
 
           <!-- SUMMARY CARDS -->
-          <div class="row g-2 g-md-3 mb-3">
-            <div class="col-6 col-md-3">
+          <div class="row row-cols-2 row-cols-sm-3 row-cols-xl-5 g-2 g-md-3 mb-3">
+            <div class="col">
               <div class="card border-0 shadow-sm p-3 h-100 bg-white">
                 <span class="text-muted extra-small fw-semibold text-uppercase">Gaji Pokok</span>
                 <h6 class="fw-bold text-dark mt-1 mb-0" id="gajiSayaPokok">Rp 0</h6>
                 <small class="text-muted extra-small" id="gajiSayaEmpInfo">-</small>
               </div>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col">
               <div class="card border-0 shadow-sm p-3 h-100 bg-white">
                 <span class="text-muted extra-small fw-semibold text-uppercase">Total Overtime</span>
                 <h6 class="fw-bold text-primary mt-1 mb-0" id="gajiSayaTotOt">Rp 0</h6>
                 <small class="text-muted extra-small" id="gajiSayaJamOt">0 Jam Lembur</small>
               </div>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col">
+              <div class="card border-0 shadow-sm p-3 h-100 bg-white">
+                <span class="text-muted extra-small fw-semibold text-uppercase">Total Lembur SPL</span>
+                <h6 class="fw-bold text-warning mt-1 mb-0" id="gajiSayaTotSPL">Rp 0</h6>
+                <small class="text-muted extra-small" id="gajiSayaJamSPL">0 Jam SPL</small>
+              </div>
+            </div>
+            <div class="col">
               <div class="card border-0 shadow-sm p-3 h-100 bg-white">
                 <span class="text-muted extra-small fw-semibold text-uppercase">Total Ritase</span>
                 <h6 class="fw-bold text-info mt-1 mb-0" id="gajiSayaTotRit">Rp 0</h6>
                 <small class="text-muted extra-small" id="gajiSayaJmlRit">0 Ritase</small>
               </div>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col">
               <div class="card border-0 shadow-sm p-3 h-100 bg-white">
                 <span class="text-muted extra-small fw-semibold text-uppercase">Total Tunjangan</span>
                 <h6 class="fw-bold text-secondary mt-1 mb-0" id="gajiSayaTotTunj">Rp 0</h6>
@@ -1399,7 +1414,8 @@
                   <i class="bi bi-shield-check me-1"></i>Estimasi Gaji Berjalan Saat Ini
                 </span>
                 <h3 class="fw-bold mb-0 text-white" id="gajiSayaGrandTotal">Rp 0</h3>
-                <small class="text-white-50 extra-small">Akumulasi: Gaji Pokok + Overtime + Ritase + Tunjangan</small>
+                <small class="text-white-50 extra-small">Akumulasi: Gaji Pokok + Overtime + Lembur SPL + Ritase +
+                  Tunjangan</small>
               </div>
               <div class="text-md-end">
                 <span class="text-white-50 extra-small d-block">Jumlah Hari Kerja Tercatat</span>
@@ -1438,12 +1454,13 @@
               <div class="table-responsive"
                 style="overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y !important; overscroll-behavior-x: contain !important;">
                 <table class="table table-hover align-middle mb-0"
-                  style="font-size: 0.85rem; width: 100%; min-width: 800px;">
+                  style="font-size: 0.85rem; width: 100%; min-width: 880px;">
                   <thead class="text-white text-uppercase extra-small fw-bold">
                     <tr>
                       <th class="text-center text-nowrap" style="width: 45px;">No</th>
                       <th class="text-nowrap" style="min-width: 140px;">Tanggal Kerja</th>
                       <th class="text-end text-nowrap" style="min-width: 120px;">Overtime</th>
+                      <th class="text-end text-nowrap" style="min-width: 120px;">Lembur SPL</th>
                       <th class="text-end text-nowrap" style="min-width: 110px;">Ritase</th>
                       <th class="text-end text-nowrap" style="min-width: 110px;">Tunjangan</th>
                       <th class="text-end text-nowrap" style="min-width: 130px;">Total Hari Itu</th>
@@ -1452,11 +1469,37 @@
                   </thead>
                   <tbody id="tableBodyGajiSaya">
                     <tr>
-                      <td colspan="7" class="text-center text-muted py-4">Memuat data rincian gaji Anda...</td>
+                      <td colspan="8" class="text-center text-muted py-4">Memuat data rincian gaji Anda...</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            <!-- KONTROL PAGINATION RINCIAN GAJI SAYA -->
+            <div id="paginationContainerGajiSaya"
+              class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top bg-light">
+              <div class="d-flex align-items-center gap-2">
+                <span class="extra-small text-muted fw-semibold" id="gajiSayaPaginationInfo">
+                  Menampilkan 0 - 0 dari 0 Catatan
+                </span>
+                <div class="d-flex align-items-center gap-1">
+                  <span class="extra-small text-muted d-none d-sm-inline">Tampil:</span>
+                  <select id="selectGajiSayaPageSize"
+                    class="form-select form-select-sm py-0 px-2 extra-small fw-semibold border-secondary-subtle"
+                    style="width: auto; height: 26px; font-size: 0.75rem;"
+                    onchange="changePageSizeGajiSaya(this.value)">
+                    <option value="10" selected>10 / hal</option>
+                    <option value="20">20 / hal</option>
+                    <option value="31">31 / hal (1 Bulan)</option>
+                    <option value="ALL">Semua</option>
+                  </select>
+                </div>
+              </div>
+              <nav aria-label="Navigasi Halaman Rincian Gaji Saya">
+                <ul class="pagination pagination-sm m-0 shadow-2xs" id="gajiSayaPaginationList">
+                </ul>
+              </nav>
             </div>
 
             <div class="card-footer bg-light p-3 border-top">
@@ -1763,7 +1806,7 @@
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <button type="button" class="btn btn-light btn-sm fw-semibold px-3 py-2 shadow-sm"
                   onclick="loadPersetujuanSPL()">
-                  <i class="bi bi-arrow-clockwise me-1.5"></i>Segarkan Data
+                  <i class="bi bi-arrow-clockwise me-1.5"></i>Refresh Data
                 </button>
               </div>
             </div>
@@ -1791,8 +1834,40 @@
 
           <div class="card border-0 shadow-sm" style="border-radius: 1rem;">
             <div class="card-header bg-white py-3 px-4 border-bottom">
-              <h6 class="fw-bold m-0 text-dark"><i class="bi bi-shield-check text-primary me-2"></i>Daftar Permohonan
-                SPL Masuk</h6>
+              <div class="row g-2 align-items-center">
+                <div class="col-12 col-lg-4">
+                  <h6 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-shield-check text-primary me-2"></i>Daftar Permohonan SPL Masuk
+                  </h6>
+                </div>
+                <!-- Pencarian Nama Karyawan / ID -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0 text-muted">
+                      <i class="bi bi-person-search text-primary"></i>
+                    </span>
+                    <input type="text" id="searchApprovalNama" class="form-control border-start-0 ps-0"
+                      placeholder="Cari nama karyawan / ID..." oninput="handleFilterPersetujuanSPLChange()">
+                  </div>
+                </div>
+                <!-- Filter Tanggal SPL -->
+                <div class="col-8 col-sm-4 col-lg-3">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0 text-muted">
+                      <i class="bi bi-calendar-event text-primary"></i>
+                    </span>
+                    <input type="date" id="filterApprovalTanggal" class="form-control border-start-0 ps-0 fw-medium"
+                      onchange="handleFilterPersetujuanSPLChange()" title="Filter Tanggal Pelaksanaan SPL">
+                  </div>
+                </div>
+                <!-- Tombol Reset Filter -->
+                <div class="col-4 col-sm-2 col-lg-2 d-flex justify-content-end">
+                  <button type="button" class="btn btn-sm btn-outline-secondary w-100 fw-semibold"
+                    onclick="resetFilterPersetujuanSPL()" title="Reset pencarian nama & tanggal">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                  </button>
+                </div>
+              </div>
             </div>
             <div class="card-body p-0">
               <div
@@ -1816,7 +1891,7 @@
                       <th>Durasi</th>
                       <th>Uraian Tugas</th>
                       <th>Status</th>
-                      <th class="text-center text-nowrap" style="min-width: 165px;">Tindakan</th>
+                      <th class="text-center text-nowrap" style="min-width: 215px;">Tindakan</th>
                     </tr>
                   </thead>
                   <tbody id="tableBodyPersetujuanSPL">
@@ -1829,6 +1904,8 @@
                   </tbody>
                 </table>
               </div>
+              <!-- Kontrol Pagination Persetujuan SPL -->
+              <div id="paginationPersetujuanSPL"></div>
             </div>
           </div>
         </div>
@@ -3111,6 +3188,40 @@
                 </div>
               </div>
             </div>
+            <!-- INFORMASI REKENING BANK (PAYROLL TRANSFER) -->
+            <div class="p-2.5 rounded-3 border bg-light mb-3" style="border-left: 3px solid #10b981 !important;">
+              <div class="fw-bold extra-small text-dark mb-2 text-uppercase d-flex align-items-center gap-1.5">
+                <i class="bi bi-bank text-success"></i> Informasi Rekening Bank (Payroll Transfer)
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-5">
+                  <label class="form-label extra-small fw-semibold text-muted mb-1">Nama Bank</label>
+                  <input type="text" id="empNamaBank" class="form-control form-control-sm"
+                    placeholder="BCA / Mandiri / BRI..." list="listPilihanBank">
+                  <datalist id="listPilihanBank">
+                    <option value="BCA">
+                    <option value="Mandiri">
+                    <option value="BRI">
+                    <option value="BNI">
+                    <option value="BSI">
+                    <option value="CIMB Niaga">
+                    <option value="Permata">
+                    <option value="Danamon">
+                  </datalist>
+                </div>
+                <div class="col-7">
+                  <label class="form-label extra-small fw-semibold text-muted mb-1">Nomor Rekening</label>
+                  <input type="text" id="empNoRekening" class="form-control form-control-sm font-monospace"
+                    placeholder="Contoh: 1234567890">
+                </div>
+              </div>
+              <div>
+                <label class="form-label extra-small fw-semibold text-muted mb-1">Atas Nama Rekening</label>
+                <input type="text" id="empAtasNamaRekening" class="form-control form-control-sm"
+                  placeholder="Nama pemilik rekening sesuai buku tabungan...">
+              </div>
+            </div>
+
             <div class="mb-3">
               <label class="form-label small fw-semibold">Email Karyawan (Untuk Reset Password OTP)</label>
               <input type="email" id="empEmail" class="form-control form-control-sm"
@@ -4130,6 +4241,251 @@
     </div>
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- MODAL: LAPORAN REKAPITULASI TRANSFER GAJI (PAYROLL THP) UNTUK ATASAN       -->
+  <!-- ========================================================================= -->
+  <div class="modal fade" id="modalLaporanRekapPayroll" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-fullscreen-lg-down modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem;">
+        <div class="modal-header bg-light py-2.5 px-3 px-md-4 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-warning-subtle text-dark d-flex align-items-center justify-content-center"
+              style="width: 36px; height: 36px;">
+              <i class="bi bi-cash-coin fs-5 text-warning"></i>
+            </div>
+            <div>
+              <h6 class="modal-title fw-bold text-dark mb-0">Laporan Rekapitulasi Transfer Gaji (THP)</h6>
+              <small class="text-muted extra-small">Daftar transfer nominal bersih gaji per departemen untuk pengajuan
+                ke atasan / bank</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+
+        <div class="modal-body p-3 p-md-4 bg-slate-50" style="background-color: #f8fafc;">
+          <!-- FILTER CONTROLS DI DALAM MODAL -->
+          <div class="card border-0 shadow-xs mb-3 p-3 bg-white" style="border-radius: 0.75rem;">
+            <div class="row g-2 align-items-end">
+              <div class="col-12 col-md-5">
+                <label class="form-label extra-small fw-bold text-muted mb-1 text-uppercase">Pilih Periode
+                  Payroll:</label>
+                <select id="selectRekapPayrollPeriode"
+                  class="form-select form-select-sm fw-bold border-primary shadow-xs"
+                  onchange="loadDataLaporanRekapPayroll()">
+                  <option value="AKTIF">Memuat daftar periode...</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label extra-small fw-bold text-muted mb-1 text-uppercase">Filter Departemen:</label>
+                <select id="selectRekapPayrollDept" class="form-select form-select-sm fw-semibold shadow-xs"
+                  onchange="loadDataLaporanRekapPayroll()">
+                  <option value="SEMUA">-- Semua Departemen --</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-3">
+                <label
+                  class="form-label extra-small fw-bold text-muted mb-1 text-uppercase d-none d-md-block">Aksi:</label>
+                <button type="button"
+                  class="btn btn-outline-primary btn-sm fw-semibold w-100 shadow-xs d-flex align-items-center justify-content-center gap-1.5"
+                  onclick="loadDataLaporanRekapPayroll()" style="height: 31px;">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  <span>Muat Ulang</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- LEMBAR KERTAS PRATINJAU DOKUMEN CETAK (A4 LANDSCAPE STYLE) -->
+          <div class="bg-white p-3 p-md-4 rounded-3 shadow-sm border mx-auto" id="rekapPayrollPaperArea"
+            style="max-width: 1050px; min-height: 500px; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif;">
+
+            <!-- KOP DOKUMEN LAPORAN -->
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3 flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-3">
+                <div class="p-2 rounded-3 bg-light border d-flex align-items-center justify-content-center"
+                  style="width: 52px; height: 52px;">
+                  <i class="bi bi-shield-check text-primary fs-3"></i>
+                </div>
+                <div>
+                  <h5 class="fw-bold mb-0 text-dark tracking-wide">BERKAH SMART</h5>
+                  <small class="text-muted extra-small text-uppercase fw-semibold tracking-wider d-block">
+                    Portal Kepegawaian &amp; Penggajian Karyawan
+                  </small>
+                </div>
+              </div>
+              <div class="text-md-end">
+                <span class="badge bg-primary text-white px-2.5 py-1 extra-small fw-bold text-uppercase">
+                  DOKUMEN TRANSFER PAYROLL
+                </span>
+                <div class="extra-small text-muted mt-1">Dicetak: <span id="rekapPrintMetaTanggal"
+                    class="fw-semibold text-dark">-</span></div>
+              </div>
+            </div>
+
+            <!-- JUDUL BESAR & INFO PERIODE -->
+            <div class="text-center my-3">
+              <h5 class="fw-bold text-dark text-uppercase mb-1 tracking-wider" style="letter-spacing: 0.5px;">
+                DAFTAR NOMINATIF TRANSFER GAJI BERSIH (PAYROLL THP)
+              </h5>
+            </div>
+
+            <!-- BADGE INFO PERIODE & STATUS (BISA DIGESER KE SAMPING / SWIPE HORIZONTAL DI HP) -->
+            <div
+              class="d-flex align-items-center justify-content-start justify-content-md-center gap-1.5 overflow-x-auto flex-nowrap py-1 mb-2.5 scroll-mobile-x"
+              style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
+              <span class="badge bg-light text-dark border px-2.5 py-1.5 text-nowrap extra-small fw-medium shadow-2xs">
+                <i class="bi bi-calendar3 text-primary me-1"></i>Periode: <strong id="rekapPrintMetaPeriode"
+                  class="text-dark">-</strong>
+              </span>
+              <span class="badge bg-light text-dark border px-2.5 py-1.5 text-nowrap extra-small fw-medium shadow-2xs">
+                <i class="bi bi-building text-primary me-1"></i>Departemen: <strong id="rekapPrintMetaDept"
+                  class="text-dark">-</strong>
+              </span>
+              <span
+                class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 text-nowrap extra-small fw-bold shadow-2xs">
+                <i class="bi bi-patch-check-fill me-1"></i>Status: <strong id="rekapPrintMetaStatus">-</strong>
+              </span>
+            </div>
+
+            <!-- KPI SUMMARY MINI (BADGE BISA DIGESER KE SAMPING / HORIZONTAL SWIPE DI HP) -->
+            <div class="d-flex flex-nowrap overflow-x-auto gap-2 mb-3 pb-1 scroll-mobile-x"
+              style="-webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory;">
+              <div class="flex-shrink-0 flex-grow-1" style="min-width: 175px; scroll-snap-align: start;">
+                <div class="p-2.5 rounded-2 bg-light border text-center h-100 shadow-2xs">
+                  <span class="extra-small text-muted d-block text-uppercase fw-semibold text-truncate">Jumlah
+                    Karyawan</span>
+                  <strong class="fs-6 text-dark" id="rekapKpiTotalKaryawan">0 Orang</strong>
+                </div>
+              </div>
+              <div class="flex-shrink-0 flex-grow-1" style="min-width: 255px; scroll-snap-align: start;">
+                <div
+                  class="p-2.5 rounded-2 bg-primary bg-opacity-10 border border-primary border-opacity-25 text-center h-100 shadow-2xs">
+                  <span class="extra-small text-primary d-block text-uppercase fw-semibold text-truncate">Total Bersih
+                    yang Ditransfer (THP)</span>
+                  <strong class="fs-6 text-primary fw-bold" id="rekapKpiGrandTotal">Rp 0</strong>
+                </div>
+              </div>
+              <div class="flex-shrink-0 flex-grow-1 d-md-none" style="min-width: 180px; scroll-snap-align: start;">
+                <div class="p-2.5 rounded-2 bg-light border text-center h-100 shadow-2xs">
+                  <span class="extra-small text-muted d-block text-uppercase fw-semibold text-truncate">Status
+                    Dokumen</span>
+                  <span
+                    class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 mt-1 fw-bold"
+                    id="rekapKpiMobileStatus">TERBUKA</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- PETUNJUK GESER UNTUK MODE MOBILE / HP -->
+            <div
+              class="d-md-none alert alert-light border border-primary-subtle py-1.5 px-2.5 mb-2.5 d-flex align-items-center justify-content-between rounded-2 shadow-2xs"
+              style="background-color: #f0f7ff;">
+              <div class="d-flex align-items-center gap-1.5 text-primary extra-small fw-semibold">
+                <i class="bi bi-arrows-expand-vertical fs-6" style="transform: rotate(90deg);"></i>
+                <span>Tabel &amp; badge dapat digeser ke samping</span>
+              </div>
+              <span class="badge bg-primary text-white extra-small px-2 py-0.5 rounded-pill">
+                Geser &rarr;
+              </span>
+            </div>
+
+            <!-- TABEL DAFTAR TRANSFER GAJI (DAPAT DIGESER KE SAMPING DENGAN SCROLL HALUS) -->
+            <div class="table-responsive mb-4 shadow-2xs border rounded-2 scroll-mobile-x"
+              style="overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y;">
+              <table class="table table-bordered table-sm align-middle mb-0"
+                style="font-size: 0.8rem; border-color: #cbd5e1; min-width: 960px; white-space: nowrap;">
+                <thead class="table-light text-center" style="border-bottom: 2px solid #94a3b8; font-size: 0.74rem;">
+                  <tr>
+                    <th style="width: 40px;">No</th>
+                    <th style="width: 95px;">NIK / ID</th>
+                    <th style="min-width: 150px;" class="text-start">Nama Karyawan</th>
+                    <th style="min-width: 110px;" class="text-start">Departemen</th>
+                    <th style="min-width: 120px;" class="text-start">Jabatan</th>
+                    <th style="width: 90px;">Bank</th>
+                    <th style="min-width: 130px;">Nomor Rekening</th>
+                    <th style="min-width: 140px;" class="text-start">Atas Nama Rekening</th>
+                    <th style="width: 135px;" class="text-end">Nominal Transfer (THP)</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBodyRekapPayroll">
+                  <tr>
+                    <td colspan="9" class="text-center text-muted py-4">
+                      <div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat rekapitulasi gaji...
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot class="table-light fw-bold">
+                  <tr>
+                    <td colspan="8" class="text-end text-dark pe-3">
+                      GRAND TOTAL TRANSFER DANA:
+                    </td>
+                    <td class="text-end text-primary fw-bold fs-6" id="rekapTableFooterGrandTotal">
+                      Rp 0
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <!-- KONTROL PAGINATION LAPORAN REKAP GAJI -->
+            <div id="paginationContainerRekapPayroll"
+              class="d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 px-3 border rounded-2 bg-light mb-4 shadow-2xs">
+              <div class="d-flex align-items-center gap-2">
+                <span class="extra-small text-muted fw-semibold" id="rekapPaginationInfo">
+                  Menampilkan 0 - 0 dari 0 Karyawan
+                </span>
+                <div class="d-flex align-items-center gap-1">
+                  <span class="extra-small text-muted d-none d-sm-inline">Tampil:</span>
+                  <select id="selectRekapPayrollPageSize"
+                    class="form-select form-select-sm py-0 px-2 extra-small fw-semibold border-secondary-subtle"
+                    style="width: auto; height: 26px; font-size: 0.75rem;"
+                    onchange="changePageSizeRekapPayroll(this.value)">
+                    <option value="10" selected>10 / hal</option>
+                    <option value="25">25 / hal</option>
+                    <option value="50">50 / hal</option>
+                    <option value="ALL">Semua</option>
+                  </select>
+                </div>
+              </div>
+              <nav aria-label="Navigasi Halaman Rekap Payroll">
+                <ul class="pagination pagination-sm m-0 shadow-2xs" id="rekapPaginationList">
+                </ul>
+              </nav>
+            </div>
+
+            <!-- KOLOM PENGESAHAN DOKUMEN: HANYA 'DIBUAT OLEH' -->
+            <div class="row mt-4 pt-2">
+              <div class="col-7 col-sm-8"></div>
+              <div class="col-5 col-sm-4 text-center">
+                <div class="extra-small fw-semibold text-muted mb-1">Dibuat Oleh,</div>
+                <div style="height: 55px;"></div>
+                <div class="fw-bold text-dark text-decoration-underline" id="rekapSignNamaPembuat">Staff Payroll / HRD
+                </div>
+                <div class="extra-small text-muted" id="rekapSignJabatanPembuat">Staff Payroll &amp; HRD</div>
+                <div class="extra-small text-muted mt-0.5" id="rekapSignTanggalDoc">-</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="modal-footer bg-light py-2 px-3 px-md-4 d-flex justify-content-between align-items-center">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success btn-sm fw-semibold shadow-sm"
+              onclick="exportRekapPayrollToExcel()" title="Download Laporan Rekap Transfer ke Excel (.xlsx)">
+              <i class="bi bi-file-earmark-excel-fill me-1.5"></i>Export Excel
+            </button>
+            <button type="button" class="btn btn-primary btn-sm fw-semibold shadow-sm"
+              onclick="printRekapPayrollDocument()" title="Cetak atau Simpan sebagai PDF">
+              <i class="bi bi-printer-fill me-1.5"></i>Cetak Laporan PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: DEPARTEMEN -->
   <div class="modal fade" id="modalDepartemen" tabindex="-1">
     <div class="modal-dialog">
@@ -4789,9 +5145,15 @@
         </div>
         <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-          <button type="button" class="btn btn-success btn-sm fw-semibold shadow-sm d-none" id="btnCetakFromDetailSPL">
-            <i class="bi bi-file-earmark-pdf-fill me-1"></i>Export Jadi PDF
-          </button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-danger btn-sm fw-semibold d-none" id="btnHapusFromDetailSPL">
+              <i class="bi bi-trash3 me-1"></i>Hapus SPL
+            </button>
+            <button type="button" class="btn btn-success btn-sm fw-semibold shadow-sm d-none"
+              id="btnCetakFromDetailSPL">
+              <i class="bi bi-file-earmark-pdf-fill me-1"></i>Export Jadi PDF
+            </button>
+          </div>
         </div>
       </div>
     </div>

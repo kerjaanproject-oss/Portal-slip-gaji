@@ -696,7 +696,7 @@ function updatePengajuanSPL(token, payload) {
 }
 
 /**
- * WRITE API: Hapus SPL dari Database (Admin / HRD atau Karyawan Pemilik sebelum Disetujui)
+ * WRITE API: Hapus SPL dari Database (Admin, HRD, Atasan / Supervisor, atau Karyawan Pemilik)
  */
 function deletePengajuanSPL(token, splId) {
   const session = validateSession(token);
@@ -704,7 +704,13 @@ function deletePengajuanSPL(token, splId) {
 
   const currentUsername = String(session.user.username || '').trim().toLowerCase();
   const userRole = String(session.user.role || '').trim().toLowerCase();
-  const isHRD = (userRole === 'admin' || userRole === 'hrd' || currentUsername === 'admin');
+  const userDept = String(session.user.dept || '').trim().toLowerCase();
+  const userJab = String(session.user.jabatan || '').trim().toLowerCase();
+
+  const isAdmin = (userRole === 'admin' || userRole === 'admin master' || currentUsername === 'admin');
+  const isHRD = (isAdmin || userRole === 'hrd' || (typeof cleanDept === 'function' ? cleanDept(userDept) === 'hrd' : userDept.includes('hr')));
+  const isSupervisor = (typeof isJobAtasan === 'function') ? isJobAtasan(userRole, userJab) : (userRole === 'supervisor' || userRole === 'atasan');
+  const isApprover = (isHRD || isSupervisor);
 
   splId = String(splId || '').trim();
   if (!splId) return { success: false, message: 'ID SPL tidak valid.' };
@@ -717,20 +723,30 @@ function deletePengajuanSPL(token, splId) {
   const headers = data[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
   const idIdx = headers.findIndex(function (h) { return h.includes('id spl') || h === 'id'; });
   const empIdIdx = headers.findIndex(function (h) { return h.includes('id karyawan') || h.includes('nik') || h === 'username'; });
+  const deptIdx = headers.findIndex(function (h) { return h.includes('departemen') || h.includes('dept'); });
   const statusIdx = headers.findIndex(function (h) { return h.includes('status'); });
 
   for (let i = 1; i < data.length; i++) {
     const rowId = idIdx !== -1 ? String(data[i][idIdx] || '').trim() : String(data[i][0] || '').trim();
     if (rowId === splId) {
       const rowEmpId = empIdIdx !== -1 ? String(data[i][empIdIdx] || '').trim().toLowerCase() : '';
+      const rowDept = deptIdx !== -1 ? String(data[i][deptIdx] || '').trim() : '';
       const currentStatus = statusIdx !== -1 ? String(data[i][statusIdx] || '').trim() : '';
+      const matchDept = (typeof isSameDept === 'function') ? isSameDept(userDept, rowDept) : (userDept === rowDept.toLowerCase());
 
-      if (!isHRD && rowEmpId !== currentUsername) {
+      const isOwner = (rowEmpId === currentUsername);
+      const isDeptSupervisor = (isSupervisor && (matchDept || !rowDept || isHRD));
+
+      // Hak akses hapus:
+      // 1. HRD / Admin: wewenang penuh menghapus data SPL dengan status apapun
+      // 2. Supervisor / Atasan: berhak menghapus pengajuan yang Disetujui, Ditolak, maupun di departemennya
+      // 3. Pemilik (karyawan): hanya boleh membatalkan/menghapus pengajuan miliknya yang belum Disetujui penuh
+      if (!isHRD && !isDeptSupervisor && !isOwner) {
         return { success: false, message: 'Akses ditolak: Anda tidak memiliki wewenang untuk menghapus pengajuan ini.' };
       }
 
-      if (currentStatus === 'Disetujui' && !isHRD) {
-        return { success: false, message: 'SPL yang sudah disetujui penuh tidak dapat dihapus.' };
+      if (currentStatus === 'Disetujui' && !isHRD && !isDeptSupervisor) {
+        return { success: false, message: 'SPL yang sudah disetujui penuh hanya dapat dihapus oleh Atasan atau HRD.' };
       }
 
       splSheet.deleteRow(i + 1);
